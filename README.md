@@ -21,8 +21,11 @@ http://localhost:3000
 - `index.html` — entrada principal.
 - `styles.css` — tablero y UI.
 - `src/constants.js` — constantes y utilidades.
-- `src/rules.js` — motor de reglas.
+- `src/rules` — motor de reglas.
+- `src/ai` — IA del juego.
+- `neural_network_gpu/` — Red neuronal.
 - `src/main.js` — interacción y render.
+- `src/ui` — interfaz.
 
 ## Nota
 La base está lista para jugar en local, con:
