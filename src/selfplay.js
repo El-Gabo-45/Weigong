@@ -251,7 +251,9 @@ function appendCurseNotation(state) {
         const loc = `${COLS[act.c]}${13 - act.r}`;
         parts.push(`${sym}${loc}`);
       }
-      suffix += parts.join('&') + '-';
+      if (parts.length > 0) {
+        suffix += '&' + parts.join('&') + '-';
+      }
     }
   }
   return suffix || '';

@@ -136,7 +136,9 @@ function appendCurseNotation(state) {
         const loc = `${COLS[act.c]}${13 - act.r}`;
         parts.push(`${sym}${loc}`);
       }
-      suffix += parts.join('&') + '-';
+      if (parts.length > 0) {
+        suffix += '&' + parts.join('&') + '-';
+      }
     }
   }
   return suffix || '';
@@ -411,7 +413,7 @@ function renderReserve(container, side) {
   }
 }
 function pieceGlyph(type) { return { tower:"塔", general:"師", pawn:"兵", crossbow:"弩" }[type] || "?"; }
-function typeToName(type) { return { tower:"Tower", general:"General", pawn:"Tower", crossbow:"crossbow" }[type] || type; }
+function typeToName(type) { return { tower:"Tower", general:"General", pawn:"Pawn", crossbow:"crossbow" }[type] || type; }
 
 async function finalizeHumanGame() {
   if (V.gameMovesData.length === 0) return;
@@ -473,7 +475,7 @@ function openPromotionModal(piece) {
   promotionChoices.innerHTML = "";
   promotionTitle.textContent = `Promotion for ${typeToName(pieceDisplayType(piece))}`;
   promotionText.textContent = "This piece enters the promotion zone. You can choose to promote it or keep its base state.";
-  const noBtn = document.createElement("button"); noBtn.textContent = "Can't promote";
+  const noBtn = document.createElement("button"); noBtn.textContent = "Don't promote";
   const yesBtn = document.createElement("button"); yesBtn.textContent = "Promote";
   noBtn.addEventListener("click", () => finalizePromotion(false));
   yesBtn.addEventListener("click", () => finalizePromotion(true));
