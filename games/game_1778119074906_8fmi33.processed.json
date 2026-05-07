@@ -1,0 +1,5840 @@
+{
+  "id": 1778119074877,
+  "timestamp": "2026-05-07T01:57:54.877Z",
+  "finalStatus": "playing",
+  "result": "draw",
+  "totalMoves": 343,
+  "moves": [
+    {
+      "turn": 1,
+      "side": "white",
+      "moveKeyStr": "M:11,6->8,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -15,
+      "evalAfter": 25.870890774633942,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49337748344370863,
+        "materialBalance": 0.5,
+        "kingSafety": 0.508833922261484,
+        "centerControl": 0.4
+      },
+      "notation": "AH5",
+      "positionHash": "183963738779050688"
+    },
+    {
+      "turn": 2,
+      "side": "black",
+      "moveKeyStr": "M:2,6->3,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 25.870890774633942,
+      "evalAfter": -20.129109225366058,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49337748344370863,
+        "materialBalance": 0.5,
+        "kingSafety": 0.508833922261484,
+        "centerControl": 0.4
+      },
+      "notation": "pG10",
+      "positionHash": "1254044024512964937"
+    },
+    {
+      "turn": 3,
+      "side": "white",
+      "moveKeyStr": "M:12,6->11,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -20.129109225366058,
+      "evalAfter": 96.20047155511867,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.4885245901639344,
+        "materialBalance": 0.5,
+        "kingSafety": 0.49951436103787983,
+        "centerControl": 0.4
+      },
+      "notation": "KH2",
+      "positionHash": "5983650565978518256"
+    },
+    {
+      "turn": 4,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 96.20047155511867,
+      "evalAfter": -58.77634635173041,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49019607843137253,
+        "materialBalance": 0.5,
+        "kingSafety": 0.49951436103787983,
+        "centerControl": 0.4
+      },
+      "notation": "PE12",
+      "positionHash": "6788450106766166441"
+    },
+    {
+      "turn": 5,
+      "side": "white",
+      "moveKeyStr": "M:12,3->11,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -58.77634635173041,
+      "evalAfter": -34.77634635173041,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49019607843137253,
+        "materialBalance": 0.5,
+        "kingSafety": 0.49951436103787983,
+        "centerControl": 0.4
+      },
+      "notation": "PE2",
+      "positionHash": "18302778946612112"
+    },
+    {
+      "turn": 6,
+      "side": "black",
+      "moveKeyStr": "M:1,6->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -34.77634635173041,
+      "evalAfter": -98.88803356790359,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49019607843137253,
+        "materialBalance": 0.5,
+        "kingSafety": 0.4906805987009319,
+        "centerControl": 0
+      },
+      "notation": "AD13",
+      "positionHash": "8176493714780451817"
+    },
+    {
+      "turn": 7,
+      "side": "white",
+      "moveKeyStr": "M:11,7->12,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -98.88803356790359,
+      "evalAfter": 124.78238956172753,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49504950495049505,
+        "materialBalance": 0.5,
+        "kingSafety": 0.5,
+        "centerControl": 0
+      },
+      "notation": "KG1",
+      "positionHash": "3681074425057175632"
+    },
+    {
+      "turn": 8,
+      "side": "black",
+      "moveKeyStr": "M:1,1->1,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 124.78238956172753,
+      "evalAfter": 72.16273933779377,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5,
+        "materialBalance": 0.5,
+        "kingSafety": 0.508833922261484,
+        "centerControl": 0.4
+      },
+      "notation": "CaF12",
+      "positionHash": "17049676754122044265"
+    },
+    {
+      "turn": 9,
+      "side": "white",
+      "moveKeyStr": "M:12,9->11,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 72.16273933779377,
+      "evalAfter": 93.14015117323835,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.498371335504886,
+        "materialBalance": 0.5,
+        "kingSafety": 0.508833922261484,
+        "centerControl": 0.4
+      },
+      "notation": "PK2",
+      "positionHash": "129380953838198608"
+    },
+    {
+      "turn": 10,
+      "side": "black",
+      "moveKeyStr": "M:0,6->1,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 93.14015117323835,
+      "evalAfter": -29.061011139662906,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5032258064516129,
+        "materialBalance": 0.5,
+        "kingSafety": 0.5148680720368561,
+        "centerControl": 0.4
+      },
+      "notation": "KG12",
+      "positionHash": "18107086943555496665"
+    },
+    {
+      "turn": 11,
+      "side": "white",
+      "moveKeyStr": "M:11,1->11,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -29.061011139662906,
+      "evalAfter": 115.78430902694248,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5064935064935064,
+        "materialBalance": 0.5,
+        "kingSafety": 0.5148680720368561,
+        "centerControl": 0.4
+      },
+      "notation": "CaA2",
+      "positionHash": "2738212197518264368"
+    },
+    {
+      "turn": 12,
+      "side": "black",
+      "moveKeyStr": "M:0,5->4,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 115.78430902694248,
+      "evalAfter": 175.85730809601736,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5235109717868338,
+        "materialBalance": 0.5,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.7272727272727273
+      },
+      "notation": "GJ9",
+      "positionHash": "1217343458988971721"
+    },
+    {
+      "turn": 13,
+      "side": "white",
+      "moveKeyStr": "M:8,7->9,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 175.85730809601736,
+      "evalAfter": 203.75170102166564,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5235109717868338,
+        "materialBalance": 0.5,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.8
+      },
+      "notation": "AE4",
+      "positionHash": "15571079458236445712"
+    },
+    {
+      "turn": 14,
+      "side": "black",
+      "moveKeyStr": "M:0,0->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 203.75170102166564,
+      "evalAfter": 208.83353990368383,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5294117647058824,
+        "materialBalance": 0.5,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.8
+      },
+      "notation": "TA12",
+      "positionHash": "14799451708168522137"
+    },
+    {
+      "turn": 15,
+      "side": "white",
+      "moveKeyStr": "M:12,7->11,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 208.83353990368383,
+      "evalAfter": 206.8715781234705,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5245398773006135,
+        "materialBalance": 0.5,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.7272727272727273
+      },
+      "notation": "GF2",
+      "positionHash": "2986794570277435504"
+    },
+    {
+      "turn": 16,
+      "side": "black",
+      "moveKeyStr": "M:0,1->1,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 206.8715781234705,
+      "evalAfter": 157.83087306362162,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5216049382716049,
+        "materialBalance": 0.5,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.7272727272727273
+      },
+      "notation": "CB12",
+      "positionHash": "11103956450422829529"
+    },
+    {
+      "turn": 17,
+      "side": "white",
+      "moveKeyStr": "M:12,1->2,1:p1",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 157.83087306362162,
+      "evalAfter": -46.72989380424334,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5046153846153846,
+        "materialBalance": 0.4937655860349127,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.7272727272727273
+      },
+      "notation": "RxpB11+",
+      "positionHash": "15707330373483136509"
+    },
+    {
+      "turn": 18,
+      "side": "black",
+      "moveKeyStr": "M:2,8->3,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -46.72989380424334,
+      "evalAfter": -92.72989380424333,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5046153846153846,
+        "materialBalance": 0.4937655860349127,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.7272727272727273
+      },
+      "notation": "pI10",
+      "positionHash": "16180088563248112180"
+    },
+    {
+      "turn": 19,
+      "side": "white",
+      "moveKeyStr": "M:2,1->1,1:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -92.72989380424333,
+      "evalAfter": -896.6910092859266,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.49074074074074076,
+        "materialBalance": 0.47915330339961515,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.5
+      },
+      "notation": "RxcB12",
+      "positionHash": "13945936187908792475"
+    },
+    {
+      "turn": 20,
+      "side": "black",
+      "moveKeyStr": "M:4,9->3,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -896.6910092859266,
+      "evalAfter": -922.3293062645247,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.49074074074074076,
+        "materialBalance": 0.47915330339961515,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.5294117647058824
+      },
+      "notation": "GH10",
+      "positionHash": "10841151926969566098"
+    },
+    {
+      "turn": 21,
+      "side": "white",
+      "moveKeyStr": "M:10,3->9,3:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -922.3293062645247,
+      "evalAfter": -903.3917479949836,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.48623853211009177,
+        "materialBalance": 0.47915330339961515,
+        "kingSafety": 0.506251776072748,
+        "centerControl": 0.5294117647058824
+      },
+      "notation": "pD4",
+      "positionHash": "2426102662749329851"
+    },
+    {
+      "turn": 22,
+      "side": "black",
+      "moveKeyStr": "M:0,7->1,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -903.3917479949836,
+      "evalAfter": -940.5430099880249,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.48936170212765956,
+        "materialBalance": 0.47915330339961515,
+        "kingSafety": 0.4973238825401418,
+        "centerControl": 0.5294117647058824
+      },
+      "notation": "QI12",
+      "positionHash": "15055574046831660514"
+    },
+    {
+      "turn": 23,
+      "side": "white",
+      "moveKeyStr": "M:1,1->2,1:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -940.5430099880249,
+      "evalAfter": -659.1247210349031,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.49696969696969695,
+        "materialBalance": 0.47915330339961515,
+        "kingSafety": 0.4973238825401418,
+        "centerControl": 0.75
+      },
+      "notation": "RB11",
+      "positionHash": "12341779572323365803"
+    },
+    {
+      "turn": 24,
+      "side": "black",
+      "moveKeyStr": "M:0,4->1,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -659.1247210349031,
+      "evalAfter": -671.0826933590333,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5,
+        "materialBalance": 0.47915330339961515,
+        "kingSafety": 0.4973238825401418,
+        "centerControl": 0.75
+      },
+      "notation": "ED12",
+      "positionHash": "11175234623460286866"
+    },
+    {
+      "turn": 25,
+      "side": "white",
+      "moveKeyStr": "M:11,11->7,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -671.0826933590333,
+      "evalAfter": -520.6828801574566,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.49404761904761907,
+        "materialBalance": 0.47915330339961515,
+        "kingSafety": 0.4973238825401418,
+        "centerControl": 0.6428571428571429
+      },
+      "notation": "CaL6",
+      "positionHash": "1040835324464081323"
+    },
+    {
+      "turn": 26,
+      "side": "black",
+      "moveKeyStr": "M:2,2->2,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -520.6828801574566,
+      "evalAfter": -241.20906575905826,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.50920245398773,
+        "materialBalance": 0.4963455149501661,
+        "kingSafety": 0.4973238825401418,
+        "centerControl": 0.6428571428571429
+      },
+      "notation": "pxrB11",
+      "positionHash": "7052101267345501847"
+    },
+    {
+      "turn": 27,
+      "side": "white",
+      "moveKeyStr": "R:0->11,7",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -241.20906575905826,
+      "evalAfter": -471.81426167668434,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.503030303030303,
+        "materialBalance": 0.49274406332453824,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.6428571428571429
+      },
+      "notation": "p*H2",
+      "positionHash": "808203424787310128"
+    },
+    {
+      "turn": 28,
+      "side": "black",
+      "moveKeyStr": "M:2,4->3,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -471.81426167668434,
+      "evalAfter": -517.8142616766843,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.503030303030303,
+        "materialBalance": 0.49274406332453824,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.6428571428571429
+      },
+      "notation": "pE10",
+      "positionHash": "13750225742301959673"
+    },
+    {
+      "turn": 29,
+      "side": "white",
+      "moveKeyStr": "M:11,0->11,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -517.8142616766843,
+      "evalAfter": -517.8771138766338,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.4984984984984985,
+        "materialBalance": 0.49274406332453824,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.6428571428571429
+      },
+      "notation": "CaB2",
+      "positionHash": "7177545567606535952"
+    },
+    {
+      "turn": 30,
+      "side": "black",
+      "moveKeyStr": "M:3,7->7,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -517.8771138766338,
+      "evalAfter": -320.0856746139203,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5128205128205128,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.7272727272727273
+      },
+      "notation": "GxcaL6",
+      "positionHash": "6889063708407245611"
+    },
+    {
+      "turn": 31,
+      "side": "white",
+      "moveKeyStr": "M:11,1->7,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -320.0856746139203,
+      "evalAfter": -332.529400643792,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5079365079365079,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.6153846153846154
+      },
+      "notation": "CaB6",
+      "positionHash": "16668292715152622354"
+    },
+    {
+      "turn": 32,
+      "side": "black",
+      "moveKeyStr": "M:2,10->3,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -332.529400643792,
+      "evalAfter": -378.529400643792,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5079365079365079,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.6153846153846154
+      },
+      "notation": "pK10",
+      "positionHash": "1412485087340732187"
+    },
+    {
+      "turn": 33,
+      "side": "white",
+      "moveKeyStr": "M:12,12->11,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -378.529400643792,
+      "evalAfter": -365.5738463157347,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5047318611987381,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.6153846153846154
+      },
+      "notation": "TM2",
+      "positionHash": "9447875948487073874"
+    },
+    {
+      "turn": 34,
+      "side": "black",
+      "moveKeyStr": "M:1,8->1,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -365.5738463157347,
+      "evalAfter": -122.07233154536512,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5169230769230769,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.5031064670996893,
+        "centerControl": 0.6428571428571429
+      },
+      "notation": "QH12",
+      "positionHash": "4871710494028539099"
+    },
+    {
+      "turn": 35,
+      "side": "white",
+      "moveKeyStr": "M:7,1->7,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -122.07233154536512,
+      "evalAfter": -304.79217496643133,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.513677811550152,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.5031064670996893,
+        "centerControl": 0.4090909090909091
+      },
+      "notation": "CaF6",
+      "positionHash": "17500474469677971426"
+    },
+    {
+      "turn": 36,
+      "side": "black",
+      "moveKeyStr": "M:0,8->1,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -304.79217496643133,
+      "evalAfter": -325.7717359751269,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5151515151515151,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.5031064670996893,
+        "centerControl": 0.4090909090909091
+      },
+      "notation": "EJ12",
+      "positionHash": "3533491088850443195"
+    },
+    {
+      "turn": 37,
+      "side": "white",
+      "moveKeyStr": "M:10,6->9,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -325.7717359751269,
+      "evalAfter": -279.7717359751269,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5151515151515151,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.5031064670996893,
+        "centerControl": 0.4090909090909091
+      },
+      "notation": "pG4",
+      "positionHash": "4547182329857085810"
+    },
+    {
+      "turn": 38,
+      "side": "black",
+      "moveKeyStr": "M:1,5->1,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -279.7717359751269,
+      "evalAfter": -364.734011544887,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5121951219512195,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.35
+      },
+      "notation": "CaC12",
+      "positionHash": "4493841840271106523"
+    },
+    {
+      "turn": 39,
+      "side": "white",
+      "moveKeyStr": "M:11,12->12,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -364.734011544887,
+      "evalAfter": -317.69043054925964,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5153374233128835,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.35
+      },
+      "notation": "TM1",
+      "positionHash": "12599642332419710610"
+    },
+    {
+      "turn": 40,
+      "side": "black",
+      "moveKeyStr": "M:0,3->3,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -317.69043054925964,
+      "evalAfter": -352.2687942903729,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5182926829268293,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.38095238095238093
+      },
+      "notation": "AC10",
+      "positionHash": "8239681041186578827"
+    },
+    {
+      "turn": 41,
+      "side": "white",
+      "moveKeyStr": "M:10,10->9,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -352.2687942903729,
+      "evalAfter": -260.0687942903722,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5182926829268293,
+        "materialBalance": 0.5057549085985105,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.38095238095238093
+      },
+      "notation": "pK4",
+      "positionHash": "15295002412268275522"
+    },
+    {
+      "turn": 42,
+      "side": "black",
+      "moveKeyStr": "M:7,11->10,8:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -260.0687942903722,
+      "evalAfter": 1026.6189030766398,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5321100917431193,
+        "materialBalance": 0.509549795361528,
+        "kingSafety": 0.6935646560419608,
+        "centerControl": 0.6666666666666666
+      },
+      "notation": "GxpI3",
+      "positionHash": "7353620367057275725"
+    },
+    {
+      "turn": 43,
+      "side": "white",
+      "moveKeyStr": "M:12,8->10,8:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 1026.6189030766398,
+      "evalAfter": -1100.1988805836386,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.4967741935483871,
+        "materialBalance": 0.4900709219858156,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.13333333333333333
+      },
+      "notation": "ExgI3",
+      "positionHash": "1235285969283109394"
+    },
+    {
+      "turn": 44,
+      "side": "black",
+      "moveKeyStr": "M:1,4->2,4:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1100.1988805836386,
+      "evalAfter": -976.9833506188306,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.514018691588785,
+        "materialBalance": 0.4900709219858156,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.2777777777777778
+      },
+      "notation": "PE11",
+      "positionHash": "6770608174381068571"
+    },
+    {
+      "turn": 45,
+      "side": "white",
+      "moveKeyStr": "R:0->11,9",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -976.9833506188306,
+      "evalAfter": -1099.4739905520048,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49107142857142855,
+        "materialBalance": 0.4713506139154161,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.25
+      },
+      "notation": "G*J2",
+      "positionHash": "10313804344652089852"
+    },
+    {
+      "turn": 46,
+      "side": "black",
+      "moveKeyStr": "M:3,2->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1099.4739905520048,
+      "evalAfter": -1125.0016999373959,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.4880239520958084,
+        "materialBalance": 0.4713506139154161,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.21052631578947367
+      },
+      "notation": "AD13",
+      "positionHash": "6026431866191869669"
+    },
+    {
+      "turn": 47,
+      "side": "white",
+      "moveKeyStr": "M:9,4->12,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1125.0016999373959,
+      "evalAfter": -1074.615065869472,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49393939393939396,
+        "materialBalance": 0.4713506139154161,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.23529411764705882
+      },
+      "notation": "AD1",
+      "positionHash": "13573716689265334588"
+    },
+    {
+      "turn": 48,
+      "side": "black",
+      "moveKeyStr": "R:0->3,2",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1074.615065869472,
+      "evalAfter": -862.8552773036034,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5014925373134328,
+        "materialBalance": 0.4752877454299255,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.23529411764705882
+      },
+      "notation": "p*C10",
+      "positionHash": "16367732105347836731"
+    },
+    {
+      "turn": 49,
+      "side": "white",
+      "moveKeyStr": "M:12,11->2,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -862.8552773036034,
+      "evalAfter": -1343.1118336174836,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4822485207100592,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.49417852522639066,
+        "centerControl": 0.18181818181818182
+      },
+      "notation": "RxpL11+",
+      "positionHash": "3929072186085735807"
+    },
+    {
+      "turn": 50,
+      "side": "black",
+      "moveKeyStr": "M:1,7->5,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1343.1118336174836,
+      "evalAfter": -1038.599194462858,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5028409090909091,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.484923887587822,
+        "centerControl": 0.3793103448275862
+      },
+      "notation": "QD8",
+      "positionHash": "7934693065717578502"
+    },
+    {
+      "turn": 51,
+      "side": "white",
+      "moveKeyStr": "M:11,9->9,8:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1038.599194462858,
+      "evalAfter": -1085.3005979304367,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.49303621169916434,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.484923887587822,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "GI4",
+      "positionHash": "12232071921527342863"
+    },
+    {
+      "turn": 52,
+      "side": "black",
+      "moveKeyStr": "M:1,11->4,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1085.3005979304367,
+      "evalAfter": -825.6580435014174,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.505586592178771,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.484923887587822,
+        "centerControl": 0.37142857142857144
+      },
+      "notation": "CaL9",
+      "positionHash": "8739044724310881094"
+    },
+    {
+      "turn": 53,
+      "side": "white",
+      "moveKeyStr": "M:11,5->12,7:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -825.6580435014174,
+      "evalAfter": -764.4644399236968,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5098591549295775,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.484923887587822,
+        "centerControl": 0.38235294117647056
+      },
+      "notation": "GH1",
+      "positionHash": "11337352314535035567"
+    },
+    {
+      "turn": 54,
+      "side": "black",
+      "moveKeyStr": "M:5,3->5,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -764.4644399236968,
+      "evalAfter": -824.6561424476486,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5070821529745042,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.484923887587822,
+        "centerControl": 0.5
+      },
+      "notation": "QB8",
+      "positionHash": "16666225020032624630"
+    },
+    {
+      "turn": 55,
+      "side": "white",
+      "moveKeyStr": "M:12,7->11,5:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -824.6561424476486,
+      "evalAfter": -825.8584063994988,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5028089887640449,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.484923887587822,
+        "centerControl": 0.4883720930232558
+      },
+      "notation": "GF2",
+      "positionHash": "241888598626457119"
+    },
+    {
+      "turn": 56,
+      "side": "black",
+      "moveKeyStr": "M:1,2->4,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -825.8584063994988,
+      "evalAfter": -834.4287463897468,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5042016806722689,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.484923887587822,
+        "centerControl": 0.5217391304347826
+      },
+      "notation": "CaC9",
+      "positionHash": "5678132548387665526"
+    },
+    {
+      "turn": 57,
+      "side": "white",
+      "moveKeyStr": "M:12,6->12,7:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -834.4287463897468,
+      "evalAfter": -638.0855994465204,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.5,
+        "materialBalance": 0.46847457627118644,
+        "kingSafety": 0.5033424491036159,
+        "centerControl": 0.5217391304347826
+      },
+      "notation": "KH1",
+      "positionHash": "2293238117594354591"
+    },
+    {
+      "turn": 58,
+      "side": "black",
+      "moveKeyStr": "M:5,1->10,1:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -638.0855994465204,
+      "evalAfter": -1042.888462566791,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.498567335243553,
+        "materialBalance": 0.4719945355191257,
+        "kingSafety": 0.5033424491036159,
+        "centerControl": 0.35294117647058826
+      },
+      "notation": "QxpB3",
+      "positionHash": "16208841005052221424"
+    },
+    {
+      "turn": 59,
+      "side": "white",
+      "moveKeyStr": "M:11,4->7,0:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1042.888462566791,
+      "evalAfter": -1113.2053306800362,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.49014084507042255,
+        "materialBalance": 0.4719945355191257,
+        "kingSafety": 0.5033424491036159,
+        "centerControl": 0.35294117647058826
+      },
+      "notation": "PA6",
+      "positionHash": "717738316837004809"
+    },
+    {
+      "turn": 60,
+      "side": "black",
+      "moveKeyStr": "M:1,6->1,5:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1113.2053306800362,
+      "evalAfter": -1278.8937181401839,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.4887005649717514,
+        "materialBalance": 0.4719945355191257,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.35294117647058826
+      },
+      "notation": "KF12",
+      "positionHash": "6542485288478764736"
+    },
+    {
+      "turn": 61,
+      "side": "white",
+      "moveKeyStr": "M:9,8->11,6:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1278.8937181401839,
+      "evalAfter": -1055.0113457771038,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5,
+        "materialBalance": 0.4719945355191257,
+        "kingSafety": 0.5,
+        "centerControl": 0.42857142857142855
+      },
+      "notation": "GG2",
+      "positionHash": "10948119502612893753"
+    },
+    {
+      "turn": 62,
+      "side": "black",
+      "moveKeyStr": "R:0->3,3",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1055.0113457771038,
+      "evalAfter": -871.2770541966441,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5057142857142857,
+        "materialBalance": 0.4759322033898305,
+        "kingSafety": 0.5,
+        "centerControl": 0.42857142857142855
+      },
+      "notation": "p*D10",
+      "positionHash": "13717318368882834862"
+    },
+    {
+      "turn": 63,
+      "side": "white",
+      "moveKeyStr": "R:0->11,12",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -871.2770541966441,
+      "evalAfter": -1059.9670159404097,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5028409090909091,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5,
+        "centerControl": 0.42857142857142855
+      },
+      "notation": "p*M2",
+      "positionHash": "3906917834341498969"
+    },
+    {
+      "turn": 64,
+      "side": "black",
+      "moveKeyStr": "M:2,4->7,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1059.9670159404097,
+      "evalAfter": -1056.8738094339078,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5111731843575419,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.4906198409125019,
+        "centerControl": 0.5897435897435898
+      },
+      "notation": "PJ6",
+      "positionHash": "6331565187415190400"
+    },
+    {
+      "turn": 65,
+      "side": "white",
+      "moveKeyStr": "M:7,5->7,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1056.8738094339078,
+      "evalAfter": -1076.0738094339067,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5111731843575419,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.4906198409125019,
+        "centerControl": 0.5897435897435898
+      },
+      "notation": "CaG6",
+      "positionHash": "839855887976782409"
+    },
+    {
+      "turn": 66,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1076.0738094339067,
+      "evalAfter": -1067.6043783800646,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5125348189415042,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5,
+        "centerControl": 0.6097560975609756
+      },
+      "notation": "AG12",
+      "positionHash": "8835639755087561264"
+    },
+    {
+      "turn": 67,
+      "side": "white",
+      "moveKeyStr": "M:11,10->10,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1067.6043783800646,
+      "evalAfter": -1173.793303840191,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.5,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5,
+        "centerControl": 0.5434782608695652
+      },
+      "notation": "PK3",
+      "positionHash": "16666379247032650521"
+    },
+    {
+      "turn": 68,
+      "side": "black",
+      "moveKeyStr": "M:10,1->8,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1173.793303840191,
+      "evalAfter": -848.9296307594113,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.5106382978723404,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5,
+        "centerControl": 0.625
+      },
+      "notation": "QD5",
+      "positionHash": "13879470074336560096"
+    },
+    {
+      "turn": 69,
+      "side": "white",
+      "moveKeyStr": "M:11,6->9,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -848.9296307594113,
+      "evalAfter": -465.61656500146944,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.5,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.5645161290322581
+      },
+      "notation": "GI4",
+      "positionHash": "989054022373915929"
+    },
+    {
+      "turn": 70,
+      "side": "black",
+      "moveKeyStr": "M:8,3->7,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -465.61656500146944,
+      "evalAfter": -674.6880417509856,
+      "metrics": {
+        "palacePressure": 0.2,
+        "pieceActivity": 0.49473684210526314,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.5344827586206896
+      },
+      "notation": "QE6",
+      "positionHash": "13755591930554866592"
+    },
+    {
+      "turn": 71,
+      "side": "white",
+      "moveKeyStr": "M:10,8->9,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -674.6880417509856,
+      "evalAfter": -539.8910729242274,
+      "metrics": {
+        "palacePressure": 0.2,
+        "pieceActivity": 0.5026737967914439,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.5740740740740741
+      },
+      "notation": "EJ4",
+      "positionHash": "792238520241610265"
+    },
+    {
+      "turn": 72,
+      "side": "black",
+      "moveKeyStr": "M:2,12->3,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -539.8910729242274,
+      "evalAfter": -585.8912701755221,
+      "metrics": {
+        "palacePressure": 0.2,
+        "pieceActivity": 0.5026595744680851,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.5740740740740741
+      },
+      "notation": "pM10",
+      "positionHash": "15753068650464169168"
+    },
+    {
+      "turn": 73,
+      "side": "white",
+      "moveKeyStr": "M:9,8->11,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -585.8912701755221,
+      "evalAfter": -470.1749242903587,
+      "metrics": {
+        "palacePressure": 0.2,
+        "pieceActivity": 0.5135869565217391,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.62
+      },
+      "notation": "GJ2",
+      "positionHash": "2108416550098792665"
+    },
+    {
+      "turn": 74,
+      "side": "black",
+      "moveKeyStr": "M:1,0->1,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -470.1749242903587,
+      "evalAfter": -497.1749242903587,
+      "metrics": {
+        "palacePressure": 0.2,
+        "pieceActivity": 0.5135869565217391,
+        "materialBalance": 0.47240915208613726,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.62
+      },
+      "notation": "TB12",
+      "positionHash": "18299467761772874416"
+    },
+    {
+      "turn": 75,
+      "side": "white",
+      "moveKeyStr": "M:2,11->4,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -497.1749242903587,
+      "evalAfter": -1397.1436276218014,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.4822888283378747,
+        "materialBalance": 0.4581893572909468,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.6041666666666666
+      },
+      "notation": "RxcaL9",
+      "positionHash": "16460547365917387139"
+    },
+    {
+      "turn": 76,
+      "side": "black",
+      "moveKeyStr": "M:4,2->4,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1397.1436276218014,
+      "evalAfter": -1520.4927412631505,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.48633879781420764,
+        "materialBalance": 0.4581893572909468,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.62
+      },
+      "notation": "CaD9",
+      "positionHash": "785872407887650410"
+    },
+    {
+      "turn": 77,
+      "side": "white",
+      "moveKeyStr": "M:9,9->7,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1520.4927412631505,
+      "evalAfter": -2253.399392842606,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.4519774011299435,
+        "materialBalance": 0.4427860696517413,
+        "kingSafety": 0.5093801590874981,
+        "centerControl": 0.40476190476190477
+      },
+      "notation": "ExpJ6",
+      "positionHash": "667325623215592641"
+    },
+    {
+      "turn": 78,
+      "side": "black",
+      "moveKeyStr": "M:1,6->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2253.399392842606,
+      "evalAfter": -2321.991367780564,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.45042492917847027,
+        "materialBalance": 0.4427860696517413,
+        "kingSafety": 0.5,
+        "centerControl": 0.375
+      },
+      "notation": "AD13",
+      "positionHash": "8681650285132123320"
+    },
+    {
+      "turn": 79,
+      "side": "white",
+      "moveKeyStr": "M:10,4->9,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2321.991367780564,
+      "evalAfter": -2285.0130215583226,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.44886363636363635,
+        "materialBalance": 0.4427860696517413,
+        "kingSafety": 0.5,
+        "centerControl": 0.375
+      },
+      "notation": "pE4",
+      "positionHash": "4063089923627118769"
+    },
+    {
+      "turn": 80,
+      "side": "black",
+      "moveKeyStr": "M:3,2->4,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2285.0130215583226,
+      "evalAfter": -2386.2306571092813,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.4475920679886686,
+        "materialBalance": 0.4427860696517413,
+        "kingSafety": 0.5,
+        "centerControl": 0.375
+      },
+      "notation": "pC9",
+      "positionHash": "15781551345572454168"
+    },
+    {
+      "turn": 81,
+      "side": "white",
+      "moveKeyStr": "M:4,11->9,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2386.2306571092813,
+      "evalAfter": -2136.9748322203004,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4657142857142857,
+        "materialBalance": 0.4427860696517413,
+        "kingSafety": 0.5,
+        "centerControl": 0.42857142857142855
+      },
+      "notation": "RL4",
+      "positionHash": "14653585083977383345"
+    },
+    {
+      "turn": 82,
+      "side": "black",
+      "moveKeyStr": "M:1,9->2,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2136.9748322203004,
+      "evalAfter": -2160.9748322203004,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4657142857142857,
+        "materialBalance": 0.4427860696517413,
+        "kingSafety": 0.5,
+        "centerControl": 0.42857142857142855
+      },
+      "notation": "EI11",
+      "positionHash": "9409633273208295688"
+    },
+    {
+      "turn": 83,
+      "side": "white",
+      "moveKeyStr": "M:12,3->11,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2160.9748322203004,
+      "evalAfter": -1899.9377112238303,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.46839080459770116,
+        "materialBalance": 0.4427860696517413,
+        "kingSafety": 0.5,
+        "centerControl": 0.42857142857142855
+      },
+      "notation": "AA2",
+      "positionHash": "6339880257371465585"
+    },
+    {
+      "turn": 84,
+      "side": "black",
+      "moveKeyStr": "M:0,11->10,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1899.9377112238303,
+      "evalAfter": -1825.5163007218828,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.46449704142011833,
+        "materialBalance": 0.4498220640569395,
+        "kingSafety": 0.5,
+        "centerControl": 0.42857142857142855
+      },
+      "notation": "RxpL3+",
+      "positionHash": "16220518258356806229"
+    },
+    {
+      "turn": 85,
+      "side": "white",
+      "moveKeyStr": "M:7,0->4,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1825.5163007218828,
+      "evalAfter": -2368.0590390594584,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.43478260869565216,
+        "materialBalance": 0.4341142020497804,
+        "kingSafety": 0.5,
+        "centerControl": 0.30303030303030304
+      },
+      "notation": "PxcaD9",
+      "positionHash": "748299233741168518"
+    },
+    {
+      "turn": 86,
+      "side": "black",
+      "moveKeyStr": "M:3,6->4,6:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2368.0590390594584,
+      "evalAfter": -2411.569252457318,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.43478260869565216,
+        "materialBalance": 0.4341142020497804,
+        "kingSafety": 0.5,
+        "centerControl": 0.34285714285714286
+      },
+      "notation": "pG9",
+      "positionHash": "691100467409624495"
+    },
+    {
+      "turn": 87,
+      "side": "white",
+      "moveKeyStr": "M:4,3->5,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2411.569252457318,
+      "evalAfter": -2443.7907848269588,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.42724458204334365,
+        "materialBalance": 0.4341142020497804,
+        "kingSafety": 0.5,
+        "centerControl": 0.2682926829268293
+      },
+      "notation": "PE8",
+      "positionHash": "15045892034076880630"
+    },
+    {
+      "turn": 88,
+      "side": "black",
+      "moveKeyStr": "R:0->4,1",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2443.7907848269588,
+      "evalAfter": -2282.031647018165,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.43425076452599387,
+        "materialBalance": 0.4386347131445171,
+        "kingSafety": 0.5,
+        "centerControl": 0.2682926829268293
+      },
+      "notation": "p*B9",
+      "positionHash": "13039166422968391601"
+    },
+    {
+      "turn": 89,
+      "side": "white",
+      "moveKeyStr": "M:5,4->2,7:p0",
+      "featureKey": "ap:0|pp:1|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2282.031647018165,
+      "evalAfter": -2933.5813559350754,
+      "metrics": {
+        "palacePressure": 0.5319148936170213,
+        "pieceActivity": 0.42901234567901236,
+        "materialBalance": 0.42971014492753623,
+        "kingSafety": 0.5,
+        "centerControl": 0.24489795918367346
+      },
+      "notation": "WxpH11+",
+      "positionHash": "1723863201311552837"
+    },
+    {
+      "turn": 90,
+      "side": "black",
+      "moveKeyStr": "M:1,5->3,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2933.5813559350754,
+      "evalAfter": -3809.9194741317096,
+      "metrics": {
+        "palacePressure": 0.5319148936170213,
+        "pieceActivity": 0.42901234567901236,
+        "materialBalance": 0.42971014492753623,
+        "kingSafety": 0.23208832511158095,
+        "centerControl": 0.3018867924528302
+      },
+      "notation": "KH10",
+      "positionHash": "478625014769476604"
+    },
+    {
+      "turn": 91,
+      "side": "white",
+      "moveKeyStr": "R:0->9,7",
+      "featureKey": "ap:0|pp:1|r:0|er:0|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": -3809.9194741317096,
+      "evalAfter": -4053.085757802649,
+      "metrics": {
+        "palacePressure": 0.5319148936170213,
+        "pieceActivity": 0.42249240121580545,
+        "materialBalance": 0.4263120057512581,
+        "kingSafety": 0.14131862358812716,
+        "centerControl": 0.3018867924528302
+      },
+      "notation": "p*H4",
+      "positionHash": "4375715891751092943"
+    },
+    {
+      "turn": 92,
+      "side": "black",
+      "moveKeyStr": "M:3,7->2,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4053.085757802649,
+      "evalAfter": -2554.305113465355,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.444794952681388,
+        "materialBalance": 0.443530291697831,
+        "kingSafety": 0.507235453723244,
+        "centerControl": 0.4117647058823529
+      },
+      "notation": "KxwH11",
+      "positionHash": "17764687816490344419"
+    },
+    {
+      "turn": 93,
+      "side": "white",
+      "moveKeyStr": "M:12,2->11,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2554.305113465355,
+      "evalAfter": -2397.305113465355,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.444794952681388,
+        "materialBalance": 0.443530291697831,
+        "kingSafety": 0.507235453723244,
+        "centerControl": 0.4117647058823529
+      },
+      "notation": "HE2",
+      "positionHash": "7671643681479751242"
+    },
+    {
+      "turn": 94,
+      "side": "black",
+      "moveKeyStr": "M:7,4->9,6:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2397.305113465355,
+      "evalAfter": -2170.707365071669,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4448051948051948,
+        "materialBalance": 0.44720965309200605,
+        "kingSafety": 0.507235453723244,
+        "centerControl": 0.6363636363636364
+      },
+      "notation": "QxpG4",
+      "positionHash": "9214499000946696277"
+    },
+    {
+      "turn": 95,
+      "side": "white",
+      "moveKeyStr": "M:10,7->9,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2170.707365071669,
+      "evalAfter": -3277.2502003206837,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.3972602739726027,
+        "materialBalance": 0.40454914703493094,
+        "kingSafety": 0.507235453723244,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "pxqG4",
+      "positionHash": "10085382431516321680"
+    },
+    {
+      "turn": 96,
+      "side": "black",
+      "moveKeyStr": "R:0->0,11",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3277.2502003206837,
+      "evalAfter": -3038.5034126140854,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.40273037542662116,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.507235453723244,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "p*L13",
+      "positionHash": "11103978936088761719"
+    },
+    {
+      "turn": 97,
+      "side": "white",
+      "moveKeyStr": "M:12,7->11,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3038.5034126140854,
+      "evalAfter": -2915.734153942785,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4054982817869416,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.4857101616628176,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "KG2",
+      "positionHash": "10988539062149202478"
+    },
+    {
+      "turn": 98,
+      "side": "black",
+      "moveKeyStr": "M:2,9->3,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2915.734153942785,
+      "evalAfter": -3101.734153942785,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4054982817869416,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.4857101616628176,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "pJ10",
+      "positionHash": "15024730523160509447"
+    },
+    {
+      "turn": 99,
+      "side": "white",
+      "moveKeyStr": "M:11,0->12,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3101.734153942785,
+      "evalAfter": -3096.7534139072245,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4041095890410959,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.4857101616628176,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "AD1",
+      "positionHash": "426976463755332222"
+    },
+    {
+      "turn": 100,
+      "side": "black",
+      "moveKeyStr": "M:0,9->1,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3096.7534139072245,
+      "evalAfter": -3108.697192931816,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.40816326530612246,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.4857101616628176,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "PK12",
+      "positionHash": "17949325024753100519"
+    },
+    {
+      "turn": 101,
+      "side": "white",
+      "moveKeyStr": "M:9,3->8,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3108.697192931816,
+      "evalAfter": -3063.77917895,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.40816326530612246,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.4857101616628176,
+        "centerControl": 0.16
+      },
+      "notation": "pD5",
+      "positionHash": "6396651153845865006"
+    },
+    {
+      "turn": 102,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3063.77917895,
+      "evalAfter": -3118.8071934974737,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4061433447098976,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.4857101616628176,
+        "centerControl": 0.16
+      },
+      "notation": "AA12",
+      "positionHash": "14579437047279574775"
+    },
+    {
+      "turn": 103,
+      "side": "white",
+      "moveKeyStr": "M:7,6->8,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3118.8071934974737,
+      "evalAfter": -3084.725207479289,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4061433447098976,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.4857101616628176,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "CaG5",
+      "positionHash": "13914940564391989598"
+    },
+    {
+      "turn": 104,
+      "side": "black",
+      "moveKeyStr": "M:2,7->1,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3084.725207479289,
+      "evalAfter": -3287.5851148341194,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4020618556701031,
+        "materialBalance": 0.40982286634460546,
+        "kingSafety": 0.48242300987797787,
+        "centerControl": 0.09090909090909091
+      },
+      "notation": "KH12",
+      "positionHash": "7698577365813175447"
+    },
+    {
+      "turn": 105,
+      "side": "white",
+      "moveKeyStr": "M:11,9->10,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3287.5851148341194,
+      "evalAfter": -3373.0788526679444,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.39372822299651566,
+        "materialBalance": 0.382996632996633,
+        "kingSafety": 0.48242300987797787,
+        "centerControl": 0.09090909090909091
+      },
+      "notation": "GxrL3",
+      "positionHash": "320563666713805459"
+    },
+    {
+      "turn": 106,
+      "side": "black",
+      "moveKeyStr": "M:1,0->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3373.0788526679444,
+      "evalAfter": -3378.0496566126253,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3958333333333333,
+        "materialBalance": 0.382996632996633,
+        "kingSafety": 0.48242300987797787,
+        "centerControl": 0.09090909090909091
+      },
+      "notation": "AD13",
+      "positionHash": "10872593429742229066"
+    },
+    {
+      "turn": 107,
+      "side": "white",
+      "moveKeyStr": "M:9,11->0,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3378.0496566126253,
+      "evalAfter": -3638.446749832392,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3902439024390244,
+        "materialBalance": 0.3772302463891249,
+        "kingSafety": 0.48242300987797787,
+        "centerControl": 0.09090909090909091
+      },
+      "notation": "RxpL13",
+      "positionHash": "15627076714917882901"
+    },
+    {
+      "turn": 108,
+      "side": "black",
+      "moveKeyStr": "M:4,6->5,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3638.446749832392,
+      "evalAfter": -3680.10516044392,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3902439024390244,
+        "materialBalance": 0.3772302463891249,
+        "kingSafety": 0.48242300987797787,
+        "centerControl": 0.2
+      },
+      "notation": "pG8",
+      "positionHash": "649121893406920924"
+    },
+    {
+      "turn": 109,
+      "side": "white",
+      "moveKeyStr": "M:10,10->8,12:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3680.10516044392,
+      "evalAfter": -3711.362284009625,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3916083916083916,
+        "materialBalance": 0.3772302463891249,
+        "kingSafety": 0.48242300987797787,
+        "centerControl": 0.16129032258064516
+      },
+      "notation": "PM5",
+      "positionHash": "17909117605515623461"
+    },
+    {
+      "turn": 110,
+      "side": "black",
+      "moveKeyStr": "M:1,10->0,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3711.362284009625,
+      "evalAfter": -3325.1811714184214,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3992673992673993,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.48242300987797787,
+        "centerControl": 0.16129032258064516
+      },
+      "notation": "PxrL13",
+      "positionHash": "14463050419714700873"
+    },
+    {
+      "turn": 111,
+      "side": "white",
+      "moveKeyStr": "M:11,6->10,7:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3325.1811714184214,
+      "evalAfter": -3154.172389865292,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3935018050541516,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.49567164179104484,
+        "centerControl": 0.16129032258064516
+      },
+      "notation": "KH3",
+      "positionHash": "13414690800476885744"
+    },
+    {
+      "turn": 112,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3154.172389865292,
+      "evalAfter": -3349.2028666919314,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.391304347826087,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.49567164179104484,
+        "centerControl": 0.16129032258064516
+      },
+      "notation": "AA12",
+      "positionHash": "2935052693539358249"
+    },
+    {
+      "turn": 113,
+      "side": "white",
+      "moveKeyStr": "M:12,5->12,8:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3349.2028666919314,
+      "evalAfter": -3457.8681144093966,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3776223776223776,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.49567164179104484,
+        "centerControl": 0.1388888888888889
+      },
+      "notation": "QI1",
+      "positionHash": "11233930018814704896"
+    },
+    {
+      "turn": 114,
+      "side": "black",
+      "moveKeyStr": "M:0,11->1,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3457.8681144093966,
+      "evalAfter": -3457.778510554268,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.38408304498269896,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.49567164179104484,
+        "centerControl": 0.1388888888888889
+      },
+      "notation": "PL12",
+      "positionHash": "5739159957049453257"
+    },
+    {
+      "turn": 115,
+      "side": "white",
+      "moveKeyStr": "M:12,8->4,8:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3457.778510554268,
+      "evalAfter": -3692.493972979774,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3712374581939799,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.49567164179104484,
+        "centerControl": 0.11627906976744186
+      },
+      "notation": "QI9",
+      "positionHash": "2802033873937353264"
+    },
+    {
+      "turn": 116,
+      "side": "black",
+      "moveKeyStr": "M:3,10->4,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3692.493972979774,
+      "evalAfter": -3766.6593013185206,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.37373737373737376,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.49567164179104484,
+        "centerControl": 0.11627906976744186
+      },
+      "notation": "pK9",
+      "positionHash": "6198453476509842585"
+    },
+    {
+      "turn": 117,
+      "side": "white",
+      "moveKeyStr": "M:10,11->8,9:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3766.6593013185206,
+      "evalAfter": -3877.7169608667064,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3639344262295082,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.49567164179104484,
+        "centerControl": 0.10638297872340426
+      },
+      "notation": "GJ5",
+      "positionHash": "6139408998005570976"
+    },
+    {
+      "turn": 118,
+      "side": "black",
+      "moveKeyStr": "M:1,7->2,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3877.7169608667064,
+      "evalAfter": -4015.3392228249772,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.36807817589576547,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.14285714285714285
+      },
+      "notation": "KH11",
+      "positionHash": "18374286394452297833"
+    },
+    {
+      "turn": 119,
+      "side": "white",
+      "moveKeyStr": "M:11,5->12,7:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4015.3392228249772,
+      "evalAfter": -3805.235230172325,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.37293729372937295,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.14583333333333334
+      },
+      "notation": "GH1",
+      "positionHash": "1940940540304570752"
+    },
+    {
+      "turn": 120,
+      "side": "black",
+      "moveKeyStr": "M:4,10->5,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3805.235230172325,
+      "evalAfter": -3823.0691470047263,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3704918032786885,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.14583333333333334
+      },
+      "notation": "pK8",
+      "positionHash": "14182725220419440201"
+    },
+    {
+      "turn": 121,
+      "side": "white",
+      "moveKeyStr": "M:4,8->12,8:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3823.0691470047263,
+      "evalAfter": -3501.2749329178437,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.386986301369863,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.17073170731707318
+      },
+      "notation": "QI1",
+      "positionHash": "12507740904370663088"
+    },
+    {
+      "turn": 122,
+      "side": "black",
+      "moveKeyStr": "M:1,1->0,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3501.2749329178437,
+      "evalAfter": -3539.3041493045785,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3848797250859107,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.17073170731707318
+      },
+      "notation": "TB13",
+      "positionHash": "11555154077953464089"
+    },
+    {
+      "turn": 123,
+      "side": "white",
+      "moveKeyStr": "M:7,9->5,9:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3539.3041493045785,
+      "evalAfter": -3241.640959826075,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3916083916083916,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.23333333333333334
+      },
+      "notation": "EJ8",
+      "positionHash": "18216381920740670144"
+    },
+    {
+      "turn": 124,
+      "side": "black",
+      "moveKeyStr": "M:2,8->3,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3241.640959826075,
+      "evalAfter": -3264.336818145713,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3916083916083916,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.25806451612903225
+      },
+      "notation": "EH10",
+      "positionHash": "18204991127806212345"
+    },
+    {
+      "turn": 125,
+      "side": "white",
+      "moveKeyStr": "M:8,12->7,12:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3264.336818145713,
+      "evalAfter": -3256.479242857215,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3957597173144876,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.25806451612903225
+      },
+      "notation": "PM6",
+      "positionHash": "14944239768978160176"
+    },
+    {
+      "turn": 126,
+      "side": "black",
+      "moveKeyStr": "M:0,12->0,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3256.479242857215,
+      "evalAfter": -3301.538889041321,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3914590747330961,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4989620403321471,
+        "centerControl": 0.25806451612903225
+      },
+      "notation": "TL13",
+      "positionHash": "17164311177495194713"
+    },
+    {
+      "turn": 127,
+      "side": "white",
+      "moveKeyStr": "M:8,9->11,6:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3301.538889041321,
+      "evalAfter": -3174.036402221672,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.40145985401459855,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4898820789052264,
+        "centerControl": 0.32
+      },
+      "notation": "GG2",
+      "positionHash": "13618443499057418720"
+    },
+    {
+      "turn": 128,
+      "side": "black",
+      "moveKeyStr": "M:2,7->1,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3174.036402221672,
+      "evalAfter": -3734.459912898729,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3992673992673993,
+        "materialBalance": 0.39536954585930545,
+        "kingSafety": 0.4419493549928333,
+        "centerControl": 0.2916666666666667
+      },
+      "notation": "KI12",
+      "positionHash": "8065615325647458265"
+    },
+    {
+      "turn": 129,
+      "side": "white",
+      "moveKeyStr": "R:0->10,6",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3734.459912898729,
+      "evalAfter": -3952.0607238300768,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3935018050541516,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4388739522378618,
+        "centerControl": 0.2916666666666667
+      },
+      "notation": "p*G3",
+      "positionHash": "9178551596798251934"
+    },
+    {
+      "turn": 130,
+      "side": "black",
+      "moveKeyStr": "M:1,0->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3952.0607238300768,
+      "evalAfter": -3722.0304662611834,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.39568345323741005,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4388739522378618,
+        "centerControl": 0.2916666666666667
+      },
+      "notation": "AD13",
+      "positionHash": "17145534625458063175"
+    },
+    {
+      "turn": 131,
+      "side": "white",
+      "moveKeyStr": "M:5,9->4,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3722.0304662611834,
+      "evalAfter": -3793.474514596159,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.39568345323741005,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4388739522378618,
+        "centerControl": 0.30434782608695654
+      },
+      "notation": "EJ9",
+      "positionHash": "9529202644955759086"
+    },
+    {
+      "turn": 132,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3793.474514596159,
+      "evalAfter": -3848.5047721650526,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3935018050541516,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4388739522378618,
+        "centerControl": 0.30434782608695654
+      },
+      "notation": "AA12",
+      "positionHash": "1634648042468185399"
+    },
+    {
+      "turn": 133,
+      "side": "white",
+      "moveKeyStr": "M:12,7->8,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3848.5047721650526,
+      "evalAfter": -3874.9199066880756,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.38515901060070673,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4388739522378618,
+        "centerControl": 0.28
+      },
+      "notation": "GL5",
+      "positionHash": "16315948135415357774"
+    },
+    {
+      "turn": 134,
+      "side": "black",
+      "moveKeyStr": "M:1,0->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3874.9199066880756,
+      "evalAfter": -3879.8898809434327,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.3873239436619718,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4388739522378618,
+        "centerControl": 0.28
+      },
+      "notation": "AD13",
+      "positionHash": "8141396006856471959"
+    },
+    {
+      "turn": 135,
+      "side": "white",
+      "moveKeyStr": "M:8,11->11,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3879.8898809434327,
+      "evalAfter": -3744.2587472305563,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.39855072463768115,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4303660049627792,
+        "centerControl": 0.35
+      },
+      "notation": "GI2",
+      "positionHash": "17357094856726323374"
+    },
+    {
+      "turn": 136,
+      "side": "black",
+      "moveKeyStr": "M:1,11->2,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3744.2587472305563,
+      "evalAfter": -3650.8835204478737,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.42560553633217996,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4303660049627792,
+        "centerControl": 0.35
+      },
+      "notation": "PK11",
+      "positionHash": "13506575526519831575"
+    },
+    {
+      "turn": 137,
+      "side": "white",
+      "moveKeyStr": "M:8,6->8,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3650.8835204478737,
+      "evalAfter": -3582.997700684685,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.42857142857142855,
+        "materialBalance": 0.3915343915343915,
+        "kingSafety": 0.4303660049627792,
+        "centerControl": 0.5
+      },
+      "notation": "CaC5",
+      "positionHash": "14208519209076507566"
+    },
+    {
+      "turn": 138,
+      "side": "black",
+      "moveKeyStr": "M:0,11->12,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3582.997700684685,
+      "evalAfter": -3686.3518612919993,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4072727272727273,
+        "materialBalance": 0.3984306887532694,
+        "kingSafety": 0.4303660049627792,
+        "centerControl": 0.5
+      },
+      "notation": "UL1+",
+      "positionHash": "5647604021497956488"
+    },
+    {
+      "turn": 139,
+      "side": "white",
+      "moveKeyStr": "M:12,4->11,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3686.3518612919993,
+      "evalAfter": -3692.4328436523847,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4014336917562724,
+        "materialBalance": 0.3984306887532694,
+        "kingSafety": 0.4303660049627792,
+        "centerControl": 0.5
+      },
+      "notation": "ED2",
+      "positionHash": "81688616504858257"
+    },
+    {
+      "turn": 140,
+      "side": "black",
+      "moveKeyStr": "M:2,10->0,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3692.4328436523847,
+      "evalAfter": -3659.669481818037,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4098939929328622,
+        "materialBalance": 0.3984306887532694,
+        "kingSafety": 0.4411988437547543,
+        "centerControl": 0.5333333333333333
+      },
+      "notation": "PI13",
+      "positionHash": "3426950969151492904"
+    },
+    {
+      "turn": 141,
+      "side": "white",
+      "moveKeyStr": "M:7,12->8,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3659.669481818037,
+      "evalAfter": -3732.2550943792553,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4027777777777778,
+        "materialBalance": 0.3984306887532694,
+        "kingSafety": 0.4411988437547543,
+        "centerControl": 0.36363636363636365
+      },
+      "notation": "PL5",
+      "positionHash": "15093349963165415313"
+    },
+    {
+      "turn": 142,
+      "side": "black",
+      "moveKeyStr": "M:1,3->2,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3732.2550943792553,
+      "evalAfter": -3756.2550943792553,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4027777777777778,
+        "materialBalance": 0.3984306887532694,
+        "kingSafety": 0.4411988437547543,
+        "centerControl": 0.36363636363636365
+      },
+      "notation": "EE11",
+      "positionHash": "3685359611137918408"
+    },
+    {
+      "turn": 143,
+      "side": "white",
+      "moveKeyStr": "M:12,0->12,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3756.2550943792553,
+      "evalAfter": -3732.2550943792553,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4027777777777778,
+        "materialBalance": 0.3984306887532694,
+        "kingSafety": 0.4411988437547543,
+        "centerControl": 0.36363636363636365
+      },
+      "notation": "TC1",
+      "positionHash": "6068426710471159441"
+    },
+    {
+      "turn": 144,
+      "side": "black",
+      "moveKeyStr": "M:3,8->4,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3732.2550943792553,
+      "evalAfter": -3494.896178297557,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4098939929328622,
+        "materialBalance": 0.40694568121104185,
+        "kingSafety": 0.4411988437547543,
+        "centerControl": 0.4090909090909091
+      },
+      "notation": "pxeJ9",
+      "positionHash": "12192734716438658160"
+    },
+    {
+      "turn": 145,
+      "side": "white",
+      "moveKeyStr": "M:11,6->9,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3494.896178297557,
+      "evalAfter": -3514.0613616381934,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4,
+        "materialBalance": 0.40694568121104185,
+        "kingSafety": 0.4497518610421837,
+        "centerControl": 0.3103448275862069
+      },
+      "notation": "GF4",
+      "positionHash": "11326829825187009753"
+    },
+    {
+      "turn": 146,
+      "side": "black",
+      "moveKeyStr": "M:12,11->12,12:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3514.0613616381934,
+      "evalAfter": -2395.857830295454,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.40069686411149824,
+        "materialBalance": 0.42670401493930904,
+        "kingSafety": 0.4499745714019504,
+        "centerControl": 0.3103448275862069
+      },
+      "notation": "UxtM1",
+      "positionHash": "16957701955283620402"
+    },
+    {
+      "turn": 147,
+      "side": "white",
+      "moveKeyStr": "M:12,8->12,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2395.857830295454,
+      "evalAfter": -2380.8771265389114,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.3993055555555556,
+        "materialBalance": 0.42670401493930904,
+        "kingSafety": 0.4499745714019504,
+        "centerControl": 0.3103448275862069
+      },
+      "notation": "QG1",
+      "positionHash": "17129340327603585899"
+    },
+    {
+      "turn": 148,
+      "side": "black",
+      "moveKeyStr": "M:12,12->12,10:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2380.8771265389114,
+      "evalAfter": -1869.2740193522952,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.41724137931034483,
+        "materialBalance": 0.43984600577478344,
+        "kingSafety": 0.4504516341518107,
+        "centerControl": 0.48717948717948717
+      },
+      "notation": "UxhK1",
+      "positionHash": "6130532347136883502"
+    },
+    {
+      "turn": 149,
+      "side": "white",
+      "moveKeyStr": "M:11,8->12,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1869.2740193522952,
+      "evalAfter": -1399.876367660749,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.42402826855123676,
+        "materialBalance": 0.43984600577478344,
+        "kingSafety": 0.4588587170218069,
+        "centerControl": 0.4375
+      },
+      "notation": "GH1",
+      "positionHash": "2434837914383328023"
+    },
+    {
+      "turn": 150,
+      "side": "black",
+      "moveKeyStr": "M:12,10->10,12:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1399.876367660749,
+      "evalAfter": -1277.6595858505502,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4244604316546763,
+        "materialBalance": 0.44455252918287935,
+        "kingSafety": 0.4588587170218069,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "UxpM3",
+      "positionHash": "10454799129223562648"
+    },
+    {
+      "turn": 151,
+      "side": "white",
+      "moveKeyStr": "M:8,2->9,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:2|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1277.6595858505502,
+      "evalAfter": -1188.925920896842,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4259927797833935,
+        "materialBalance": 0.44455252918287935,
+        "kingSafety": 0.4588587170218069,
+        "centerControl": 0.375
+      },
+      "notation": "CaD4",
+      "positionHash": "11976648098578375361"
+    },
+    {
+      "turn": 152,
+      "side": "black",
+      "moveKeyStr": "M:1,8->2,9:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1188.925920896842,
+      "evalAfter": -1389.9540367367144,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.43010752688172044,
+        "materialBalance": 0.44455252918287935,
+        "kingSafety": 0.4522340014282772,
+        "centerControl": 0.4
+      },
+      "notation": "KJ11",
+      "positionHash": "6876675996092863960"
+    },
+    {
+      "turn": 153,
+      "side": "white",
+      "moveKeyStr": "M:12,3->9,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:2|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1389.9540367367144,
+      "evalAfter": -1216.2688187878066,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.42105263157894735,
+        "materialBalance": 0.44455252918287935,
+        "kingSafety": 0.4522340014282772,
+        "centerControl": 0.38461538461538464
+      },
+      "notation": "AC4",
+      "positionHash": "16845325321200476705"
+    },
+    {
+      "turn": 154,
+      "side": "black",
+      "moveKeyStr": "M:0,2->1,4:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1216.2688187878066,
+      "evalAfter": -1206.1851781828682,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4270833333333333,
+        "materialBalance": 0.44455252918287935,
+        "kingSafety": 0.4522340014282772,
+        "centerControl": 0.38461538461538464
+      },
+      "notation": "HE12",
+      "positionHash": "1932203478655093352"
+    },
+    {
+      "turn": 155,
+      "side": "white",
+      "moveKeyStr": "M:9,3->9,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:2|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1206.1851781828682,
+      "evalAfter": -1179.205673946079,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.42560553633217996,
+        "materialBalance": 0.44455252918287935,
+        "kingSafety": 0.4522340014282772,
+        "centerControl": 0.38461538461538464
+      },
+      "notation": "CaB4",
+      "positionHash": "15668608620440108657"
+    },
+    {
+      "turn": 156,
+      "side": "black",
+      "moveKeyStr": "R:0->5,11",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1179.205673946079,
+      "evalAfter": -913.1289969123493,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.44481605351170567,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.4516180711310477,
+        "centerControl": 0.38461538461538464
+      },
+      "notation": "T*L8",
+      "positionHash": "13839516776995049522"
+    },
+    {
+      "turn": 157,
+      "side": "white",
+      "moveKeyStr": "M:10,7->9,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -913.1289969123493,
+      "evalAfter": -402.27228659836646,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4418604651162791,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "KI4",
+      "positionHash": "15489872834068782603"
+    },
+    {
+      "turn": 158,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -402.27228659836646,
+      "evalAfter": -647.1707664480383,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4491803278688525,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "AA12",
+      "positionHash": "4928905760197511890"
+    },
+    {
+      "turn": 159,
+      "side": "white",
+      "moveKeyStr": "M:8,3->7,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -647.1707664480383,
+      "evalAfter": -602.303001961239,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4491803278688525,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.3225806451612903
+      },
+      "notation": "pD6",
+      "positionHash": "16524726298634877819"
+    },
+    {
+      "turn": 160,
+      "side": "black",
+      "moveKeyStr": "M:1,0->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -602.303001961239,
+      "evalAfter": -652.4045221115672,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4418604651162791,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.3225806451612903
+      },
+      "notation": "AD13",
+      "positionHash": "8629591703939477410"
+    },
+    {
+      "turn": 161,
+      "side": "white",
+      "moveKeyStr": "M:9,4->8,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -652.4045221115672,
+      "evalAfter": -607.5284929051928,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4418604651162791,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.3125
+      },
+      "notation": "pE5",
+      "positionHash": "6463129164606375435"
+    },
+    {
+      "turn": 162,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -607.5284929051928,
+      "evalAfter": -617.4269727548647,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4491803278688525,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.3125
+      },
+      "notation": "AA12",
+      "positionHash": "14636783802941379282"
+    },
+    {
+      "turn": 163,
+      "side": "white",
+      "moveKeyStr": "M:11,3->12,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -617.4269727548647,
+      "evalAfter": -524.2806365398519,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4597315436241611,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.3125
+      },
+      "notation": "EE1",
+      "positionHash": "9539235217248619723"
+    },
+    {
+      "turn": 164,
+      "side": "black",
+      "moveKeyStr": "M:1,0->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -524.2806365398519,
+      "evalAfter": -574.3825828677047,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4523809523809524,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.3125
+      },
+      "notation": "AD13",
+      "positionHash": "1653879932341164050"
+    },
+    {
+      "turn": 165,
+      "side": "white",
+      "moveKeyStr": "M:12,7->11,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -574.3825828677047,
+      "evalAfter": -584.5832568116031,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4463087248322148,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.30303030303030304
+      },
+      "notation": "GF2",
+      "positionHash": "17501775632098060795"
+    },
+    {
+      "turn": 166,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -584.5832568116031,
+      "evalAfter": -594.4815453154873,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.45364238410596025,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.49421458625525944,
+        "centerControl": 0.30303030303030304
+      },
+      "notation": "AA12",
+      "positionHash": "6949939191041850658"
+    },
+    {
+      "turn": 167,
+      "side": "white",
+      "moveKeyStr": "M:9,8->7,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -594.4815453154873,
+      "evalAfter": -291.0278558011771,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4597315436241611,
+        "materialBalance": 0.47129629629629627,
+        "kingSafety": 0.4929183423675468,
+        "centerControl": 0.4166666666666667
+      },
+      "notation": "KK6",
+      "positionHash": "2026059778587655131"
+    },
+    {
+      "turn": 168,
+      "side": "black",
+      "moveKeyStr": "M:5,11->8,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -291.0278558011771,
+      "evalAfter": -210.03638531029097,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4867549668874172,
+        "materialBalance": 0.4894230769230769,
+        "kingSafety": 0.503762020359169,
+        "centerControl": 0.5172413793103449
+      },
+      "notation": "TxpL5",
+      "positionHash": "15253726750800276152"
+    },
+    {
+      "turn": 169,
+      "side": "white",
+      "moveKeyStr": "M:7,10->9,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -210.03638531029097,
+      "evalAfter": 252.935450433983,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4883720930232558,
+        "materialBalance": 0.4894230769230769,
+        "kingSafety": 0.4944611556866127,
+        "centerControl": 0.4838709677419355
+      },
+      "notation": "KI4",
+      "positionHash": "12672348512988687425"
+    },
+    {
+      "turn": 170,
+      "side": "black",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 252.935450433983,
+      "evalAfter": 458.016398832036,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.49673202614379086,
+        "materialBalance": 0.49476688867745006,
+        "kingSafety": 0.4944611556866127,
+        "centerControl": 0.4838709677419355
+      },
+      "notation": "p*G10",
+      "positionHash": "14068680386029597062"
+    },
+    {
+      "turn": 171,
+      "side": "white",
+      "moveKeyStr": "M:11,7->10,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 458.016398832036,
+      "evalAfter": 280.49318505283617,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.49032258064516127,
+        "materialBalance": 0.49476688867745006,
+        "kingSafety": 0.4890436820519498,
+        "centerControl": 0.4838709677419355
+      },
+      "notation": "pH3",
+      "positionHash": "13315583717524276111"
+    },
+    {
+      "turn": 172,
+      "side": "black",
+      "moveKeyStr": "M:1,0->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 280.49318505283617,
+      "evalAfter": 230.40078264845712,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.48366013071895425,
+        "materialBalance": 0.49476688867745006,
+        "kingSafety": 0.4890436820519498,
+        "centerControl": 0.4838709677419355
+      },
+      "notation": "AD13",
+      "positionHash": "3052204958839805782"
+    },
+    {
+      "turn": 173,
+      "side": "white",
+      "moveKeyStr": "M:9,10->8,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 230.40078264845712,
+      "evalAfter": -1081.5922862568732,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.44755244755244755,
+        "materialBalance": 0.46846846846846846,
+        "kingSafety": 0.48976301214307155,
+        "centerControl": 0.38461538461538464
+      },
+      "notation": "pxtL5",
+      "positionHash": "3020459185132387053"
+    },
+    {
+      "turn": 174,
+      "side": "black",
+      "moveKeyStr": "M:1,4->2,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1081.5922862568732,
+      "evalAfter": -1092.5390781415895,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4513888888888889,
+        "materialBalance": 0.46846846846846846,
+        "kingSafety": 0.48976301214307155,
+        "centerControl": 0.38461538461538464
+      },
+      "notation": "HC11",
+      "positionHash": "13927090236380395588"
+    },
+    {
+      "turn": 175,
+      "side": "white",
+      "moveKeyStr": "M:11,5->7,1:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1092.5390781415895,
+      "evalAfter": -864.4512783157865,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.44329896907216493,
+        "materialBalance": 0.46846846846846846,
+        "kingSafety": 0.48976301214307155,
+        "centerControl": 0.38461538461538464
+      },
+      "notation": "GB6",
+      "positionHash": "12475495493633741245"
+    },
+    {
+      "turn": 176,
+      "side": "black",
+      "moveKeyStr": "M:0,8->1,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -864.4512783157865,
+      "evalAfter": -1152.568853096278,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4355400696864111,
+        "materialBalance": 0.46846846846846846,
+        "kingSafety": 0.4994674545479766,
+        "centerControl": 0.36
+      },
+      "notation": "PJ12",
+      "positionHash": "9817930698069585444"
+    },
+    {
+      "turn": 177,
+      "side": "white",
+      "moveKeyStr": "M:9,2->12,3:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1152.568853096278,
+      "evalAfter": -1118.3205757894887,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.44014084507042256,
+        "materialBalance": 0.46846846846846846,
+        "kingSafety": 0.4994674545479766,
+        "centerControl": 0.375
+      },
+      "notation": "AD1",
+      "positionHash": "4532883678636349917"
+    },
+    {
+      "turn": 178,
+      "side": "black",
+      "moveKeyStr": "M:1,9->2,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1118.3205757894887,
+      "evalAfter": -1151.3480131078693,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4381625441696113,
+        "materialBalance": 0.46846846846846846,
+        "kingSafety": 0.4994674545479766,
+        "centerControl": 0.375
+      },
+      "notation": "PI11",
+      "positionHash": "7233075343073669092"
+    },
+    {
+      "turn": 179,
+      "side": "white",
+      "moveKeyStr": "R:0->8,10",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1151.3480131078693,
+      "evalAfter": -1323.1607243639353,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.42033898305084744,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.49943079449608574,
+        "centerControl": 0.3103448275862069
+      },
+      "notation": "T*K5",
+      "positionHash": "8168944816976194039"
+    },
+    {
+      "turn": 180,
+      "side": "black",
+      "moveKeyStr": "M:3,4->4,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1323.1607243639353,
+      "evalAfter": -1414.3842639564023,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.42033898305084744,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.49943079449608574,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "pE9",
+      "positionHash": "16964043226749497822"
+    },
+    {
+      "turn": 181,
+      "side": "white",
+      "moveKeyStr": "M:9,1->9,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1414.3842639564023,
+      "evalAfter": -1363.3444705278932,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4232081911262799,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.49943079449608574,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "CaA4",
+      "positionHash": "7318262888052409399"
+    },
+    {
+      "turn": 182,
+      "side": "black",
+      "moveKeyStr": "M:0,3->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1363.3444705278932,
+      "evalAfter": -1355.1839433907976,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.43478260869565216,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.49943079449608574,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "AA12",
+      "positionHash": "17806768623782351086"
+    },
+    {
+      "turn": 183,
+      "side": "white",
+      "moveKeyStr": "M:9,6->8,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1355.1839433907976,
+      "evalAfter": -1290.8370869406822,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4377104377104377,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.49943079449608574,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "pG5",
+      "positionHash": "2284466690687406407"
+    },
+    {
+      "turn": 184,
+      "side": "black",
+      "moveKeyStr": "M:2,4->1,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1290.8370869406822,
+      "evalAfter": -1320.8370869406822,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4377104377104377,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.49943079449608574,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "EF12",
+      "positionHash": "13895553066933368190"
+    },
+    {
+      "turn": 185,
+      "side": "white",
+      "moveKeyStr": "M:9,8->8,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1320.8370869406822,
+      "evalAfter": -1097.6013189650876,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4377104377104377,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "KI5",
+      "positionHash": "6891898410019148375"
+    },
+    {
+      "turn": 186,
+      "side": "black",
+      "moveKeyStr": "M:0,1->0,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1097.6013189650876,
+      "evalAfter": -1299.6013189650876,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4377104377104377,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "TC13",
+      "positionHash": "15934827128810927678"
+    },
+    {
+      "turn": 187,
+      "side": "white",
+      "moveKeyStr": "M:12,6->11,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1299.6013189650876,
+      "evalAfter": -1227.497369234055,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4452054794520548,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "QG2",
+      "positionHash": "4797831738247262839"
+    },
+    {
+      "turn": 188,
+      "side": "black",
+      "moveKeyStr": "M:3,7->2,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1227.497369234055,
+      "evalAfter": -1173.9289182209823,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4527027027027027,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.3548387096774194
+      },
+      "notation": "EG11",
+      "positionHash": "18341151156260537902"
+    },
+    {
+      "turn": 189,
+      "side": "white",
+      "moveKeyStr": "M:11,6->12,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1173.9289182209823,
+      "evalAfter": -1186.0332138025437,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.44518272425249167,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.3548387096774194
+      },
+      "notation": "QG1",
+      "positionHash": "7007154198516941415"
+    },
+    {
+      "turn": 190,
+      "side": "black",
+      "moveKeyStr": "M:2,6->1,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1186.0332138025437,
+      "evalAfter": -1231.058863251239,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.44333333333333336,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.3548387096774194
+      },
+      "notation": "EH12",
+      "positionHash": "13784321535287400030"
+    },
+    {
+      "turn": 191,
+      "side": "white",
+      "moveKeyStr": "M:9,0->8,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1231.058863251239,
+      "evalAfter": -1214.2156585294756,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4418604651162791,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.34375
+      },
+      "notation": "CaA5",
+      "positionHash": "1099057219603133911"
+    },
+    {
+      "turn": 192,
+      "side": "black",
+      "moveKeyStr": "M:1,5->2,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1214.2156585294756,
+      "evalAfter": -1238.2156585294756,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4418604651162791,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.34375
+      },
+      "notation": "EG11",
+      "positionHash": "9712441889790782414"
+    },
+    {
+      "turn": 193,
+      "side": "white",
+      "moveKeyStr": "M:12,2->12,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1238.2156585294756,
+      "evalAfter": -1232.2761344002765,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4375,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5085280127278926,
+        "centerControl": 0.34375
+      },
+      "notation": "TB1",
+      "positionHash": "13371973480085784455"
+    },
+    {
+      "turn": 194,
+      "side": "black",
+      "moveKeyStr": "M:2,9->0,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1232.2761344002765,
+      "evalAfter": -1239.0469251797065,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4222972972972973,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5388866210526957,
+        "centerControl": 0.3225806451612903
+      },
+      "notation": "KH13",
+      "positionHash": "11046845747621294782"
+    },
+    {
+      "turn": 195,
+      "side": "white",
+      "moveKeyStr": "M:7,1->5,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1239.0469251797065,
+      "evalAfter": -1459.7731415619544,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.41118421052631576,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5388866210526957,
+        "centerControl": 0.22727272727272727
+      },
+      "notation": "GC8",
+      "positionHash": "9839193322254075351"
+    },
+    {
+      "turn": 196,
+      "side": "black",
+      "moveKeyStr": "M:1,0->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1459.7731415619544,
+      "evalAfter": -1500.8545338993483,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4053156146179402,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5388866210526957,
+        "centerControl": 0.22727272727272727
+      },
+      "notation": "AD13",
+      "positionHash": "1880884895909024014"
+    },
+    {
+      "turn": 197,
+      "side": "white",
+      "moveKeyStr": "M:9,5->11,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1500.8545338993483,
+      "evalAfter": -1397.1919120080092,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.41496598639455784,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5388866210526957,
+        "centerControl": 0.2702702702702703
+      },
+      "notation": "GG2",
+      "positionHash": "3323532219392883111"
+    },
+    {
+      "turn": 198,
+      "side": "black",
+      "moveKeyStr": "M:5,6->7,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1397.1919120080092,
+      "evalAfter": -1492.329412008009,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.41496598639455784,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5388866210526957,
+        "centerControl": 0.2702702702702703
+      },
+      "notation": "pG6",
+      "positionHash": "6450583686598037886"
+    },
+    {
+      "turn": 199,
+      "side": "white",
+      "moveKeyStr": "M:12,6->12,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1492.329412008009,
+      "evalAfter": -1411.2500296842693,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4206896551724138,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5388866210526957,
+        "centerControl": 0.2702702702702703
+      },
+      "notation": "QL1",
+      "positionHash": "5204265763295867607"
+    },
+    {
+      "turn": 200,
+      "side": "black",
+      "moveKeyStr": "M:10,12->10,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1411.2500296842693,
+      "evalAfter": -1692.1818506744703,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.42560553633217996,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5388866210526957,
+        "centerControl": 0.2702702702702703
+      },
+      "notation": "UL3",
+      "positionHash": "3988129287633211806"
+    },
+    {
+      "turn": 201,
+      "side": "white",
+      "moveKeyStr": "M:8,0->8,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1692.1818506744703,
+      "evalAfter": -1743.6129447747178,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4212328767123288,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5388866210526957,
+        "centerControl": 0.2564102564102564
+      },
+      "notation": "CaC5",
+      "positionHash": "18244526680008994247"
+    },
+    {
+      "turn": 202,
+      "side": "black",
+      "moveKeyStr": "M:0,7->0,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1743.6129447747178,
+      "evalAfter": -1923.097708258797,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4232081911262799,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5319050240285003,
+        "centerControl": 0.2564102564102564
+      },
+      "notation": "KF13",
+      "positionHash": "3361320054185545118"
+    },
+    {
+      "turn": 203,
+      "side": "white",
+      "moveKeyStr": "M:12,11->12,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1923.097708258797,
+      "evalAfter": -1527.2750230274,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4161073825503356,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5319050240285003,
+        "centerControl": 0.25
+      },
+      "notation": "QI1",
+      "positionHash": "4178180586127328791"
+    },
+    {
+      "turn": 204,
+      "side": "black",
+      "moveKeyStr": "M:3,12->4,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1527.2750230274,
+      "evalAfter": -1573.5812730273997,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4161073825503356,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5319050240285003,
+        "centerControl": 0.25
+      },
+      "notation": "pM9",
+      "positionHash": "8371972700825779774"
+    },
+    {
+      "turn": 205,
+      "side": "white",
+      "moveKeyStr": "M:12,8->9,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1573.5812730273997,
+      "evalAfter": -1778.4039582587961,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4232081911262799,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5319050240285003,
+        "centerControl": 0.2564102564102564
+      },
+      "notation": "QL4",
+      "positionHash": "13842823338596058375"
+    },
+    {
+      "turn": 206,
+      "side": "black",
+      "moveKeyStr": "M:5,10->7,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1778.4039582587961,
+      "evalAfter": -1908.301117841579,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4261168384879725,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5319050240285003,
+        "centerControl": 0.2564102564102564
+      },
+      "notation": "pK6",
+      "positionHash": "3224279691789848286"
+    },
+    {
+      "turn": 207,
+      "side": "white",
+      "moveKeyStr": "M:12,1->9,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1908.301117841579,
+      "evalAfter": -1911.3812516873054,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.42033898305084744,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5319050240285003,
+        "centerControl": 0.2564102564102564
+      },
+      "notation": "TB4",
+      "positionHash": "3371626193764656407"
+    },
+    {
+      "turn": 208,
+      "side": "black",
+      "moveKeyStr": "M:0,3->3,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1911.3812516873054,
+      "evalAfter": -2099.774920178731,
+      "metrics": {
+        "palacePressure": 1,
+        "pieceActivity": 0.4318936877076412,
+        "materialBalance": 0.445290199809705,
+        "kingSafety": 0.5319050240285003,
+        "centerControl": 0.2926829268292683
+      },
+      "notation": "AE10",
+      "positionHash": "5179157412071509998"
+    },
+    {
+      "turn": 209,
+      "side": "white",
+      "moveKeyStr": "M:11,12->10,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2099.774920178731,
+      "evalAfter": -3182.455627425632,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.4175084175084175,
+        "materialBalance": 0.40872210953346855,
+        "kingSafety": 0.5323758821344559,
+        "centerControl": 0.2926829268292683
+      },
+      "notation": "pxuL3",
+      "positionHash": "237363848196584394"
+    },
+    {
+      "turn": 210,
+      "side": "black",
+      "moveKeyStr": "M:7,10->7,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3182.455627425632,
+      "evalAfter": -3321.9889608417684,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.40789473684210525,
+        "materialBalance": 0.40872210953346855,
+        "kingSafety": 0.5323758821344559,
+        "centerControl": 0.2926829268292683
+      },
+      "notation": "pL6",
+      "positionHash": "18070631386013702435"
+    },
+    {
+      "turn": 211,
+      "side": "white",
+      "moveKeyStr": "R:0->3,7",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3321.9889608417684,
+      "evalAfter": -3321.9889608417684,
+      "metrics": {
+        "palacePressure": 0.5,
+        "pieceActivity": 0.40789473684210525,
+        "materialBalance": 0.40872210953346855,
+        "kingSafety": 0.5323758821344559,
+        "centerControl": 0.2926829268292683
+      },
+      "notation": "T*H10",
+      "positionHash": "18070631386013702435"
+    },
+    {
+      "turn": 212,
+      "side": "white",
+      "moveKeyStr": "M:8,10->0,10:p1",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3321.9889608417684,
+      "evalAfter": -4376.344815321201,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3973509933774834,
+        "materialBalance": 0.38366080661840746,
+        "kingSafety": 0.34970395751183053,
+        "centerControl": 0.20689655172413793
+      },
+      "notation": "UxhK13+",
+      "positionHash": "3322906986708599809"
+    },
+    {
+      "turn": 213,
+      "side": "black",
+      "moveKeyStr": "M:1,7->0,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4376.344815321201,
+      "evalAfter": -3978.7736353254913,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.39730639730639733,
+        "materialBalance": 0.38366080661840746,
+        "kingSafety": 0.5325136750750163,
+        "centerControl": 0.27906976744186046
+      },
+      "notation": "EI13",
+      "positionHash": "14268687953684424376"
+    },
+    {
+      "turn": 214,
+      "side": "white",
+      "moveKeyStr": "M:5,2->3,4:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3978.7736353254913,
+      "evalAfter": -4286.189258250283,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.37800687285223367,
+        "materialBalance": 0.35357917570498915,
+        "kingSafety": 0.5328403114761411,
+        "centerControl": 0.1724137931034483
+      },
+      "notation": "GxaE10",
+      "positionHash": "1980312867501558957"
+    },
+    {
+      "turn": 215,
+      "side": "black",
+      "moveKeyStr": "M:2,8->4,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4286.189258250283,
+      "evalAfter": -3789.2793291680714,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.39322033898305087,
+        "materialBalance": 0.35357917570498915,
+        "kingSafety": 0.5328403114761411,
+        "centerControl": 0.19672131147540983
+      },
+      "notation": "PG9",
+      "positionHash": "14515762168476250708"
+    },
+    {
+      "turn": 216,
+      "side": "white",
+      "moveKeyStr": "M:0,10->0,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3789.2793291680714,
+      "evalAfter": -4103.519140490609,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3841059602649007,
+        "materialBalance": 0.35357917570498915,
+        "kingSafety": 0.5328403114761411,
+        "centerControl": 0.1875
+      },
+      "notation": "UL13",
+      "positionHash": "2693221975011091197"
+    },
+    {
+      "turn": 217,
+      "side": "black",
+      "moveKeyStr": "M:2,6->1,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4103.519140490609,
+      "evalAfter": -4133.156732471552,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.38205980066445183,
+        "materialBalance": 0.35357917570498915,
+        "kingSafety": 0.5386577122074667,
+        "centerControl": 0.1875
+      },
+      "notation": "EF12",
+      "positionHash": "12459520469580676324"
+    },
+    {
+      "turn": 218,
+      "side": "white",
+      "moveKeyStr": "M:8,8->10,10:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4133.156732471552,
+      "evalAfter": -3898.4826222961365,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3872053872053872,
+        "materialBalance": 0.35357917570498915,
+        "kingSafety": 0.5285786678899171,
+        "centerControl": 0.2033898305084746
+      },
+      "notation": "KK3",
+      "positionHash": "13636409922988384605"
+    },
+    {
+      "turn": 219,
+      "side": "black",
+      "moveKeyStr": "M:4,6->1,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3898.4826222961365,
+      "evalAfter": -4242.225025748552,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3728813559322034,
+        "materialBalance": 0.35357917570498915,
+        "kingSafety": 0.5285786678899171,
+        "centerControl": 0.17543859649122806
+      },
+      "notation": "PD12",
+      "positionHash": "1759845842208340868"
+    },
+    {
+      "turn": 220,
+      "side": "white",
+      "moveKeyStr": "R:0->2,6",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4242.225025748552,
+      "evalAfter": -4242.225025748552,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3728813559322034,
+        "materialBalance": 0.35357917570498915,
+        "kingSafety": 0.5285786678899171,
+        "centerControl": 0.17543859649122806
+      },
+      "notation": "T*G11",
+      "positionHash": "1759845842208340868"
+    },
+    {
+      "turn": 221,
+      "side": "white",
+      "moveKeyStr": "R:0->10,8",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4242.225025748552,
+      "evalAfter": -4506.443405848642,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3559870550161812,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.5278801865382221,
+        "centerControl": 0.16129032258064516
+      },
+      "notation": "T*I3",
+      "positionHash": "972738694030131991"
+    },
+    {
+      "turn": 222,
+      "side": "black",
+      "moveKeyStr": "M:0,2->1,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4506.443405848642,
+      "evalAfter": -4781.90159413015,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3517915309446254,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.5278801865382221,
+        "centerControl": 0.16129032258064516
+      },
+      "notation": "TC12",
+      "positionHash": "15526529995111069278"
+    },
+    {
+      "turn": 223,
+      "side": "white",
+      "moveKeyStr": "M:11,6->12,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4781.90159413015,
+      "evalAfter": -4707.868668960389,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3564356435643564,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.5278801865382221,
+        "centerControl": 0.15873015873015872
+      },
+      "notation": "GI1",
+      "positionHash": "1610977668580733591"
+    },
+    {
+      "turn": 224,
+      "side": "black",
+      "moveKeyStr": "M:0,5->0,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4707.868668960389,
+      "evalAfter": -5211.959559958482,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3543046357615894,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.502674767744083,
+        "centerControl": 0.15873015873015872
+      },
+      "notation": "KD13",
+      "positionHash": "12883879617317982350"
+    },
+    {
+      "turn": 225,
+      "side": "white",
+      "moveKeyStr": "M:0,11->0,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -5211.959559958482,
+      "evalAfter": -4913.893506203952,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.36394557823129253,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.502674767744083,
+        "centerControl": 0.1694915254237288
+      },
+      "notation": "UM13",
+      "positionHash": "10066836639022763463"
+    },
+    {
+      "turn": 226,
+      "side": "black",
+      "moveKeyStr": "M:1,3->3,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4913.893506203952,
+      "evalAfter": -4696.075629658441,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3771043771043771,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4935213023141141,
+        "centerControl": 0.19672131147540983
+      },
+      "notation": "PF10",
+      "positionHash": "17879359762705297790"
+    },
+    {
+      "turn": 227,
+      "side": "white",
+      "moveKeyStr": "M:0,12->0,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4696.075629658441,
+      "evalAfter": -4699.161690402834,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.36721311475409835,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4935213023141141,
+        "centerControl": 0.18461538461538463
+      },
+      "notation": "UL13",
+      "positionHash": "13931907641992457271"
+    },
+    {
+      "turn": 228,
+      "side": "black",
+      "moveKeyStr": "M:7,6->7,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4699.161690402834,
+      "evalAfter": -4710.161690402834,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.36721311475409835,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4935213023141141,
+        "centerControl": 0.18461538461538463
+      },
+      "notation": "pH6",
+      "positionHash": "499784066991107038"
+    },
+    {
+      "turn": 229,
+      "side": "white",
+      "moveKeyStr": "M:9,7->8,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4710.161690402834,
+      "evalAfter": -4755.411143240516,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.35555555555555557,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4935213023141141,
+        "centerControl": 0.1791044776119403
+      },
+      "notation": "pH5",
+      "positionHash": "5749443882251222807"
+    },
+    {
+      "turn": 230,
+      "side": "black",
+      "moveKeyStr": "M:0,3->0,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4755.411143240516,
+      "evalAfter": -4963.411143240516,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.35555555555555557,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4935213023141141,
+        "centerControl": 0.1791044776119403
+      },
+      "notation": "KC13",
+      "positionHash": "16586325540347508190"
+    },
+    {
+      "turn": 231,
+      "side": "white",
+      "moveKeyStr": "M:0,11->0,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4963.411143240516,
+      "evalAfter": -4725.342793463504,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.36482084690553745,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4935213023141141,
+        "centerControl": 0.19047619047619047
+      },
+      "notation": "UM13",
+      "positionHash": "16093153558170593431"
+    },
+    {
+      "turn": 232,
+      "side": "black",
+      "moveKeyStr": "M:1,2->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4725.342793463504,
+      "evalAfter": -4547.621166632987,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.36688311688311687,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4840245727502015,
+        "centerControl": 0.19047619047619047
+      },
+      "notation": "TA12",
+      "positionHash": "7685910035459982094"
+    },
+    {
+      "turn": 233,
+      "side": "white",
+      "moveKeyStr": "M:9,11->8,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4547.621166632987,
+      "evalAfter": -4735.038054379092,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3787375415282392,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.2
+      },
+      "notation": "QM5",
+      "positionHash": "17934261093577653559"
+    },
+    {
+      "turn": 234,
+      "side": "black",
+      "moveKeyStr": "M:1,0->1,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4735.038054379092,
+      "evalAfter": -4744.009523347014,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.38079470198675497,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.2
+      },
+      "notation": "TE12",
+      "positionHash": "4911084137208887438"
+    },
+    {
+      "turn": 235,
+      "side": "white",
+      "moveKeyStr": "M:0,12->0,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4744.009523347014,
+      "evalAfter": -4747.099538547412,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3709677419354839,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.1875
+      },
+      "notation": "UL13",
+      "positionHash": "9034088732928550343"
+    },
+    {
+      "turn": 236,
+      "side": "black",
+      "moveKeyStr": "M:4,4->5,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4747.099538547412,
+      "evalAfter": -4755.665613835304,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.37898089171974525,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.21212121212121213
+      },
+      "notation": "pE8",
+      "positionHash": "13592345783211053902"
+    },
+    {
+      "turn": 237,
+      "side": "white",
+      "moveKeyStr": "M:0,11->0,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4755.665613835304,
+      "evalAfter": -4692.55989876036,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3888888888888889,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.22580645161290322
+      },
+      "notation": "UM13",
+      "positionHash": "9644912353755942407"
+    },
+    {
+      "turn": 238,
+      "side": "black",
+      "moveKeyStr": "M:2,2->1,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4692.55989876036,
+      "evalAfter": -4638.30068914741,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3787375415282392,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.22580645161290322
+      },
+      "notation": "HA12",
+      "positionHash": "10721700701032111214"
+    },
+    {
+      "turn": 239,
+      "side": "white",
+      "moveKeyStr": "M:0,12->0,11:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4638.30068914741,
+      "evalAfter": -4641.404982712833,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.36893203883495146,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.21212121212121213
+      },
+      "notation": "UL13",
+      "positionHash": "12516360079423291687"
+    },
+    {
+      "turn": 240,
+      "side": "black",
+      "moveKeyStr": "M:3,5->2,4:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4641.404982712833,
+      "evalAfter": -4742.910641383747,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3543046357615894,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.1875
+      },
+      "notation": "PE11",
+      "positionHash": "5092758201125757566"
+    },
+    {
+      "turn": 241,
+      "side": "white",
+      "moveKeyStr": "M:12,3->9,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4742.910641383747,
+      "evalAfter": -4599.777831920654,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3664383561643836,
+        "materialBalance": 0.3347022587268994,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.18461538461538463
+      },
+      "notation": "AC4",
+      "positionHash": "17295334237461861767"
+    },
+    {
+      "turn": 242,
+      "side": "black",
+      "moveKeyStr": "M:2,5->3,4:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -4599.777831920654,
+      "evalAfter": -3252.5129882683877,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3962962962962963,
+        "materialBalance": 0.355119825708061,
+        "kingSafety": 0.4938144183133079,
+        "centerControl": 0.35294117647058826
+      },
+      "notation": "pxgE10",
+      "positionHash": "15349258600136562712"
+    },
+    {
+      "turn": 243,
+      "side": "white",
+      "moveKeyStr": "M:12,4->11,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3252.5129882683877,
+      "evalAfter": -3249.5733870162494,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.39194139194139194,
+        "materialBalance": 0.355119825708061,
+        "kingSafety": 0.4938144183133079,
+        "centerControl": 0.35294117647058826
+      },
+      "notation": "ED2",
+      "positionHash": "11115415963434796545"
+    },
+    {
+      "turn": 244,
+      "side": "black",
+      "moveKeyStr": "R:0->2,8",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3249.5733870162494,
+      "evalAfter": -3187.1959909901043,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.436426116838488,
+        "materialBalance": 0.3921971252566735,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.42105263157894735
+      },
+      "notation": "G*I11",
+      "positionHash": "6201505809316555542"
+    },
+    {
+      "turn": 245,
+      "side": "white",
+      "moveKeyStr": "M:8,12->5,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3187.1959909901043,
+      "evalAfter": -3377.5525902110494,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4163934426229508,
+        "materialBalance": 0.3921971252566735,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.3333333333333333
+      },
+      "notation": "QM8",
+      "positionHash": "17430852644507607039"
+    },
+    {
+      "turn": 246,
+      "side": "black",
+      "moveKeyStr": "M:7,7->8,6:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3377.5525902110494,
+      "evalAfter": -3024.131475505491,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.42333333333333334,
+        "materialBalance": 0.39667705088265837,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.34782608695652173
+      },
+      "notation": "pxpG5",
+      "positionHash": "3304432647029016752"
+    },
+    {
+      "turn": 247,
+      "side": "white",
+      "moveKeyStr": "M:0,11->0,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3024.131475505491,
+      "evalAfter": -2978.804269802589,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.43197278911564624,
+        "materialBalance": 0.39667705088265837,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.38095238095238093
+      },
+      "notation": "UM13",
+      "positionHash": "1487200708329133561"
+    },
+    {
+      "turn": 248,
+      "side": "black",
+      "moveKeyStr": "M:5,4->7,3:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2978.804269802589,
+      "evalAfter": -2596.755145260141,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4334470989761092,
+        "materialBalance": 0.4012605042016807,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.38461538461538464
+      },
+      "notation": "pxpD6",
+      "positionHash": "7952620936955952875"
+    },
+    {
+      "turn": 249,
+      "side": "white",
+      "moveKeyStr": "M:11,4->9,5:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:2|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2596.755145260141,
+      "evalAfter": -2605.133755903428,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.43050847457627117,
+        "materialBalance": 0.4012605042016807,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.35714285714285715
+      },
+      "notation": "HF4",
+      "positionHash": "13482289095001876738"
+    },
+    {
+      "turn": 250,
+      "side": "black",
+      "moveKeyStr": "R:1->4,10",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2605.133755903428,
+      "evalAfter": -2399.2299562001067,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.44,
+        "materialBalance": 0.40809968847352024,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.35714285714285715
+      },
+      "notation": "p*K9",
+      "positionHash": "15352985405192363352"
+    },
+    {
+      "turn": 251,
+      "side": "white",
+      "moveKeyStr": "M:11,3->12,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2399.2299562001067,
+      "evalAfter": -2336.168315608831,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4444444444444444,
+        "materialBalance": 0.40809968847352024,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.35714285714285715
+      },
+      "notation": "EC1",
+      "positionHash": "4905516134428412257"
+    },
+    {
+      "turn": 252,
+      "side": "black",
+      "moveKeyStr": "R:0->3,12",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2336.168315608831,
+      "evalAfter": -2159.86517561211,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.45,
+        "materialBalance": 0.41478439425051333,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.35714285714285715
+      },
+      "notation": "p*M10",
+      "positionHash": "6912883002915434758"
+    },
+    {
+      "turn": 253,
+      "side": "white",
+      "moveKeyStr": "M:5,12->12,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2159.86517561211,
+      "evalAfter": -1879.1410300020673,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4753521126760563,
+        "materialBalance": 0.41478439425051333,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.46875
+      },
+      "notation": "QM1",
+      "positionHash": "15551437503689228335"
+    },
+    {
+      "turn": 254,
+      "side": "black",
+      "moveKeyStr": "M:7,3->8,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1879.1410300020673,
+      "evalAfter": -1813.1210300020668,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4753521126760563,
+        "materialBalance": 0.41478439425051333,
+        "kingSafety": 0.4932737020235776,
+        "centerControl": 0.46875
+      },
+      "notation": "pD5",
+      "positionHash": "1610192025643660262"
+    },
+    {
+      "turn": 255,
+      "side": "white",
+      "moveKeyStr": "M:0,12->0,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1813.1210300020668,
+      "evalAfter": -2657.0488577335445,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4539249146757679,
+        "materialBalance": 0.4,
+        "kingSafety": 0.28134967095966734,
+        "centerControl": 0.25862068965517243
+      },
+      "notation": "UxeI13",
+      "positionHash": "1630734879240436639"
+    },
+    {
+      "turn": 256,
+      "side": "black",
+      "moveKeyStr": "M:2,8->0,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2657.0488577335445,
+      "evalAfter": -2282.6789595366363,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4432624113475177,
+        "materialBalance": 0.4,
+        "kingSafety": 0.49350529251081265,
+        "centerControl": 0.25
+      },
+      "notation": "GH13",
+      "positionHash": "18026402928625282486"
+    },
+    {
+      "turn": 257,
+      "side": "white",
+      "moveKeyStr": "M:10,6->9,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2282.6789595366363,
+      "evalAfter": -2235.4889595366362,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4432624113475177,
+        "materialBalance": 0.4,
+        "kingSafety": 0.49350529251081265,
+        "centerControl": 0.25
+      },
+      "notation": "pG4",
+      "positionHash": "17598106521561311103"
+    },
+    {
+      "turn": 258,
+      "side": "black",
+      "moveKeyStr": "M:2,1->3,1:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2235.4889595366362,
+      "evalAfter": -2282.678959536636,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4432624113475177,
+        "materialBalance": 0.4,
+        "kingSafety": 0.49350529251081265,
+        "centerControl": 0.25
+      },
+      "notation": "pB10",
+      "positionHash": "13190037517336736086"
+    },
+    {
+      "turn": 259,
+      "side": "white",
+      "moveKeyStr": "M:0,8->0,7:p0",
+      "featureKey": "ap:0|pp:1|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2282.678959536636,
+      "evalAfter": -3790.932163049635,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4185185185185185,
+        "materialBalance": 0.3624161073825503,
+        "kingSafety": 0.3063306711448712,
+        "centerControl": 0.22916666666666666
+      },
+      "notation": "UxgH13",
+      "positionHash": "987266997345656905"
+    },
+    {
+      "turn": 260,
+      "side": "black",
+      "moveKeyStr": "M:1,5->0,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3790.932163049635,
+      "evalAfter": -3472.0788428205033,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4354243542435424,
+        "materialBalance": 0.3624161073825503,
+        "kingSafety": 0.494046516927547,
+        "centerControl": 0.2558139534883721
+      },
+      "notation": "EG13",
+      "positionHash": "12278011754725355248"
+    },
+    {
+      "turn": 261,
+      "side": "white",
+      "moveKeyStr": "R:0->8,0",
+      "featureKey": "ap:0|pp:1|r:0|er:0|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": -3472.0788428205033,
+      "evalAfter": -3629.7708087021997,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4169611307420495,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.44944558712091925,
+        "centerControl": 0.25
+      },
+      "notation": "G*A5",
+      "positionHash": "7930722860334235939"
+    },
+    {
+      "turn": 262,
+      "side": "black",
+      "moveKeyStr": "M:0,2->0,0:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": -3629.7708087021997,
+      "evalAfter": -3904.930325965491,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4064748201438849,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.4602703537567347,
+        "centerControl": 0.25
+      },
+      "notation": "KA13",
+      "positionHash": "3416813597687199930"
+    },
+    {
+      "turn": 263,
+      "side": "white",
+      "moveKeyStr": "M:0,7->0,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3904.930325965491,
+      "evalAfter": -3566.00848224463,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3992932862190813,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.5026812577377554,
+        "centerControl": 0.22
+      },
+      "notation": "UI13",
+      "positionHash": "18430005291147577287"
+    },
+    {
+      "turn": 264,
+      "side": "black",
+      "moveKeyStr": "M:1,4->1,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3566.00848224463,
+      "evalAfter": -3608.038025795445,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3971631205673759,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.5026812577377554,
+        "centerControl": 0.22
+      },
+      "notation": "TD12",
+      "positionHash": "7218795909781567374"
+    },
+    {
+      "turn": 265,
+      "side": "white",
+      "moveKeyStr": "M:0,8->0,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3608.038025795445,
+      "evalAfter": -3514.7696607685507,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4043321299638989,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.5026812577377554,
+        "centerControl": 0.25
+      },
+      "notation": "UJ13",
+      "positionHash": "12583201551565667879"
+    },
+    {
+      "turn": 266,
+      "side": "black",
+      "moveKeyStr": "M:1,3->1,7:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3514.7696607685507,
+      "evalAfter": -3416.8248687626715,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41901408450704225,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.5026812577377554,
+        "centerControl": 0.32653061224489793
+      },
+      "notation": "TH12",
+      "positionHash": "6520732207909053214"
+    },
+    {
+      "turn": 267,
+      "side": "white",
+      "moveKeyStr": "M:10,10->9,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3416.8248687626715,
+      "evalAfter": -3291.3847131135553,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41754385964912283,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.4952875635722986,
+        "centerControl": 0.32
+      },
+      "notation": "KJ4",
+      "positionHash": "14286593336029515911"
+    },
+    {
+      "turn": 268,
+      "side": "black",
+      "moveKeyStr": "M:1,7->1,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3291.3847131135553,
+      "evalAfter": -3650.0293936547923,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.426056338028169,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.4952875635722986,
+        "centerControl": 0.35555555555555557
+      },
+      "notation": "TI12",
+      "positionHash": "7188185814549598414"
+    },
+    {
+      "turn": 269,
+      "side": "white",
+      "moveKeyStr": "M:12,12->7,12:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3650.0293936547923,
+      "evalAfter": -3308.9874856261877,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.42907801418439717,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.4952875635722986,
+        "centerControl": 0.35555555555555557
+      },
+      "notation": "QM6",
+      "positionHash": "13694398212586053511"
+    },
+    {
+      "turn": 270,
+      "side": "black",
+      "moveKeyStr": "M:1,8->4,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3308.9874856261877,
+      "evalAfter": -3231.6732753006463,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.42028985507246375,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.4952875635722986,
+        "centerControl": 0.3584905660377358
+      },
+      "notation": "TI9",
+      "positionHash": "16748492113999718990"
+    },
+    {
+      "turn": 271,
+      "side": "white",
+      "moveKeyStr": "M:0,9->0,10:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3231.6732753006463,
+      "evalAfter": -3140.4041056622627,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4128113879003559,
+        "materialBalance": 0.3410526315789474,
+        "kingSafety": 0.4952875635722986,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "UK13",
+      "positionHash": "12796375181571360583"
+    },
+    {
+      "turn": 272,
+      "side": "black",
+      "moveKeyStr": "M:8,6->8,7:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3140.4041056622627,
+      "evalAfter": -2667.560737353666,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.42028985507246375,
+        "materialBalance": 0.3450479233226837,
+        "kingSafety": 0.4952875635722986,
+        "centerControl": 0.3877551020408163
+      },
+      "notation": "pxpH5",
+      "positionHash": "1601059270772227880"
+    },
+    {
+      "turn": 273,
+      "side": "white",
+      "moveKeyStr": "M:0,10->0,6:p0",
+      "featureKey": "ap:0|pp:1|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2667.560737353666,
+      "evalAfter": -3210.520803459408,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41605839416058393,
+        "materialBalance": 0.32786885245901637,
+        "kingSafety": 0.3033691824497954,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "UxeG13",
+      "positionHash": "14844506540084986097"
+    },
+    {
+      "turn": 274,
+      "side": "black",
+      "moveKeyStr": "R:0->9,7",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3210.520803459408,
+      "evalAfter": -3210.520803459408,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41605839416058393,
+        "materialBalance": 0.32786885245901637,
+        "kingSafety": 0.3033691824497954,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "p*H4",
+      "positionHash": "14844506540084986097"
+    },
+    {
+      "turn": 275,
+      "side": "black",
+      "moveKeyStr": "R:0->9,7",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3210.520803459408,
+      "evalAfter": -3210.520803459408,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41605839416058393,
+        "materialBalance": 0.32786885245901637,
+        "kingSafety": 0.3033691824497954,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "p*H4",
+      "positionHash": "14844506540084986097"
+    },
+    {
+      "turn": 276,
+      "side": "black",
+      "moveKeyStr": "R:0->3,5",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3210.520803459408,
+      "evalAfter": -3210.520803459408,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41605839416058393,
+        "materialBalance": 0.32786885245901637,
+        "kingSafety": 0.3033691824497954,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "p*F10",
+      "positionHash": "14844506540084986097"
+    },
+    {
+      "turn": 277,
+      "side": "black",
+      "moveKeyStr": "R:0->9,7",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3210.520803459408,
+      "evalAfter": -3210.520803459408,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41605839416058393,
+        "materialBalance": 0.32786885245901637,
+        "kingSafety": 0.3033691824497954,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "p*H4",
+      "positionHash": "14844506540084986097"
+    },
+    {
+      "turn": 278,
+      "side": "black",
+      "moveKeyStr": "R:0->9,7",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3210.520803459408,
+      "evalAfter": -3210.520803459408,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41605839416058393,
+        "materialBalance": 0.32786885245901637,
+        "kingSafety": 0.3033691824497954,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "p*H4",
+      "positionHash": "14844506540084986097"
+    },
+    {
+      "turn": 279,
+      "side": "black",
+      "moveKeyStr": "M:0,0->1,1:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -3210.520803459408,
+      "evalAfter": -3024.05466934034,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.42857142857142855,
+        "materialBalance": 0.32786885245901637,
+        "kingSafety": 0.4984926344638575,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "KB12",
+      "positionHash": "10506096829261439912"
+    },
+    {
+      "turn": 280,
+      "side": "white",
+      "moveKeyStr": "M:8,0->7,1:p0",
+      "featureKey": "ap:0|pp:1|r:0|er:1|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": -3024.05466934034,
+      "evalAfter": -2829.8304176926017,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.42704626334519574,
+        "materialBalance": 0.32786885245901637,
+        "kingSafety": 0.45660727542687457,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "GB6",
+      "positionHash": "17903299406899534629"
+    },
+    {
+      "turn": 281,
+      "side": "black",
+      "moveKeyStr": "M:7,11->7,12:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": -2829.8304176926017,
+      "evalAfter": -1997.5699920609136,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.44360902255639095,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.37254901960784315
+      },
+      "notation": "pxqM6",
+      "positionHash": "11647947573774540744"
+    },
+    {
+      "turn": 282,
+      "side": "white",
+      "moveKeyStr": "M:0,6->0,7:p0",
+      "featureKey": "ap:0|pp:1|r:0|er:1|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": -1997.5699920609136,
+      "evalAfter": -2225.2021039225183,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4419475655430712,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.3392857142857143
+      },
+      "notation": "UH13",
+      "positionHash": "7246496291230363361"
+    },
+    {
+      "turn": 283,
+      "side": "black",
+      "moveKeyStr": "M:1,0->0,2:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": -2225.2021039225183,
+      "evalAfter": -2411.5269213562824,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4473684210526316,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.3392857142857143
+      },
+      "notation": "HC13",
+      "positionHash": "7942149873311241832"
+    },
+    {
+      "turn": 284,
+      "side": "white",
+      "moveKeyStr": "M:12,2->11,2:p0",
+      "featureKey": "ap:0|pp:1|r:0|er:1|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": -2411.5269213562824,
+      "evalAfter": -2451.5961177742915,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4423791821561338,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.3392857142857143
+      },
+      "notation": "EC2",
+      "positionHash": "2352625397167658817"
+    },
+    {
+      "turn": 285,
+      "side": "black",
+      "moveKeyStr": "M:4,8->2,8:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": -2451.5961177742915,
+      "evalAfter": -2532.072726643852,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4411764705882353,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.3018867924528302
+      },
+      "notation": "TI11",
+      "positionHash": "1284982208128348888"
+    },
+    {
+      "turn": 286,
+      "side": "white",
+      "moveKeyStr": "M:9,2->8,5:p0",
+      "featureKey": "ap:0|pp:1|r:0|er:1|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": -2532.072726643852,
+      "evalAfter": -2551.318175832704,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.4332129963898917,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.2909090909090909
+      },
+      "notation": "AF5",
+      "positionHash": "614763243253878849"
+    },
+    {
+      "turn": 287,
+      "side": "black",
+      "moveKeyStr": "M:0,2->2,1:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": -2551.318175832704,
+      "evalAfter": -2436.9330177362885,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.43214285714285716,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.2909090909090909
+      },
+      "notation": "HB11",
+      "positionHash": "18147235644295604648"
+    },
+    {
+      "turn": 288,
+      "side": "white",
+      "moveKeyStr": "M:7,1->3,5:p0",
+      "featureKey": "ap:0|pp:1|r:0|er:1|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": -2436.9330177362885,
+      "evalAfter": -2509.2477149587835,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.40425531914893614,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "GF10",
+      "positionHash": "16751086965904403921"
+    },
+    {
+      "turn": 289,
+      "side": "black",
+      "moveKeyStr": "M:2,8->2,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": -2509.2477149587835,
+      "evalAfter": -2543.8480126916315,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3971631205673759,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.4565046068939712,
+        "centerControl": 0.1095890410958904
+      },
+      "notation": "TL11",
+      "positionHash": "14471962172992861688"
+    },
+    {
+      "turn": 290,
+      "side": "white",
+      "moveKeyStr": "M:0,7->0,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2543.8480126916315,
+      "evalAfter": -2118.076671869709,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.3971631205673759,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.49870691514602467,
+        "centerControl": 0.10256410256410256
+      },
+      "notation": "UI13",
+      "positionHash": "1763371583987272325"
+    },
+    {
+      "turn": 291,
+      "side": "black",
+      "moveKeyStr": "M:2,11->4,11:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2118.076671869709,
+      "evalAfter": -2204.258428932328,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.38405797101449274,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.49870691514602467,
+        "centerControl": 0.10256410256410256
+      },
+      "notation": "TL9",
+      "positionHash": "4456022639053342620"
+    },
+    {
+      "turn": 292,
+      "side": "white",
+      "moveKeyStr": "M:0,8->0,7:p0",
+      "featureKey": "ap:0|pp:1|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2204.258428932328,
+      "evalAfter": -2328.168957024248,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.38405797101449274,
+        "materialBalance": 0.36585365853658536,
+        "kingSafety": 0.49870691514602467,
+        "centerControl": 0.1095890410958904
+      },
+      "notation": "UH13",
+      "positionHash": "17111573073930742485"
+    },
+    {
+      "turn": 293,
+      "side": "black",
+      "moveKeyStr": "M:3,6->3,5:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -2328.168957024248,
+      "evalAfter": -1059.1065841430056,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41732283464566927,
+        "materialBalance": 0.39267015706806285,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.17391304347826086
+      },
+      "notation": "pxgF10",
+      "positionHash": "17708100958786594090"
+    },
+    {
+      "turn": 294,
+      "side": "white",
+      "moveKeyStr": "M:0,7->0,8:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:2|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -1059.1065841430056,
+      "evalAfter": -975.7168107640605,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.41732283464566927,
+        "materialBalance": 0.39267015706806285,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.1568627450980392
+      },
+      "notation": "UI13",
+      "positionHash": "2671107332710254691"
+    },
+    {
+      "turn": 295,
+      "side": "black",
+      "moveKeyStr": "R:0->1,6",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -975.7168107640605,
+      "evalAfter": -684.7217029153333,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.42857142857142855,
+        "materialBalance": 0.4012903225806452,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.1568627450980392
+      },
+      "notation": "p*G12",
+      "positionHash": "3819508796851414532"
+    },
+    {
+      "turn": 296,
+      "side": "white",
+      "moveKeyStr": "M:8,2->12,2:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -684.7217029153333,
+      "evalAfter": -720.0841290573061,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.43700787401574803,
+        "materialBalance": 0.4012903225806452,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "CaC1",
+      "positionHash": "12628570054153113277"
+    },
+    {
+      "turn": 297,
+      "side": "black",
+      "moveKeyStr": "M:7,12->8,12:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -720.0841290573061,
+      "evalAfter": -821.0053790573055,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.43700787401574803,
+        "materialBalance": 0.4012903225806452,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.16666666666666666
+      },
+      "notation": "pM5",
+      "positionHash": "3893442836621362452"
+    },
+    {
+      "turn": 298,
+      "side": "white",
+      "moveKeyStr": "M:9,5->10,3:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:1|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -821.0053790573055,
+      "evalAfter": -685.9400321352189,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.43529411764705883,
+        "materialBalance": 0.4012903225806452,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.17391304347826086
+      },
+      "notation": "HD3",
+      "positionHash": "9316390978664620445"
+    },
+    {
+      "turn": 299,
+      "side": "black",
+      "moveKeyStr": "M:8,7->9,6:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -685.9400321352189,
+      "evalAfter": -78.11525782213346,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.444,
+        "materialBalance": 0.40706806282722513,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.13636363636363635
+      },
+      "notation": "pxpG4",
+      "positionHash": "17416999266631766530"
+    },
+    {
+      "turn": 300,
+      "side": "white",
+      "moveKeyStr": "M:0,8->0,9:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:2|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": -78.11525782213346,
+      "evalAfter": 5.0631228587068975,
+      "metrics": {
+        "palacePressure": 0,
+        "pieceActivity": 0.43359375,
+        "materialBalance": 0.40706806282722513,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.14634146341463414
+      },
+      "notation": "UJ13",
+      "positionHash": "4268091983386827691"
+    },
+    {
+      "turn": 301,
+      "side": "black",
+      "moveKeyStr": "M:9,6->10,5:p1",
+      "featureKey": "ap:0|pp:1|r:3|er:0|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 5.0631228587068975,
+      "evalAfter": 610.369871329294,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.43700787401574803,
+        "materialBalance": 0.42297650130548303,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.18604651162790697
+      },
+      "notation": "BxpF3+",
+      "positionHash": "4837705687482906994"
+    },
+    {
+      "turn": 302,
+      "side": "white",
+      "moveKeyStr": "M:0,9->3,6:p0",
+      "featureKey": "ap:0|pp:0|r:0|er:3|pt:0|ept:0|cu:0|ecu:0",
+      "evalBefore": 610.369871329294,
+      "evalAfter": 1079.1072459429618,
+      "metrics": {
+        "palacePressure": 0.4,
+        "pieceActivity": 0.45121951219512196,
+        "materialBalance": 0.42297650130548303,
+        "kingSafety": 0.4988347154704032,
+        "centerControl": 0.2857142857142857
+      },
+      "notation": "UG10",
+      "positionHash": "10110647875328688075"
+    },
+    {
+      "turn": 303,
+      "side": "black",
+      "moveKeyStr": "M:1,1->0,0:p0",
+      "featureKey": "ap:0|pp:1|r:3|er:0|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": 1079.1072459429618,
+      "evalAfter": 852.7470643434305,
+      "metrics": {
+        "palacePressure": 0.4,
+        "pieceActivity": 0.44214876033057854,
+        "materialBalance": 0.42297650130548303,
+        "kingSafety": 0.5319405117986563,
+        "centerControl": 0.2857142857142857
+      },
+      "notation": "KA13",
+      "positionHash": "15248998977904666156"
+    },
+    {
+      "turn": 304,
+      "side": "white",
+      "moveKeyStr": "M:3,6->3,9:p0",
+      "featureKey": "ap:0|pp:0|r:1|er:3|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 852.7470643434305,
+      "evalAfter": 955.7785024333472,
+      "metrics": {
+        "palacePressure": 0.4,
+        "pieceActivity": 0.42677824267782427,
+        "materialBalance": 0.41456953642384103,
+        "kingSafety": 0.5319405117986563,
+        "centerControl": 0.3076923076923077
+      },
+      "notation": "UxpJ10",
+      "positionHash": "16234578888347638179"
+    },
+    {
+      "turn": 305,
+      "side": "black",
+      "moveKeyStr": "M:0,0->0,1:p0",
+      "featureKey": "ap:0|pp:1|r:3|er:1|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": 955.7785024333472,
+      "evalAfter": 811.8444782741108,
+      "metrics": {
+        "palacePressure": 0.4,
+        "pieceActivity": 0.4315352697095436,
+        "materialBalance": 0.41456953642384103,
+        "kingSafety": 0.5319405117986563,
+        "centerControl": 0.3076923076923077
+      },
+      "notation": "KB13",
+      "positionHash": "9612099543147965098"
+    },
+    {
+      "turn": 306,
+      "side": "white",
+      "moveKeyStr": "M:8,11->8,12:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:3|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 811.8444782741108,
+      "evalAfter": 780.3386839149931,
+      "metrics": {
+        "palacePressure": 0.4,
+        "pieceActivity": 0.4327731092436975,
+        "materialBalance": 0.40591397849462363,
+        "kingSafety": 0.5319405117986563,
+        "centerControl": 0.3076923076923077
+      },
+      "notation": "pxpM5",
+      "positionHash": "10229267256245414608"
+    },
+    {
+      "turn": 307,
+      "side": "black",
+      "moveKeyStr": "M:0,1->0,0:p0",
+      "featureKey": "ap:0|pp:1|r:3|er:2|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": 780.3386839149931,
+      "evalAfter": 594.272014887789,
+      "metrics": {
+        "palacePressure": 0.4,
+        "pieceActivity": 0.4279661016949153,
+        "materialBalance": 0.40591397849462363,
+        "kingSafety": 0.5319405117986563,
+        "centerControl": 0.3076923076923077
+      },
+      "notation": "KA13",
+      "positionHash": "16851465642669890009"
+    },
+    {
+      "turn": 308,
+      "side": "white",
+      "moveKeyStr": "M:3,9->2,10:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:3|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 594.272014887789,
+      "evalAfter": -44.45197571154042,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42616033755274263,
+        "materialBalance": 0.40591397849462363,
+        "kingSafety": 0.5319405117986563,
+        "centerControl": 0.1951219512195122
+      },
+      "notation": "UK11",
+      "positionHash": "8672009590582831840"
+    },
+    {
+      "turn": 309,
+      "side": "black",
+      "moveKeyStr": "M:8,3->8,4:p0",
+      "featureKey": "ap:0|pp:1|r:4|er:2|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": -44.45197571154042,
+      "evalAfter": 537.4827685006065,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.4353448275862069,
+        "materialBalance": 0.4120054570259209,
+        "kingSafety": 0.5319405117986563,
+        "centerControl": 0.21951219512195122
+      },
+      "notation": "pxpE5",
+      "positionHash": "3409636728908282164"
+    },
+    {
+      "turn": 310,
+      "side": "white",
+      "moveKeyStr": "M:2,10->2,4:p0",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 537.4827685006065,
+      "evalAfter": 680.7421458940911,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42272727272727273,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "UxpE11",
+      "positionHash": "409280437320994943"
+    },
+    {
+      "turn": 311,
+      "side": "black",
+      "moveKeyStr": "M:0,0->0,1:p0",
+      "featureKey": "ap:0|pp:1|r:4|er:2|pt:0|ept:1|cu:0|ecu:1",
+      "evalBefore": 680.7421458940911,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "KB13",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 312,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 313,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 314,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 315,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 316,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 317,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 318,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 319,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 320,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 321,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 322,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 323,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 324,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 325,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 326,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 327,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 328,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 329,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 330,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 331,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 332,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 333,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 334,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 335,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 336,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 337,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 338,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 339,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 340,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 341,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 342,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    },
+    {
+      "turn": 343,
+      "side": "white",
+      "moveKeyStr": "R:0->3,6",
+      "featureKey": "ap:0|pp:0|r:2|er:4|pt:1|ept:0|cu:1|ecu:0",
+      "evalBefore": 496.81427447294874,
+      "evalAfter": 496.81427447294874,
+      "metrics": {
+        "palacePressure": 0.3333333333333333,
+        "pieceActivity": 0.42792792792792794,
+        "materialBalance": 0.37806637806637805,
+        "kingSafety": 0.5329160904411417,
+        "centerControl": 0.1956521739130435
+      },
+      "notation": "p*G10",
+      "positionHash": "7027806216303403894"
+    }
+  ]
+}
