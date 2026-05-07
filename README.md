@@ -7,6 +7,7 @@ Ejecuta un servidor local en la carpeta del proyecto:
 
 ```bash
 python3 -m http.server 8000
+npm start
 ```
 
 Luego abre:
@@ -32,4 +33,3 @@ La base está lista para jugar en local, con:
 - arquero con modo especial en la orilla,
 - detección de jaque, ahogado y algunas condiciones de palacio.
 
-Algunas reglas muy específicas del reglamento quedan implementadas de forma práctica y pueden pulirse en una segunda pasada para que queden exactamente idénticas al texto.
