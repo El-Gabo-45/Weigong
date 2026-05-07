@@ -1,4 +1,3 @@
-// Re-exportar todo desde la carpeta rules
 export {
   createGame,
   resetGame,

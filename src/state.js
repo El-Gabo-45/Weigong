@@ -66,7 +66,7 @@ export const V = {
   viewPly: 0,
 };
 
-// ── Utilidades simples que solo modifican V ──
+// ── Utilidades simples que solo modifican V/ simple utilities, it just modify V/ ──
 export function cancelBotTimer() { if (V.botTimeout) { clearTimeout(V.botTimeout); V.botTimeout = null; } V.botThinking = false; V.botToken += 1; }
 export function clearSelection() { state.selected = null; state.legalMoves = []; V.selectedReserve = null; V.pendingMove = null; V.pendingAmbush = null; }
 

@@ -52,7 +52,7 @@ async function ensureBinaries() {
  * @returns {Promise<Object>} Métricas de entrenamiento
  */
 export async function trainFromGames(options = {}) {
-    if (isTraining) throw new Error('Ya hay un entrenamiento en curso');
+    if (isTraining) throw new Error('There is a training happening');
     isTraining = true;
 
     const {
@@ -96,7 +96,7 @@ export async function trainFromGames(options = {}) {
         }
 
         if (inputs.length === 0) {
-            return { trained: false, samples: 0, message: 'No hay datos con _nnFloat32' };
+            return { trained: false, samples: 0, message: 'There are no data with _nnFloat32' };
         }
 
         // Construir JSON para stdin del binario
@@ -107,7 +107,7 @@ export async function trainFromGames(options = {}) {
         
         const result = await runTrainBinary(modelPath, epochs, batchSize, jsonData);
         
-        console.log(`✅ Entrenamiento completo: ${result.final_mse?.toFixed(6) ?? '?'} MSE`);
+        console.log(`✅ Training complete: ${result.final_mse?.toFixed(6) ?? '?'} MSE`);
         
         return {
             trained: true,

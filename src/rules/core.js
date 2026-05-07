@@ -34,8 +34,8 @@ function moveSignature(action, side) {
 
 function buildStatusMessage(state) {
   return isKingInCheck(state, state.turn)
-    ? `${state.turn === SIDE.WHITE ? "Blanco" : "Negro"} está en jaque.`
-    : `${state.turn === SIDE.WHITE ? "Blanco" : "Negro"} al turno.`;
+    ? `${state.turn === SIDE.WHITE ? "White" : "Black"} está en jaque.`
+    : `${state.turn === SIDE.WHITE ? "White" : "Black"} al Turn.`;
 }
 
 export function applyMove(state, action) {
@@ -184,24 +184,24 @@ export function afterMoveEvaluation(state) {
   try {
     const side = state.turn;
     const key = boardSignature(state);
-    if (state.positionHistory.get(key) >= 3) { state.status = "draw"; state.message = "Tablas por repetición de posición (3 veces)."; return; }
+    if (state.positionHistory.get(key) >= 3) { state.status = "draw"; state.message = "Draw by position repetition (3 times)."; return; }
     const legal = getAllLegalMoves(state, side);
     const inCheck = isKingInCheck(state, side);
     if (legal.length === 0) {
       state.status = inCheck ? "checkmate" : "stalemate";
-      state.message = inCheck ? `${side === SIDE.WHITE ? "Blanco" : "Negro"} pierde por jaque mate.` : "Ahogado / tablas por falta de movimientos.";
+      state.message = inCheck ? `${side === SIDE.WHITE ? "White" : "Black"} losses by checkmate.` : "Stalemate / Draw by insufficient movements.";
     } else {
       state.status = "playing";
       if (isInPalaceMate(state, side)) {
         state.status = "palacemate";
-        state.message = `${side === SIDE.WHITE ? "Blanco" : "Negro"} cae por mate por captura (asedio total).`;
+        state.message = `${side === SIDE.WHITE ? "White" : "Black"} losses by palace siege (total siege).`;
       }
     }
     if (state.status === "playing") {
       for (const s of [SIDE.WHITE, SIDE.BLACK]) {
         if (state.palaceTaken?.[s]) {
           const king = findKings(state.board)[s];
-          if (king && isPalaceSquare(king.r, king.c, s)) state.message = `${s === SIDE.WHITE ? "Blanco" : "Negro"} tiene el palacio tomado.`;
+          if (king && isPalaceSquare(king.r, king.c, s)) state.message = `${s === SIDE.WHITE ? "White" : "Black"} captures the palace.`;
         }
       }
     }

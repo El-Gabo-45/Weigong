@@ -15,7 +15,7 @@ import {
 } from './ai/index.js';
 import crypto from 'crypto';
 
-/* ─── Codificación para NNUE (sin cambios) ─── */
+/* ─── Codificación para NNUE (sin cambios) NNUE encoding (no changes) ─── */
 const PIECE_CHANNEL = {
   king:0, queen:1, general:2, elephant:3, priest:4, horse:5,
   cannon:6, tower:7, carriage:8, archer:9, pawn:10, crossbow:11,
@@ -38,7 +38,7 @@ function encodeBoardForNN(board) {
   return enc;
 }
 
-/* ─── Valores de pieza ─── */
+/* ─── Valores de pieza Piece value ─── */
 const PIECE_VALUES = {
   king:0, queen:950, general:560, elephant:240, priest:400,
   horse:320, cannon:450, tower:520, carriage:390, archer:450,
@@ -77,7 +77,7 @@ function notation(state, move, promote = false, ambushInfo = null, originalPiece
 
   const sym = p.promoted ? (PROMO_SYMBOLS[p.type] ?? SYMS[p.type]) : SYMS[p.type];
 
-  // ── Caso arquero con emboscada ──
+  // ── Caso arquero con emboscada Archer with ambush──
   if (p.type === 'archer' && ambushInfo) {
     const options = ambushInfo.options || [];
     if (options.length === 0) return `A${toStr}`;
@@ -107,8 +107,8 @@ function notation(state, move, promote = false, ambushInfo = null, originalPiece
     return nota;
   }
 
-  // ── Notación normal ──
-  const target = capturedPiece;   // <-- pieza capturada guardada antes de mover
+  // ── Notación normal Normal notation──
+  const target = capturedPiece;
   let n = sym;
   if (target && target.side !== p.side) {
     const targetSym = target.promoted
@@ -181,7 +181,7 @@ function resolveAmbush(ambush, side, state) {
   }
 }
 
-/* ─── Clonar estado mínimamente para el bot ─── */
+/* ─── Clonar estado mínimamente para el bot Clone minimal state for the bot ─── */
 function cloneStateForBot(state) {
   const board = new Array(13);
   for (let r = 0; r < 13; r++) {
@@ -221,7 +221,7 @@ function cloneStateForBot(state) {
   };
 }
 
-/* ─── Diversidad en apertura ─── */
+/* ─── Diversidad en apertura Opening diversity ─── */
 function pickOpeningMove(legalMoves, state) {
   const safe = legalMoves.filter(m => {
     if (m.fromReserve) return true;
@@ -268,7 +268,7 @@ function boardSnapshot(board) {
   return snap;
 }
 
-/* ─── FUNCIÓN PRINCIPAL ─── */
+/* ─── FUNCIÓN PRINCIPAL Main function ─── */
 export async function playSelfPlayGame(botParams) {
   const state = createGame();
   const moves  = [];
@@ -306,7 +306,7 @@ export async function playSelfPlayGame(botParams) {
 
     let shouldProm = false;
     let movingPiece = null;
-    let capturedPiece = null;   // <-- para notación
+    let capturedPiece = null;
     if (!move.fromReserve && move.from && move.to) {
       const piece = state.board[move.from.r]?.[move.from.c];
       movingPiece = piece;
@@ -314,7 +314,6 @@ export async function playSelfPlayGame(botParams) {
         && isPromotionAvailableForMove(state, move.from, move.to)
         && isPromotableType(piece.type)
         && !piece.promoted;
-      // Guardar pieza en destino antes de mover
       capturedPiece = state.board[move.to.r]?.[move.to.c];
     }
 

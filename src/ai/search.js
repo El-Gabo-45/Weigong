@@ -339,8 +339,8 @@ function moveOrderScore(state, move, depth) {
 
   const enemy = opponent(side);
   if (isPalaceSquare(move.to.r, move.to.c, enemy)) score += PALACE_PRESSURE_BONUS;
-  const IMMEDIATE_BACKTRACK_PENALTY = 500;
-  if (isBacktrack(state, move)) score -= IMMEDIATE_BACKTRACK_PENALTY;
+  const IMMEDAITE_BACKTRACK_PENALTY = 500;
+  if (isBacktrack(state, move)) score -= IMMEDAITE_BACKTRACK_PENALTY;
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
   score += killerScore(depth, move);

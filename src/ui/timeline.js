@@ -80,7 +80,7 @@ export function renderTimeline() {
     return b;
   };
 
-  moveTimeline.appendChild(mkBtn("⏮ Inicio", 0, V.viewPly === 0));
+  moveTimeline.appendChild(mkBtn("⏮ Start", 0, V.viewPly === 0));
   for (let ply = 1; ply <= V.currentGameNotation.length; ply++) {
     const moveNo = Math.ceil(ply / 2);
     const sideTag = (ply % 2 === 1) ? `${moveNo}.` : `${moveNo}...`;
@@ -146,7 +146,7 @@ function serializeTimeline() {
 }
 
 function loadTimelineFromObject(obj) {
-  if (!obj || obj.version !== 1 || !Array.isArray(obj.snapshots)) throw new Error("Formato inválido.");
+  if (!obj || obj.version !== 1 || !Array.isArray(obj.snapshots)) throw new Error("Invalid format.");
   V.timelineSnapshots = obj.snapshots.map(s => {
     if (!s?.state) return null;
     const st = { ...s.state };
@@ -229,13 +229,13 @@ if (loadGameBtn && loadGameInput) {
         // Restore to final ply we managed to reconstruct
         goToPly(V.totalMoves);
       } else {
-        throw new Error("Formato no reconocido.");
+        throw new Error("Format not recognized.");
       }
-      state.message = "Partida cargada.";
+      state.message = "Game loaded.";
       render();
     } catch (e) {
       console.error(e);
-      state.message = "No se pudo cargar (JSON inválido o formato incorrecto).";
+      state.message = "Could not load game (invalid JSON or incorrect format).";
       render();
     } finally {
       loadGameInput.value = "";

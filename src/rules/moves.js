@@ -316,7 +316,7 @@ export function getLegalMovesForSquare(state, r, c) {
   // River squares are "dead": no piece may ever end a move on the river row.
   moves = moves.filter(m => !isRiverSquare(m.r));
 
-  // Balleta now can cross the river (no restrictions for crossbow)
+  // Crossbow now can cross the river (no restrictions for crossbow)
   moves = moves.filter(m => {
     const target = board[m.r][m.c];
     if (target && target.side === piece.side) return false;

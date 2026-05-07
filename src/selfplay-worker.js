@@ -7,8 +7,8 @@ const { botParams } = workerData;
   try {
     const result = await playSelfPlayGame(botParams);
 
-    // Serializar moves incluyendo _nnFloat32 para GPU training
-    // (transferir como Transferable para mejor performance)
+    // Serializar moves incluyendo _nnFloat32 para GPU training Serialyze the moves including _nnFloat32 for GPU training
+    // (transferir como Transferable para mejor performance) Transfer as Transferable for better performance
     const nnData = [];
     for (const m of result.moves) {
       if (m._nnFloat32) {
@@ -16,7 +16,7 @@ const { botParams } = workerData;
           turn: m.turn ?? result.moves.indexOf(m) + 1,
           nn: Array.from(m._nnFloat32),
         });
-        // No enviar el Float32Array enorme (va como normal)
+        // No enviar el Float32Array enorme Don't send the huge Float32Array
         delete m._nnFloat32;
         delete m.boardSnapshot;
       }

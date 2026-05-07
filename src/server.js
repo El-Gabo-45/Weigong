@@ -17,7 +17,7 @@ const GAMES_DIR   = path.join(__dirname, '..', 'games');
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..')));
 
-/* ---------- Memoria adaptativa ---------- */
+/* ---------- Memoria adaptativa Adaptative Memory ---------- */
 async function ensureMemoryFile() {
   await fs.mkdir(path.dirname(MEMORY_FILE), { recursive: true });
   try {
@@ -46,12 +46,12 @@ app.post('/api/memory', async (req, res) => {
   res.json({ ok: true });
 });
 
-/* ---------- Guardado de partidas ---------- */
+/* ---------- Guardado de partidas Saved games ---------- */
 app.post('/api/saveGame', async (req, res) => {
   try {
     const game = req.body;
     if (!game.moves || !game.finalStatus) {
-      return res.status(400).json({ error: 'Faltan datos (moves, finalStatus)' });
+      return res.status(400).json({ error: 'There are missing data (moves, finalStatus)' });
     }
     await fs.mkdir(GAMES_DIR, { recursive: true });
     const name = `game_${Date.now()}_${Math.random().toString(36).slice(2,8)}.json`;
@@ -64,7 +64,7 @@ app.post('/api/saveGame', async (req, res) => {
   }
 });
 
-/* ---------- Aprender de partidas guardadas ---------- */
+/* ---------- Aprender de partidas guardadas Learn from saved games ---------- */
 app.post('/api/learnFromGames', async (_req, res) => {
   try {
     await ensureMemoryFile();
@@ -81,11 +81,11 @@ app.post('/api/learnFromGames', async (_req, res) => {
       const all = await fs.readdir(GAMES_DIR);
       files = all.filter(f => f.endsWith('.json') && !f.includes('processed'));
     } catch {
-      return res.json({ ok: true, learned: 0, message: 'No hay partidas guardadas' });
+      return res.json({ ok: true, learned: 0, message: 'There are no saved games available' });
     }
 
     if (files.length === 0) {
-      return res.json({ ok: true, learned: 0, message: 'No hay partidas nuevas' });
+      return res.json({ ok: true, learned: 0, message: 'There are no new games to learn from' });
     }
 
     const DECAY = 0.02;
@@ -190,7 +190,7 @@ app.post('/api/learnFromGames', async (_req, res) => {
   }
 });
 
-/* ---------- Estadísticas ---------- */
+/* ---------- Estadísticas Statics ---------- */
 app.get('/api/memoryStats', async (_req, res) => {
   try {
     await ensureMemoryFile();
@@ -249,12 +249,12 @@ function updatePatternWeights(memory, result, moves) {
   memory.patternWeights = w;
 }
 
-/* ─── SELF‑PLAY CON WORKER THREADS ─── */
+/* ─── SELF‑PLAY CON WORKER THREADS SELF‑PLAY WITH WORKER THREADS ─── */
 const MAX_WORKERS = 4;
 
 app.post('/api/selfPlay', async (req, res) => {
   const { games = 10, maxDepth = 4, timeLimitMs = 500 } = req.body;
-  res.json({ ok: true, message: `Self‑play de ${games} partidas iniciado (depth ${maxDepth}, ${timeLimitMs}ms, ${MAX_WORKERS} workers).` });
+  res.json({ ok: true, message: `Self‑play of ${games} games started (depth ${maxDepth}, ${timeLimitMs}ms, ${MAX_WORKERS} workers).` });
 
   (async () => {
     const botParams = { maxDepth, timeLimitMs };
@@ -274,7 +274,7 @@ app.post('/api/selfPlay', async (req, res) => {
             gameResult = lastSide === SIDE.BLACK ? 'win' : 'loss';
           }
 
-          // Mapa de turno -> nn encoding
+          // Mapa de Turn -> nn encoding Turn map -> nn encoding
           const nnMap = {};
           if (_nnFloat32 && Array.isArray(_nnFloat32)) {
             for (const entry of _nnFloat32) {
@@ -302,7 +302,7 @@ app.post('/api/selfPlay', async (req, res) => {
                 metrics: m.metrics,
                 notation: m.notation ?? '',
                 positionHash: m.positionHash,
-                // Incluir _nnFloat32 para GPU training
+                // Incluir _nnFloat32 para GPU training Include _nnFloat32 for GPU training
                 ...(nnEncoded ? { _nnFloat32: nnEncoded } : {}),
               };
             }),
@@ -315,10 +315,10 @@ app.post('/api/selfPlay', async (req, res) => {
           });
 
           completed++;
-          console.log(`✔ Worker terminó juego (${completed}/${games})`);
+          console.log(`✔ Worker finished games (${completed}/${games})`);
           resolve();
         } catch (e) {
-          console.error('Error guardando partida desde worker:', e);
+          console.error('Error saving game from worker:', e);
           reject(e);
         }
       });
@@ -334,19 +334,19 @@ app.post('/api/selfPlay', async (req, res) => {
     }
 
     await fetch(`http://localhost:${PORT}/api/learnFromGames`, { method: 'POST' });
-    console.log(`✔ Self‑play completado: ${completed}/${games} partidas.`);
+    console.log(`✔ Self‑play finished: ${completed}/${games} games.`);
   })().catch(console.error);
 });
 
 /* ════════════════════════════════════════
-   🧠 Endpoints: Red Neuronal GPU (OpenCL)
+   🧠 Endpoints: Red Neuronal GPU (OpenCL) NN GPU (OpenCL)
    ════════════════════════════════════════ */
 
 app.post('/api/nn/train', async (req, res) => {
   try {
     const { epochs = 10, batchSize = 64 } = req.body ?? {};
 
-    // Cargar todas las partidas (las processed también, tienen _nnFloat32)
+    // Cargar todas las partidas (las procesadas también, tienen _nnFloat32) Load all games (processed games also have _nnFloat32)
     let files = [];
     try {
       const all = await fs.readdir(GAMES_DIR);
@@ -354,7 +354,7 @@ app.post('/api/nn/train', async (req, res) => {
     } catch {}
 
     if (files.length === 0) {
-      return res.json({ ok: false, message: 'No hay partidas guardadas' });
+      return res.json({ ok: false, message: 'There are no saved games' });
     }
 
     const games = [];
@@ -366,10 +366,10 @@ app.post('/api/nn/train', async (req, res) => {
       } catch {}
     }
 
-    console.log(`🧠 Entrenando GPU con ${games.length} partidas...`);
+    console.log(`🧠 Training GPU with ${games.length} games...`);
     const result = await trainFromGames({ epochs, batchSize, games });
 
-    // Si salió bien, actualizar el contador de juegos aprendidos
+    // Si salió bien, actualizar el contador de juegos aprendidos If it worked, update the learned games counter
     console.log(`✅ GPU training: ${result.samples} muestras, MSE: ${result.final_mse?.toFixed(6) ?? '?'}`);
     res.json({ ok: true, ...result });
   } catch (e) {
@@ -387,7 +387,7 @@ app.get('/api/nn/info', async (_req, res) => {
   }
 });
 
-// Al iniciar, aprender automáticamente de partidas pendientes
+// Al iniciar, aprender automáticamente de partidas pendientes At start, learn automatically from pending games
 app.listen(PORT, async () => {
   await ensureMemoryFile();
   console.log(`Servidor en http://localhost:${PORT}`);
@@ -396,7 +396,7 @@ app.listen(PORT, async () => {
     const files = await fs.readdir(GAMES_DIR);
     const pending = files.filter(f => f.endsWith('.json') && !f.includes('processed'));
     if (pending.length > 0) {
-      console.log(`📚 ${pending.length} partidas pendientes, aprendiendo...`);
+      console.log(`📚 ${pending.length} pending games, learning...`);
       await fetch(`http://localhost:${PORT}/api/learnFromGames`, { method: 'POST' });
     }
   } catch {}
