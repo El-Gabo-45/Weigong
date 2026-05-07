@@ -1,4 +1,4 @@
-# Juego 13x13 · local single player
+# Juego 13x13 · local single player similar to xianqi
 
 Proyecto web en archivos separados.
 
