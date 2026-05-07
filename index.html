@@ -1,76 +1,76 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Juego 13x13 - Local</title>
+  <title>13x13 Game - Local</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div class="app">
     <header class="topbar">
       <div>
-        <h1>Juego 13×13</h1>
-        <p class="subtitle">Single player local · dos bandos en la misma computadora</p>
-        <div class="timelineBar" aria-label="Historial de jugadas">
-          <div id="moveTimeline" class="timeline" role="navigation" aria-label="Notación de jugadas"></div>
+        <h1>13×13 Game</h1>
+        <p class="subtitle">Single player local · two sides on the same computer</p>
+        <div class="timelineBar" aria-label="Move history">
+          <div id="moveTimeline" class="timeline" role="navigation" aria-label="Move notation"></div>
           <div class="timelineActions">
             <input id="loadGameInput" type="file" accept="application/json" style="display:none;" />
-            <button id="loadGameBtn" class="button secondary">Cargar partida</button>
+            <button id="loadGameBtn" class="button secondary">Load game</button>
           </div>
         </div>
       </div>
       <div class="status">
-        <div id="turnLabel">Turno: —</div>
-        <div id="phaseLabel">Fase: —</div>
-        <div id="moveCount">Jugadas: 0</div>
+        <div id="turnLabel">Turn: —</div>
+        <div id="phaseLabel">Phase: —</div>
+        <div id="moveCount">Moves: 0</div>
       </div>
     </header>
 
     <main class="layout">
       <section class="boardWrap">
-        <div id="board" class="board" aria-label="Tablero 13 por 13"></div>
+        <div id="board" class="board" aria-label="13 by 13 board"></div>
       </section>
 
       <aside class="sidePanel">
         <section class="card">
-          <h2>Reservas</h2>
+          <h2>Reserves</h2>
           <div id="reserveWhite" class="reserve"></div>
           <div id="reserveBlack" class="reserve"></div>
-          <p class="hint">Haz clic en una pieza de reserva para colocarla. Las piezas reutilizables son torre, general, peón y crossbow.</p>
+          <p class="hint">Click on a reserve piece to place it. Reusable pieces are rook, general, pawn, and crossbow.</p>
         </section>
 
         <section class="card">
-          <h2>Ayuda</h2>
+          <h2>Help</h2>
           <ul>
-            <li>Clic en una pieza para seleccionarla.</li>
-            <li>Clic en una casilla resaltada para mover.</li>
-            <li>Las piezas promocionables pueden girar al reverso rojo.</li>
-            <li>El arquero tiene modo especial en la orilla del río.</li>
+            <li>Click on a piece to select it.</li>
+            <li>Click on a highlighted square to move.</li>
+            <li>Promotable pieces can flip to their red back side.</li>
+            <li>The archer has a special mode at the river bank.</li>
           </ul>
-          <button id="resetBtn" class="button">Reiniciar partida</button>
-          <button id="botToggleBtn" class="button" style="margin-top:10px;">Bot negras: desactivado</button>
-          <button id="aiVsAiBtn" class="button" style="margin-top:10px;width:100%;">🤖 IA vs IA</button>
-          <button id="trainBtn" class="button" style="margin-top:10px;width:100%;">🏋️ Entrenamiento</button>
+          <button id="resetBtn" class="button">Reset game</button>
+          <button id="botToggleBtn" class="button" style="margin-top:10px;">Black bot: disabled</button>
+          <button id="aiVsAiBtn" class="button" style="margin-top:10px;width:100%;">🤖 AI vs AI</button>
+          <button id="trainBtn" class="button" style="margin-top:10px;width:100%;">🏋️ Training</button>
           <div style="margin-top:15px;">
-            <label for="difficultySelect" style="display:block;margin-bottom:5px;font-weight:bold;">Nivel de dificultad:</label>
+            <label for="difficultySelect" style="display:block;margin-bottom:5px;font-weight:bold;">Difficulty level:</label>
             <select id="difficultySelect" class="button" style="width:100%;padding:8px;">
-              <option value="1">Nivel 1 - Principiante</option>
-              <option value="2">Nivel 2 - Fácil</option>
-              <option value="3">Nivel 3 - Fácil+</option>
-              <option value="4">Nivel 4 - Intermedio-</option>
-              <option value="5" selected>Nivel 5 - Intermedio</option>
-              <option value="6">Nivel 6 - Intermedio+</option>
-              <option value="7">Nivel 7 - Avanzado-</option>
-              <option value="8">Nivel 8 - Avanzado</option>
-              <option value="9">Nivel 9 - Experto</option>
-              <option value="10">Nivel 10 - Maestro</option>
+              <option value="1">Level 1 - Beginner</option>
+              <option value="2">Level 2 - Easy</option>
+              <option value="3">Level 3 - Easy+</option>
+              <option value="4">Level 4 - Intermediate-</option>
+              <option value="5" selected>Level 5 - Intermediate</option>
+              <option value="6">Level 6 - Intermediate+</option>
+              <option value="7">Level 7 - Advanced-</option>
+              <option value="8">Level 8 - Advanced</option>
+              <option value="9">Level 9 - Expert</option>
+              <option value="10">Level 10 - Master</option>
             </select>
           </div>
         </section>
 
         <section class="card">
-          <h2>Reglas activas</h2>
+          <h2>Active rules</h2>
           <div id="rulesSummary" class="rulesSummary"></div>
         </section>
       </aside>
@@ -79,16 +79,16 @@
 
   <div id="promotionModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="promotionTitle">
     <div class="modalCard">
-      <h2 id="promotionTitle">Promoción opcional</h2>
-      <p id="promotionText">Elige si deseas promocionar la pieza.</p>
+      <h2 id="promotionTitle">Optional promotion</h2>
+      <p id="promotionText">Choose whether you want to promote the piece.</p>
       <div id="promotionChoices" class="promoChoices"></div>
     </div>
   </div>
 
   <div id="ambushModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ambushTitle">
     <div class="modalCard">
-      <h2 id="ambushTitle">¡Emboscada del Arquero!</h2>
-      <p id="ambushText">Elige qué pieza enemiga capturar:</p>
+      <h2 id="ambushTitle">Archer Ambush!</h2>
+      <p id="ambushText">Choose which enemy piece to capture:</p>
       <div id="ambushChoices" class="promoChoices"></div>
     </div>
   </div>
