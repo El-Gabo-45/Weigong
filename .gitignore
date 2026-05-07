@@ -1,2 +1,5 @@
+games/
 node_modules/
-!games/*.json
+*.json
+!package.json
+!src/data/ai-memory.json
