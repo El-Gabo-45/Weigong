@@ -1,4 +1,3 @@
 games/
 node_modules/*.json
-!package.json
-!src/data/ai-memory.json
+package-lock.json
