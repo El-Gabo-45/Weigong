@@ -7,7 +7,7 @@ import {
   createGame, resetGame, getPieceMoves, getAllLegalMoves, getReserveEntries,
   applyMove, executeDrop, isPromotionAvailableForMove, afterMoveEvaluation,
   getBoardMeta, getPieceText, executeArcherAmbush, isKingInCheck,
-  isPalaceCursedFor, getPalaceInvaders,
+  isPalaceCursedFor, getPalaceInvaders, getLegalReserveDrops,
 } from "../rules/index.js";
 import {
   chooseBlackBotMove, adaptiveMemory, loadAdaptiveMemory,
@@ -28,8 +28,8 @@ import {
   recordTimelineSnapshot, renderTimeline, goToPly, markLastNotationForCurrentState,
   snapshotForTimeline,
 } from "./timeline.js";
+import pako from 'pako';
 
-// ── Funciones auxiliares ──
 function getPieceSymbol(type) {
   const symbols = { king:'K', queen:'Q', general:'G', elephant:'E', priest:'P', horse:'H', cannon:'C', tower:'T', carriage:'Ca', archer:'A', pawn:'p', crossbow:'B' };
   return symbols[type] || '?';
@@ -43,29 +43,16 @@ function generateMoveNotation(state, move, ambushInfo = null, chosenAmbushIndex 
     return `${getPieceSymbol(entry?.type ?? '?')}*${toStr}`;
   }
   if (!move.from) return '?';
-
-  const piece = state.board[move.to.r]?.[move.to.c]
-             ?? state.board[move.from.r]?.[move.from.c];
+  const piece = state.board[move.to.r]?.[move.to.c] ?? state.board[move.from.r]?.[move.from.c];
   if (!piece) return '?';
-
-  // ── Símbolos para piezas promocionadas ──
-  const PROMO_SYMBOLS = {
-    tower: 'U', horse: 'S', elephant: 'F', priest: 'W', cannon: 'R', pawn: 'B'
-  };
-  const sym = piece.promoted
-    ? (PROMO_SYMBOLS[piece.type] ?? getPieceSymbol(piece.type))
-    : getPieceSymbol(piece.type);
-
-  // ── Notación del arquero ──
+  const PROMO_SYMBOLS = { tower: 'U', horse: 'S', elephant: 'F', priest: 'W', cannon: 'R', pawn: 'B' };
+  const sym = piece.promoted ? (PROMO_SYMBOLS[piece.type] ?? getPieceSymbol(piece.type)) : getPieceSymbol(piece.type);
   if (piece.type === 'archer' && ambushInfo) {
     let nota = `A${toStr}`;
-
     if (ambushInfo.type === 'singleCapture') {
       const v = ambushInfo.victim;
       const vPiece = ambushInfo.victimPiece;
-      const vSym   = vPiece
-        ? (vPiece.promoted ? (PROMO_SYMBOLS[vPiece.type] ?? getPieceSymbol(vPiece.type)) : getPieceSymbol(vPiece.type))
-        : '?';
+      const vSym = vPiece ? (vPiece.promoted ? (PROMO_SYMBOLS[vPiece.type] ?? getPieceSymbol(vPiece.type)) : getPieceSymbol(vPiece.type)) : '?';
       nota += `>${vSym}x${COLS[v.c]}${13 - v.r}`;
     } else if (ambushInfo.type === 'autoCaptureAll') {
       const parts = (ambushInfo.victimPieces ?? []).map((vp, i) => {
@@ -78,20 +65,15 @@ function generateMoveNotation(state, move, ambushInfo = null, chosenAmbushIndex 
       const opts = ambushInfo.options;
       if (opts && opts.length > 0) {
         const chosen = opts[chosenAmbushIndex];
-        const cSym   = chosen.piece.promoted
-          ? (PROMO_SYMBOLS[chosen.piece.type] ?? getPieceSymbol(chosen.piece.type))
-          : getPieceSymbol(chosen.piece.type);
+        const cSym = chosen.piece.promoted ? (PROMO_SYMBOLS[chosen.piece.type] ?? getPieceSymbol(chosen.piece.type)) : getPieceSymbol(chosen.piece.type);
         nota += `>${cSym}x${COLS[chosen.c]}${13 - chosen.r}`;
         for (let i = 0; i < opts.length; i++) {
           if (i === chosenAmbushIndex) continue;
-          const opt  = opts[i];
-          const oSym = opt.piece.promoted
-            ? (PROMO_SYMBOLS[opt.piece.type] ?? getPieceSymbol(opt.piece.type))
-            : getPieceSymbol(opt.piece.type);
+          const opt = opts[i];
+          const oSym = opt.piece.promoted ? (PROMO_SYMBOLS[opt.piece.type] ?? getPieceSymbol(opt.piece.type)) : getPieceSymbol(opt.piece.type);
           if (opt.canRetreat) {
             const retreatDir = piece.side === SIDE.BLACK ? 1 : -1;
             const rr = opt.r + retreatDir;
-            // ★ Casilla de origen antes de la flecha
             nota += `,${oSym}${COLS[opt.c]}${13 - opt.r}→${COLS[opt.c]}${13 - rr}`;
           } else {
             nota += `,${oSym}x${COLS[opt.c]}${13 - opt.r}`;
@@ -101,14 +83,10 @@ function generateMoveNotation(state, move, ambushInfo = null, chosenAmbushIndex 
     }
     return nota;
   }
-
-  // ── Notación normal ──
   const target = capturedPiece || state.board[move.to.r]?.[move.to.c];
   let notation = sym;
   if (target && target.side !== piece.side) {
-    const targetSym = target.promoted
-      ? (PROMO_SYMBOLS[target.type] ?? getPieceSymbol(target.type))
-      : getPieceSymbol(target.type);
+    const targetSym = target.promoted ? (PROMO_SYMBOLS[target.type] ?? getPieceSymbol(target.type)) : getPieceSymbol(target.type);
     notation += `x${targetSym.toLowerCase()}${toStr}`;
   } else {
     notation += toStr;
@@ -117,28 +95,19 @@ function generateMoveNotation(state, move, ambushInfo = null, chosenAmbushIndex 
   return notation;
 }
 
-// ── Palace curse notation suffix ──
-// Appends invaders info when curse JUST activated, e.g. "pJ4&BG11-"
 function appendCurseNotation(state) {
-  const PROMO_SYMBOLS = {
-    tower: 'U', horse: 'S', elephant: 'F', priest: 'W', cannon: 'R', pawn: 'B'
-  };
+  const PROMO_SYMBOLS = { tower: 'U', horse: 'S', elephant: 'F', priest: 'W', cannon: 'R', pawn: 'B' };
   let suffix = '';
   for (const side of [SIDE.WHITE, SIDE.BLACK]) {
     const curse = state.palaceCurse?.[side];
     if (curse?.justActivated && curse.curseActivators) {
       const parts = [];
       for (const act of curse.curseActivators) {
-        // Use promoted symbol if piece is promoted (e.g. pawn→crossbow = 'B')
-        const sym = act.promoted
-          ? (PROMO_SYMBOLS[act.type] ?? getPieceSymbol(act.type))
-          : getPieceSymbol(act.type);
+        const sym = act.promoted ? (PROMO_SYMBOLS[act.type] ?? getPieceSymbol(act.type)) : getPieceSymbol(act.type);
         const loc = `${COLS[act.c]}${13 - act.r}`;
         parts.push(`${sym}${loc}`);
       }
-      if (parts.length > 0) {
-        suffix += '&' + parts.join('&') + '-';
-      }
+      if (parts.length > 0) suffix += '&' + parts.join('&') + '-';
     }
   }
   return suffix || '';
@@ -152,13 +121,9 @@ function getPieceValue(piece) {
   return base[piece.type] ?? 0;
 }
 
-// ── NN encoding (same as selfplay.js) ──
-const PIECE_CHANNEL = {
-  king:0, queen:1, general:2, elephant:3, priest:4, horse:5,
-  cannon:6, tower:7, carriage:8, archer:9, pawn:10, crossbow:11,
-};
+const PIECE_CHANNEL = { king:0, queen:1, general:2, elephant:3, priest:4, horse:5, cannon:6, tower:7, carriage:8, archer:9, pawn:10, crossbow:11 };
 const NN_CHANNELS = 24;
-const NN_SIZE     = BOARD_SIZE * BOARD_SIZE * NN_CHANNELS;
+const NN_SIZE = BOARD_SIZE * BOARD_SIZE * NN_CHANNELS;
 
 function encodeBoardForNN(board) {
   const enc = new Float32Array(NN_SIZE);
@@ -186,12 +151,26 @@ function boardSnapshot(board) {
   return snap;
 }
 
+function serializeState(st) {
+  return {
+    board: st.board.map(row => row.map(p => p ? { type: p.type, side: p.side, promoted: p.promoted } : null)),
+    turn: st.turn,
+    reserves: {
+      white: st.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false })),
+      black: st.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false })),
+    },
+    status: st.status,
+    message: st.message,
+  };
+}
+
 function buildMoveData(side, move, notation, evalBefore, evalResult, stateAfter) {
   const { score: evalAfter, metrics } = evalResult;
   const featureKey = extractFeatures(stateAfter, side);
   const positionHash = computeFullHash(stateAfter).toString();
   const nnEncoding = encodeBoardForNN(stateAfter.board);
   const snap = boardSnapshot(stateAfter.board);
+  const stateAfterSerial = serializeState(stateAfter);
   return {
     side,
     moveKeyStr: moveKey(move, move.promotion ?? false),
@@ -203,6 +182,7 @@ function buildMoveData(side, move, notation, evalBefore, evalResult, stateAfter)
     positionHash,
     _nnFloat32: nnEncoding,
     boardSnapshot: snap,
+    stateAfter: stateAfterSerial,
   };
 }
 
@@ -218,15 +198,16 @@ async function sendGameForLearning(movesArray, finalStatus, result) {
       positionHash: m.positionHash ?? null,
       _nnFloat32: m._nnFloat32 ? Array.from(m._nnFloat32) : undefined,
       boardSnapshot: m.boardSnapshot ?? undefined,
+      stateAfter: m.stateAfter ?? undefined,
     })),
   };
   try {
-    await fetch('/api/saveGame', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gameData) });
+    const compressed = pako.gzip(JSON.stringify(gameData));
+    await fetch('/api/saveGame', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: compressed });
     await fetch('/api/learnFromGames', { method: 'POST' });
   } catch (e) { console.error('Error guardando/aprendiendo:', e); }
 }
 
-// ── Utilidades generales General Utilities──
 function sideName(side) { return side === SIDE.WHITE ? "White" : "Black"; }
 function isVisuallyPromoted(p) { return p.promoted || p.type === "crossbow"; }
 function updateBotButton() {
@@ -248,10 +229,10 @@ function scheduleBotMove() {
 function getBotParams() {
   const level = parseInt(difficultySelect?.value) || 5;
   const params = [
-    { maxDepth: 1, timeLimitMs: 200 }, { maxDepth: 2, timeLimitMs: 300 }, { maxDepth: 2, timeLimitMs: 500 },
-    { maxDepth: 3, timeLimitMs: 500 }, { maxDepth: 3, timeLimitMs: 800 }, { maxDepth: 4, timeLimitMs: 800 },
-    { maxDepth: 4, timeLimitMs: 1200 }, { maxDepth: 5, timeLimitMs: 1500 }, { maxDepth: 6, timeLimitMs: 2000 },
-    { maxDepth: 8, timeLimitMs: 3000 },
+    { maxDepth: 5, timeLimitMs: 1500 }, { maxDepth: 6, timeLimitMs: 2000 }, { maxDepth: 7, timeLimitMs: 2500 },
+    { maxDepth: 8, timeLimitMs: 3000 }, { maxDepth: 9, timeLimitMs: 3500 }, { maxDepth: 10, timeLimitMs: 4000 },
+    { maxDepth: 11, timeLimitMs: 4500 }, { maxDepth: 12, timeLimitMs: 5000 }, { maxDepth: 13, timeLimitMs: 5500 },
+    { maxDepth: 14, timeLimitMs: 6000 },
   ];
   return params[level - 1] || params[4];
 }
@@ -276,7 +257,6 @@ function resolveAmbushAuto(ambush, side) {
   }
 }
 
-// ── Bot individual Individual Bot──
 function runBotTurn() {
   if (!V.botEnabled || state.status !== "playing" || state.turn !== SIDE.BLACK) { V.botThinking = false; return; }
   try {
@@ -289,7 +269,6 @@ function runBotTurn() {
     if (!chosen) chosen = fallbackMoves.find(m => { if (m.fromReserve) return true; const p = state.board[m.from?.r]?.[m.from?.c]; return p && p.side === SIDE.BLACK; }) ?? fallbackMoves[0] ?? null;
     if (!chosen) return;
     if (!chosen.fromReserve) { const p = state.board[chosen.from?.r]?.[chosen.from?.c]; if (!p || p.side !== SIDE.BLACK) return; }
-
     const evalBefore = evaluate(state, computeFullHash(state)).score;
     let notation;
     if (chosen.fromReserve) {
@@ -301,19 +280,16 @@ function runBotTurn() {
       markLastNotationForCurrentState();
     } else {
       const piece = state.board[chosen.from.r][chosen.from.c];
-      const shouldProm = chosen.from && chosen.to
-        && isPromotionAvailableForMove(state, chosen.from, chosen.to)
-        && isPromotableType(piece.type)
-        && !piece.promoted;
+      const shouldProm = chosen.from && chosen.to && isPromotionAvailableForMove(state, chosen.from, chosen.to) && isPromotableType(piece.type) && !piece.promoted;
       const botMove = { from: chosen.from, to: chosen.to, promotion: shouldProm };
-      const capturedPiece = state.board[chosen.to.r][chosen.to.c];  // ← guardar antes de mover save before moving
+      const capturedPiece = state.board[chosen.to.r][chosen.to.c];
       applyMove(state, botMove);
       if (state.archerAmbush) {
         const ambush = state.archerAmbush; state.archerAmbush = null;
         resolveAmbushAuto(ambush, SIDE.BLACK);
         notation = generateMoveNotation(state, botMove, ambush);
       } else {
-        notation = generateMoveNotation(state, botMove, null, 0, capturedPiece);  // ← pasar pieza capturada pass the captured piece
+        notation = generateMoveNotation(state, botMove, null, 0, capturedPiece);
       }
       afterMoveEvaluation(state);
       notation += appendCurseNotation(state);
@@ -328,7 +304,6 @@ function runBotTurn() {
   } finally { V.botThinking = false; render(); }
 }
 
-// ── Inicialización exportable para main ──
 export async function init() {
   await loadAdaptiveMemory();
   emptyBoard();
@@ -339,7 +314,6 @@ export async function init() {
   render();
 }
 
-// ── Renderizado Render ──
 function emptyBoard() {
   boardEl.innerHTML = "";
   const cornerTL = document.createElement("div"); cornerTL.className = "coord-corner"; boardEl.appendChild(cornerTL);
@@ -360,10 +334,12 @@ function emptyBoard() {
   for (let c = 0; c < BOARD_SIZE; c++) { const label = document.createElement("div"); label.className = "coord-letter"; label.textContent = COLS[c]; boardEl.appendChild(label); }
   const cornerBR = document.createElement("div"); cornerBR.className = "coord-corner"; boardEl.appendChild(cornerBR);
 }
+
 export function render() {
   const cells = [...boardEl.querySelectorAll(".cell")];
   cells.forEach(cell => {
-    const r = Number(cell.dataset.r), c = Number(cell.dataset.c); cell.classList.remove("selected", "moveHint", "captureHint");
+    const r = Number(cell.dataset.r), c = Number(cell.dataset.c);
+    cell.classList.remove("selected", "moveHint", "captureHint");
     const piece = state.board[r][c]; cell.innerHTML = "";
     if (piece) {
       const p = document.createElement("div"); const vis = isVisuallyPromoted(piece);
@@ -382,12 +358,26 @@ export function render() {
       p.appendChild(tag); cell.appendChild(p);
     }
   });
-  if (state.selected) {
+
+  // ── Resaltar pieza seleccionada o pendingMove ──
+  if (V.pendingMove) {
+    const sel = cells.find(cell =>
+      Number(cell.dataset.r) === V.pendingMove.from.r && Number(cell.dataset.c) === V.pendingMove.from.c
+    );
+    if (sel) sel.classList.add("selected");
+  } else if (state.selected) {
     const sel = cells.find(c => Number(c.dataset.r) === state.selected.r && Number(c.dataset.c) === state.selected.c);
     if (sel) sel.classList.add("selected");
-    for (const mv of state.legalMoves) { const tgt = cells.find(c => Number(c.dataset.r) === mv.r && Number(c.dataset.c) === mv.c); if (tgt) tgt.classList.add(mv.capture ? "captureHint" : "moveHint"); }
   }
-  turnLabel.textContent = `Turn: ${sideName(state.turn)}`; phaseLabel.textContent = `Phase: ${state.status === "playing" ? "Game" : state.status}`;
+
+  // ── Pintar hints siempre que haya movimientos legales (tablero Y reserva) ──
+  for (const mv of state.legalMoves) {
+    const tgt = cells.find(c => Number(c.dataset.r) === mv.r && Number(c.dataset.c) === mv.c);
+    if (tgt) tgt.classList.add(mv.capture ? "captureHint" : "moveHint");
+  }
+
+  turnLabel.textContent = `Turn: ${sideName(state.turn)}`;
+  phaseLabel.textContent = `Phase: ${state.status === "playing" ? "Game" : state.status}`;
   const moveCountEl = document.getElementById("moveCount"); if (moveCountEl) moveCountEl.textContent = `Moves: ${V.totalMoves}`;
   renderTimeline();
   reserveWhite.innerHTML = ""; reserveBlack.innerHTML = "";
@@ -399,6 +389,7 @@ export function render() {
     V.humanGameFinalized = true; finalizeHumanGame();
   }
 }
+
 function renderReserve(container, side) {
   const entries = getReserveEntries(state, side); const counts = {};
   for (const e of entries) counts[e.type] = (counts[e.type] || 0) + 1;
@@ -432,12 +423,20 @@ async function finalizeHumanGame() {
   queueAdaptiveMemorySave();
 }
 
-// ── Modales ──
+function cleanupPromoBar() {
+  if (promotionModal) {
+    promotionModal.classList.add("hidden");
+    if (V._promoCancelListener) {
+      promotionModal.removeEventListener('click', V._promoCancelListener);
+      V._promoCancelListener = null;
+    }
+  }
+}
+
 function openAmbushModal(ambushResult) {
   state.selected = null;
   state.legalMoves = [];
   render();
-
   ambushChoices.innerHTML = "";
   V.pendingAmbush = ambushResult;
   ambushText.textContent = `Choose an enemy piece to capture (${ambushResult.options.length} options):`;
@@ -449,6 +448,7 @@ function openAmbushModal(ambushResult) {
   });
   ambushModal.classList.remove("hidden");
 }
+
 function finalizeAmbush(chosenIndex) {
   ambushModal.classList.add("hidden");
   if (!V.pendingAmbush) return;
@@ -467,75 +467,234 @@ function finalizeAmbush(chosenIndex) {
   console.log(`Turn ${V.totalMoves}: ${notation}`);
   render();
 }
+
 function openPromotionModal(piece) {
-  state.selected = null;
   state.legalMoves = [];
   render();
 
-  promotionChoices.innerHTML = "";
-  promotionTitle.textContent = `Promotion for ${typeToName(pieceDisplayType(piece))}`;
-  promotionText.textContent = "This piece enters the promotion zone. You can choose to promote it or keep its base state.";
-  const noBtn = document.createElement("button"); noBtn.textContent = "Don't promote";
-  const yesBtn = document.createElement("button"); yesBtn.textContent = "Promote";
-  noBtn.addEventListener("click", () => finalizePromotion(false));
-  yesBtn.addEventListener("click", () => finalizePromotion(true));
-  promotionChoices.append(noBtn, yesBtn);
-  promotionModal.classList.remove("hidden");
+  if (promotionTitle) promotionTitle.textContent = "Promotion Available";
+  if (promotionText) promotionText.textContent =
+    `${typeToName(pieceDisplayType(piece))} can promote. What do you want to do?`;
+
+  if (promotionChoices) {
+    promotionChoices.innerHTML = "";
+
+    const btnYes = document.createElement("button");
+    btnYes.textContent = "Promote";
+    btnYes.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cleanupPromoBar();
+      finalizePromotion(true);
+    });
+
+    const btnNo = document.createElement("button");
+    btnNo.textContent = "Don't promote";
+    btnNo.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cleanupPromoBar();
+      finalizePromotion(false);
+    });
+
+    const btnCancel = document.createElement("button");
+    btnCancel.textContent = "Cancel";
+    btnCancel.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cleanupPromoBar();
+      const from = V.pendingMove?.from;
+      V.pendingMove = null;
+      if (from) {
+        state.selected = { r: from.r, c: from.c };
+        state.legalMoves = getPieceMoves(state, from.r, from.c);
+        state.message = "Promotion cancelled. Choose a destination.";
+      } else {
+        clearSelection();
+        state.message = "Promotion cancelled.";
+      }
+      render();
+    });
+
+    promotionChoices.appendChild(btnYes);
+    promotionChoices.appendChild(btnNo);
+    promotionChoices.appendChild(btnCancel);
+  }
+
+  if (promotionModal) {
+    if (V._promoCancelListener) {
+      promotionModal.removeEventListener('click', V._promoCancelListener);
+    }
+    const cancelOnBackground = (e) => {
+      if (e.target === promotionModal) {
+        cleanupPromoBar();
+        promotionModal.removeEventListener('click', cancelOnBackground);
+        V._promoCancelListener = null;
+        const from = V.pendingMove?.from;
+        V.pendingMove = null;
+        if (from) {
+          state.selected = { r: from.r, c: from.c };
+          state.legalMoves = getPieceMoves(state, from.r, from.c);
+          state.message = "Promotion cancelled. Choose a destination.";
+        } else {
+          clearSelection();
+          state.message = "Promotion cancelled.";
+        }
+        render();
+      }
+    };
+    promotionModal.addEventListener('click', cancelOnBackground);
+    V._promoCancelListener = cancelOnBackground;
+    promotionModal.classList.remove("hidden");
+  }
 }
+
 function finalizePromotion(choice) {
-  promotionModal.classList.add("hidden"); if (!V.pendingMove) return;
+  if (!V.pendingMove) return;
   const evalBefore = evaluate(state, computeFullHash(state)).score;
   const move = { from: V.pendingMove.from, to: V.pendingMove.to, promotion: choice };
-  const capturedPiece = state.board[move.to.r][move.to.c];  // ← capturar antes de mover capture before move
+  const capturedPiece = state.board[move.to.r][move.to.c];
   let notation = generateMoveNotation(state, move, null, 0, capturedPiece);
   applyMove(state, move);
   afterMoveEvaluation(state);
   notation += appendCurseNotation(state);
+  V.currentGameNotation.push(notation);
   markLastNotationForCurrentState();
-  const evalResult = evaluate(state, computeFullHash(state)); const sideMoved = state.turn === SIDE.WHITE ? SIDE.BLACK : SIDE.WHITE;
-  if (!V.aiVsAiRunning && !V.trainingRunning) V.gameMovesData.push(buildMoveData(sideMoved, move, notation, evalBefore, evalResult, state));
+  const evalResult = evaluate(state, computeFullHash(state));
+  const sideMoved = state.turn === SIDE.WHITE ? SIDE.BLACK : SIDE.WHITE;
+  if (!V.aiVsAiRunning && !V.trainingRunning)
+    V.gameMovesData.push(buildMoveData(sideMoved, move, notation, evalBefore, evalResult, state));
   console.log(`Turn ${V.totalMoves + 1}: ${notation}`);
   V.pendingMove = null; V.totalMoves++; clearSelection(); recordTimelineSnapshot(); render();
 }
 
-// ── Eventos de clic ──
 function onReserveClick(side, type) {
   if (state.turn !== side || state.status !== "playing" || V.botThinking) return;
   if (V.viewPly !== V.totalMoves) goToPly(V.totalMoves);
-  const entries = state.reserves[side]; const index = entries.findIndex(x => x.type === type); if (index === -1) return;
-  V.selectedReserve = { side, type, index }; state.selected = null; state.legalMoves = []; state.message = `Reserve selected: ${typeToName(type)}. Choose a legal empty square to place it.`; render();
+
+  // ── Si ya está seleccionado este mismo slot → deseleccionar ──
+  if (V.selectedReserve?.side === side && V.selectedReserve?.type === type) {
+    V.selectedReserve = null;
+    state.legalMoves = [];
+    state.message = "Selection cancelled.";
+    render();
+    return;
+  }
+
+  if (state.selected) { clearSelection(); }
+
+  const entries = state.reserves[side];
+  const index = entries.findIndex(x => x.type === type);
+  if (index === -1) return;
+
+  V.selectedReserve = { side, type, index };
+  state.selected = null;
+
+  // ── Calcular y mostrar casillas legales ──
+  const drops = getLegalReserveDrops(state, side);
+  state.legalMoves = drops
+  .filter(d => d.type === type && !isRiverSquare(d.to.r))
+  .map(d => ({ r: d.to.r, c: d.to.c, capture: false }));
+
+  state.message = `Reserve selected: ${typeToName(type)}. Choose a legal empty square to place it.`;
+  render();
 }
+
 function onCellClick(e) {
   if (state.status !== "playing" || V.botThinking) return;
   if (V.viewPly !== V.totalMoves) goToPly(V.totalMoves);
   const r = Number(e.currentTarget.dataset.r), c = Number(e.currentTarget.dataset.c);
+
+  // ── Si hay promoción pendiente → gestionar antes que cualquier otra cosa ──
+  if (V.pendingMove) {
+    if (V.pendingMove.from.r === r && V.pendingMove.from.c === c) {
+      const savedFrom = { ...V.pendingMove.from };
+      V.pendingMove = null;
+      cleanupPromoBar();
+      state.selected = { r: savedFrom.r, c: savedFrom.c };
+      state.legalMoves = getPieceMoves(state, savedFrom.r, savedFrom.c);
+      state.message = "Promotion cancelled. Choose a destination.";
+      render();
+    }
+    return;
+  }
+
+  // ── Modo reserva seleccionada ──
   if (V.selectedReserve) {
-    const legalIdx = state.reserves[V.selectedReserve.side].findIndex(x => x.type === V.selectedReserve.type); if (legalIdx === -1) { V.selectedReserve = null; render(); return; }
-    const evalBefore = evaluate(state, computeFullHash(state)).score; const dropMove = { fromReserve: true, reserveIndex: legalIdx, to: { r, c } };
-    const ok = executeDrop(state, legalIdx, { r, c }); if (!ok) { state.message = "No puedes colocar esa pieza ahí."; render(); return; }
-    let notation = generateMoveNotation(state, dropMove); V.selectedReserve = null;
+    const clickedPiece = state.board[r][c];
+    if (clickedPiece && clickedPiece.side === state.turn) {
+      V.selectedReserve = null;
+      state.selected = { r, c };
+      state.legalMoves = getPieceMoves(state, r, c);
+      state.message = `${sideName(clickedPiece.side)} seleccionó ${pieceLabel(clickedPiece)}.`;
+      render();
+      return;
+    }
+    const legalIdx = state.reserves[V.selectedReserve.side].findIndex(x => x.type === V.selectedReserve.type);
+    if (legalIdx === -1) { V.selectedReserve = null; render(); return; }
+    const evalBefore = evaluate(state, computeFullHash(state)).score;
+    const dropMove = { fromReserve: true, reserveIndex: legalIdx, to: { r, c } };
+    const dropType = state.reserves[V.selectedReserve.side][legalIdx]?.type;
+    const dropSymbol = getPieceSymbol(dropType ?? '?');
+    let notation = `${dropSymbol}*${COLS[c]}${13 - r}`;
+    const ok = executeDrop(state, legalIdx, { r, c });
+    if (!ok) { state.message = "No puedes colocar esa pieza ahí."; render(); return; }
+    V.selectedReserve = null;
     afterMoveEvaluation(state);
     notation += appendCurseNotation(state);
     V.currentGameNotation.push(notation);
     markLastNotationForCurrentState();
-    const evalResult = evaluate(state, computeFullHash(state)); const sideMoved = state.turn === SIDE.WHITE ? SIDE.BLACK : SIDE.WHITE;
+    const evalResult = evaluate(state, computeFullHash(state));
+    const sideMoved = state.turn === SIDE.WHITE ? SIDE.BLACK : SIDE.WHITE;
     if (!V.aiVsAiRunning && !V.trainingRunning) V.gameMovesData.push(buildMoveData(sideMoved, dropMove, notation, evalBefore, evalResult, state));
     console.log(`Turn ${V.totalMoves + 1}: ${notation}`);
     V.totalMoves++; recordTimelineSnapshot(); render(); return;
   }
+
   const piece = state.board[r][c];
-  if (!state.selected) {
-    if (piece && piece.side === state.turn) { state.selected = { r, c }; state.legalMoves = getPieceMoves(state, r, c); state.message = `${sideName(piece.side)} seleccionó ${pieceLabel(piece)}.`; render(); } return;
+
+  // ── Clic en la misma casilla → deseleccionar ──
+  if (state.selected && state.selected.r === r && state.selected.c === c) {
+    clearSelection();
+    state.message = "Selection cancelled.";
+    render();
+    return;
   }
-  if (state.selected.r === r && state.selected.c === c) { clearSelection(); state.message = "Selección cancelada."; render(); return; }
+
+  // ── Sin selección previa ──
+  if (!state.selected) {
+    if (piece && piece.side === state.turn) {
+      state.selected = { r, c };
+      state.legalMoves = getPieceMoves(state, r, c);
+      state.message = `${sideName(piece.side)} seleccionó ${pieceLabel(piece)}.`;
+      render();
+    }
+    return;
+  }
+
   const chosenMove = state.legalMoves.find(m => m.r === r && m.c === c);
-  if (!chosenMove) { if (piece && piece.side === state.turn) { state.selected = { r, c }; state.legalMoves = getPieceMoves(state, r, c); state.message = `${sideName(piece.side)} seleccionó ${pieceLabel(piece)}.`; render(); } return; }
+
+  // ── Casilla no legal → redirigir selección si es pieza propia ──
+  if (!chosenMove) {
+    if (piece && piece.side === state.turn) {
+      state.selected = { r, c };
+      state.legalMoves = getPieceMoves(state, r, c);
+      state.message = `${sideName(piece.side)} seleccionó ${pieceLabel(piece)}.`;
+      render();
+    }
+    return;
+  }
+
   const from = state.selected, moving = state.board[from.r][from.c];
   const needsPromo = isPromotionAvailableForMove(state, from, { r, c });
-  if (needsPromo && isPromotableType(moving.type) && !moving.promoted) { V.pendingMove = { from, to: { r, c } }; openPromotionModal(moving); return; }
+
+  // ── Promoción opcional ──
+  if (needsPromo && isPromotableType(moving.type) && !moving.promoted) {
+    V.pendingMove = { from, to: { r, c } };
+    openPromotionModal(moving);
+    return;
+  }
+
   const evalBefore = evaluate(state, computeFullHash(state)).score;
   const move = { from: { r: from.r, c: from.c }, to: { r, c }, promotion: false };
-  const capturedPiece = state.board[r][c];  // ← se guarda antes de mover it saved before moving it saved before moving
+  const capturedPiece = state.board[r][c];
 
   applyMove(state, move);
 
@@ -552,37 +711,42 @@ function onCellClick(e) {
       notation += appendCurseNotation(state);
       V.currentGameNotation.push(notation);
       markLastNotationForCurrentState();
-      const evalResult = evaluate(state, computeFullHash(state)); const sideMoved = state.turn === SIDE.WHITE ? SIDE.BLACK : SIDE.WHITE;
+      const evalResult = evaluate(state, computeFullHash(state));
+      const sideMoved = state.turn === SIDE.WHITE ? SIDE.BLACK : SIDE.WHITE;
       if (!V.aiVsAiRunning && !V.trainingRunning) V.gameMovesData.push(buildMoveData(sideMoved, move, notation, evalBefore, evalResult, state));
       console.log(`Turn ${V.totalMoves + 1}: ${notation}`);
       V.totalMoves++; clearSelection(); recordTimelineSnapshot(); render(); return;
     }
   }
 
-  let notation = generateMoveNotation(state, move, null, 0, capturedPiece);  // ← pasar pieza capturada pass the captured piece pass the captured piece
+  let notation = generateMoveNotation(state, move, null, 0, capturedPiece);
   afterMoveEvaluation(state);
   notation += appendCurseNotation(state);
   V.currentGameNotation.push(notation);
   markLastNotationForCurrentState();
-  const evalResult = evaluate(state, computeFullHash(state)); const sideMoved = state.turn === SIDE.WHITE ? SIDE.BLACK : SIDE.WHITE;
+  const evalResult = evaluate(state, computeFullHash(state));
+  const sideMoved = state.turn === SIDE.WHITE ? SIDE.BLACK : SIDE.WHITE;
   if (!V.aiVsAiRunning && !V.trainingRunning) V.gameMovesData.push(buildMoveData(sideMoved, move, notation, evalBefore, evalResult, state));
   console.log(`Turn ${V.totalMoves + 1}: ${notation}`);
   V.totalMoves++; clearSelection(); recordTimelineSnapshot(); render();
 }
 
-// ── Botones ──
 resetBtn.addEventListener("click", () => {
   cancelBotTimer();
   if (state.status !== "playing" && !V.humanGameFinalized) { V.humanGameFinalized = true; finalizeHumanGame(); }
-  resetGame(state); clearSelection(); state.message = "Game restarted.";
+  resetGame(state); clearSelection(); cleanupPromoBar(); state.message = "Game restarted.";
   V.totalMoves = 0; V.currentGameNotation = []; V.gameMovesData = []; V.humanGameFinalized = false;
+  V.pendingMove = null;
   V.timelineSnapshots = [];
   recordTimelineSnapshot();
   render();
 });
-if (botToggleBtn) botToggleBtn.addEventListener("click", () => { V.botEnabled = !V.botEnabled; cancelBotTimer(); state.message = V.botEnabled ? "Black bot enabled." : "Black bot disabled."; render(); });
 
-// ── AI vs AI ──
+if (botToggleBtn) botToggleBtn.addEventListener("click", () => {
+  V.botEnabled = !V.botEnabled; cancelBotTimer();
+  state.message = V.botEnabled ? "Black bot enabled." : "Black bot disabled."; render();
+});
+
 if (aiVsAiBtn) {
   aiVsAiBtn.addEventListener("click", () => {
     if (V.aiVsAiMode) {
@@ -595,12 +759,14 @@ if (aiVsAiBtn) {
     if (state.status !== "playing" && !V.humanGameFinalized) { V.humanGameFinalized = true; finalizeHumanGame(); }
     resetGame(state); V.aiVsAiMoves = []; V.aiVsAiRunning = true; V.aiVsAiMode = true;
     V.totalMoves = 0; V.currentGameNotation = []; V.gameMovesData = []; V.humanGameFinalized = false;
+    V.pendingMove = null;
     aiVsAiBtn.classList.add("active"); aiVsAiBtn.textContent = "⏹ Stop AI vs AI";
     state.message = "🤖 AI vs AI iniciado. Nivel: " + difficultySelect.value;
     render();
     runAiVsAi();
   });
 }
+
 async function runAiVsAi() {
   if (!V.aiVsAiMode || !V.aiVsAiRunning) return;
   let moveCount = 0, consecutiveErrors = 0; const MAX_MOVES = 1000;
@@ -621,20 +787,16 @@ async function runAiVsAi() {
       if (!chosen) { const valid = legalMoves.filter(m => { if (m.fromReserve) return true; const p = state.board[m.from?.r]?.[m.from?.c]; return p && p.side === side; }); chosen = valid[Math.floor(Math.random() * valid.length)] ?? null; }
       if (!chosen) { if (++consecutiveErrors > 3) { state.status = "stalemate"; state.message = "AI without valid moves."; break; } continue; }
       consecutiveErrors = 0;
-
       const evalBefore = evaluate(state, computeFullHash(state)).score;
       let notation;
       if (!chosen.fromReserve) {
         const piece = state.board[chosen.from.r][chosen.from.c];
-        const shouldProm = chosen.from && chosen.to
-          && isPromotionAvailableForMove(state, chosen.from, chosen.to)
-          && isPromotableType(piece.type)
-          && !piece.promoted;
+        const shouldProm = chosen.from && chosen.to && isPromotionAvailableForMove(state, chosen.from, chosen.to) && isPromotableType(piece.type) && !piece.promoted;
         const aiMove = { from: chosen.from, to: chosen.to, promotion: shouldProm };
-        const capturedPiece = state.board[chosen.to.r][chosen.to.c];  // ← guardar antes de mover save before moving
+        const capturedPiece = state.board[chosen.to.r][chosen.to.c];
         applyMove(state, aiMove);
         if (state.archerAmbush) { const ambush = state.archerAmbush; state.archerAmbush = null; resolveAmbushAuto(ambush, side); notation = generateMoveNotation(state, aiMove, ambush); }
-        else { notation = generateMoveNotation(state, aiMove, null, 0, capturedPiece); }  // ← pasar capturada pass the captured piece
+        else { notation = generateMoveNotation(state, aiMove, null, 0, capturedPiece); }
       } else {
         notation = generateMoveNotation(state, chosen);
         executeDrop(state, chosen.reserveIndex, chosen.to);
@@ -642,6 +804,7 @@ async function runAiVsAi() {
       afterMoveEvaluation(state);
       notation += appendCurseNotation(state);
       V.currentGameNotation.push(notation);
+      markLastNotationForCurrentState();
       console.log(`Turn ${V.totalMoves + 1}: ${notation}`);
       const evalResult = evaluate(state, computeFullHash(state));
       V.aiVsAiMoves.push(buildMoveData(side, chosen, notation, evalBefore, evalResult, state));
@@ -665,7 +828,6 @@ async function runAiVsAi() {
   render();
 }
 
-// ── ENTRENAMIENTO ──
 if (trainBtn) {
   trainBtn.addEventListener("click", () => {
     if (V.trainingMode) {
@@ -678,14 +840,16 @@ if (trainBtn) {
     trainBtn.classList.add("active"); trainBtn.textContent = "⏹ Stop Training";
     V.botEnabled = false; cancelBotTimer(); if (V.aiVsAiRunning) V.aiVsAiRunning = false;
     resetGame(state); V.totalMoves = 0; V.currentGameNotation = []; V.aiVsAiMoves = []; V.gameMovesData = []; V.humanGameFinalized = false;
+    V.pendingMove = null;
     state.message = "🏋️ Training started. Level: " + difficultySelect.value;
     render();
     runTrainingGame();
   });
 }
+
 async function runTrainingGame() {
   while (V.trainingMode && V.trainingRunning) {
-    let moveCount = 0, consecutiveErrors = 0;
+    let moveCount = 0;
     while (V.trainingRunning && state.status === "playing" && moveCount < 1000) {
       moveCount++;
       const side = state.turn;
@@ -693,11 +857,9 @@ async function runTrainingGame() {
       if (legalMoves.length === 0) { break; }
       await new Promise(resolve => setTimeout(resolve, 300));
       if (!V.trainingRunning) break;
-
       const params = getBotParams();
       const stateCopy = cloneStateForBot(state);
       const { move } = chooseBlackBotMove(stateCopy, params);
-
       let chosen = null;
       if (move) {
         if (move.fromReserve && state.reserves[side]?.[move.reserveIndex]) chosen = move;
@@ -711,36 +873,30 @@ async function runTrainingGame() {
       }
       if (!chosen) { chosen = legalMoves.filter(m => m.fromReserve || (state.board[m.from?.r]?.[m.from?.c]?.side === side))[0]; }
       if (!chosen) break;
-
       const evalBefore = evaluate(state, computeFullHash(state)).score;
       let notation;
       if (chosen.fromReserve) {
         notation = generateMoveNotation(state, chosen);
-        V.currentGameNotation.push(notation);
         executeDrop(state, chosen.reserveIndex, chosen.to);
       } else {
         const piece = state.board[chosen.from.r][chosen.from.c];
-        const shouldProm = chosen.from && chosen.to
-          && isPromotionAvailableForMove(state, chosen.from, chosen.to)
-          && isPromotableType(piece.type)
-          && !piece.promoted;
+        const shouldProm = chosen.from && chosen.to && isPromotionAvailableForMove(state, chosen.from, chosen.to) && isPromotableType(piece.type) && !piece.promoted;
         const tMove = { from: chosen.from, to: chosen.to, promotion: shouldProm };
-        const capturedPiece = state.board[chosen.to.r][chosen.to.c];  // ← guardar antes de mover saved before moving
+        const capturedPiece = state.board[chosen.to.r][chosen.to.c];
         applyMove(state, tMove);
         if (state.archerAmbush) { const ambush = state.archerAmbush; state.archerAmbush = null; resolveAmbushAuto(ambush, side); notation = generateMoveNotation(state, tMove, ambush); }
-        else { notation = generateMoveNotation(state, tMove, null, 0, capturedPiece); }  // ← pasar capturada pass the captured piece
-        V.currentGameNotation.push(notation);
+        else { notation = generateMoveNotation(state, tMove, null, 0, capturedPiece); }
       }
-
       afterMoveEvaluation(state);
       notation += appendCurseNotation(state);
+      V.currentGameNotation.push(notation);
+      markLastNotationForCurrentState();
       console.log(`Turn ${V.totalMoves + 1}: ${notation}`);
       const evalResult = evaluate(state, computeFullHash(state));
       V.aiVsAiMoves.push(buildMoveData(side, chosen, notation, evalBefore, evalResult, state));
       V.totalMoves++;
       render();
     }
-
     if (V.aiVsAiMoves.length > 0) {
       let result = 'draw';
       if (state.status === 'checkmate' || state.status === 'palacemate') result = V.aiVsAiMoves[V.aiVsAiMoves.length-1].side === SIDE.BLACK ? 'win' : 'loss';
@@ -762,5 +918,9 @@ async function runTrainingGame() {
       state.message = `Training in progress (${V.trainingCount}/10)...`; render();
     }
   }
-  if (V.trainingMode && !V.trainingRunning) { V.trainingMode = false; if (trainBtn) { trainBtn.classList.remove("active"); trainBtn.textContent = "🏋️ Training"; } state.message = "Training stopped."; render(); }
+  if (V.trainingMode && !V.trainingRunning) {
+    V.trainingMode = false;
+    if (trainBtn) { trainBtn.classList.remove("active"); trainBtn.textContent = "🏋️ Training"; }
+    state.message = "Training stopped."; render();
+  }
 }

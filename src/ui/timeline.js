@@ -1,19 +1,41 @@
-import { SIDE, BOARD_SIZE } from "../constants.js";
+import { SIDE, BOARD_SIZE, isReserveType } from "../constants.js";
 import { isKingInCheck } from "../rules/check.js";
-import { applyMove, afterMoveEvaluation, executeDrop, isPromotionAvailableForMove, resetGame } from "../rules/index.js";
+import { applyMove, afterMoveEvaluation, executeDrop, isPromotionAvailableForMove, resetGame, executeArcherAmbush } from "../rules/index.js";
 import { state, V, COLS, cloneStateForBot, cancelBotTimer, clearSelection } from "../state.js";
 import { moveTimeline, loadGameBtn, loadGameInput, messageBar } from "../state.js";
 
-// These are imported from gameplay.js (circular in ES modules is fine for function-level usage)
 import { render } from "./gameplay.js";
 
-// ── Timeline (chess.com-like) ────────────────────────────────────────────────
+// ---------- Helper para mover piezas a la reserva (igual que en core.js) ----------
+function captureToReserve(st, piece, captorSide) {
+  if (!piece) return;
+  const type = piece.promoted ? (piece.type === "pawn" ? "crossbow" : piece.type) : piece.type;
+  if (type === 'tower' || type === 'general' || type === 'pawn' || type === 'crossbow') {
+    st.reserves[captorSide].push({ id: crypto.randomUUID(), type, side: captorSide });
+  }
+}
 
+// ---------- Restaurar estado desde representación serializada ----------
+function restoreStateFromSerialized(gameState, serialized) {
+  const { board, turn, reserves, status, message } = serialized;
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const p = board[r][c];
+      gameState.board[r][c] = p ? { ...p, id: crypto.randomUUID() } : null;
+    }
+  }
+  gameState.turn = turn;
+  gameState.reserves.white = reserves.white.map(p => ({ ...p, id: crypto.randomUUID() }));
+  gameState.reserves.black = reserves.black.map(p => ({ ...p, id: crypto.randomUUID() }));
+  gameState.status = status || 'playing';
+  gameState.message = message || '';
+}
+
+// ---------- Timeline Snapshot ----------
 export function snapshotForTimeline() {
   const snap = cloneStateForBot(state);
   snap.selected = null;
   snap.legalMoves = [];
-  // Keep message/status to show what the user saw at that ply
   snap.status = state.status;
   snap.message = state.message;
   snap.promotionRequest = state.promotionRequest ?? null;
@@ -31,14 +53,12 @@ export function restoreFromTimelineSnapshot(entry) {
   clearSelection();
 
   const src = entry.state;
-  // Board
   for (let r = 0; r < BOARD_SIZE; r++) {
     for (let c = 0; c < BOARD_SIZE; c++) {
       const p = src.board[r][c];
       state.board[r][c] = p ? { ...p } : null;
     }
   }
-  // Reserves
   state.reserves.white = src.reserves.white.map(p => ({ ...p }));
   state.reserves.black = src.reserves.black.map(p => ({ ...p }));
 
@@ -80,22 +100,30 @@ export function renderTimeline() {
     return b;
   };
 
+  const mkWrapper = (label, ply, active = false) => {
+    const w = document.createElement("span");
+    w.style.cssText = "display:inline-flex;align-items:center;gap:4px;";
+    const num = document.createElement("span");
+    num.style.cssText = "font-size:11px;color:var(--muted);font-weight:600;min-width:18px;text-align:right;user-select:none;";
+    num.textContent = ply + ".";
+    w.appendChild(num);
+    w.appendChild(mkBtn(label, ply, active));
+    return w;
+  };
+
   moveTimeline.appendChild(mkBtn("⏮ Start", 0, V.viewPly === 0));
-  for (let ply = 1; ply <= V.currentGameNotation.length; ply++) {
-    const moveNo = Math.ceil(ply / 2);
-    const sideTag = (ply % 2 === 1) ? `${moveNo}.` : `${moveNo}...`;
-    moveTimeline.appendChild(mkBtn(`${sideTag} ${V.currentGameNotation[ply - 1]}`, ply, ply === V.viewPly));
+  const totalPlies = Math.max(V.currentGameNotation.length, V.totalMoves);
+  for (let ply = 1; ply <= totalPlies; ply++) {
+    const nota = V.currentGameNotation[ply - 1] ?? '?';
+    moveTimeline.appendChild(mkWrapper(nota, ply, V.viewPly === ply));
   }
 }
 
 export function goToPly(ply) {
   const entry = V.timelineSnapshots?.[ply];
-  // Even if we don't have a snapshot (e.g. loaded game with unknown moveKeyStr),
-  // still allow the UI cursor to move through the timeline.
   if (entry) restoreFromTimelineSnapshot(entry);
   V.viewPly = ply;
   render();
-  // scroll to show active button
   const active = moveTimeline?.querySelector(".plyBtn.active");
   active?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
 }
@@ -116,11 +144,26 @@ export function markLastNotationForCurrentState() {
   if (!V.currentGameNotation.length) return;
   let note = V.currentGameNotation[V.currentGameNotation.length - 1] ?? '';
   const end = terminalSuffixForStatus(state.status, state.message);
-  if (end && !note.endsWith(end)) note += end;
-  // Check marker (avoid conflict with existing promotion '+')
+  if (end && !note.endsWith(end)) {
+    // Insert status suffix before any existing & suffix (palace curse notation)
+    const idx = note.indexOf('&');
+    if (idx >= 0 && !note.includes(end)) {
+      note = note.slice(0, idx) + end + note.slice(idx);
+    } else {
+      note += end;
+    }
+  }
   if (!end && state.status === 'playing') {
     try {
-      if (isKingInCheck(state, state.turn) && !note.endsWith('%')) note += '%';
+      if (isKingInCheck(state, state.turn)) {
+        // Insert % before any existing & suffix (palace curse notation)
+        const idx = note.indexOf('&');
+        if (idx >= 0 && !note.includes('%')) {
+          note = note.slice(0, idx) + '%' + note.slice(idx);
+        } else if (!note.endsWith('%')) {
+          note += '%';
+        }
+      }
     } catch {}
   }
   V.currentGameNotation[V.currentGameNotation.length - 1] = note;
@@ -164,7 +207,6 @@ function loadTimelineFromObject(obj) {
   }
 }
 
-// Expose manual export for the user (paste into a file if needed)
 window.exportTimelineGame = () => serializeTimeline();
 
 if (loadGameBtn && loadGameInput) {
@@ -178,56 +220,105 @@ if (loadGameBtn && loadGameInput) {
       if (obj?.version === 1 && Array.isArray(obj?.snapshots)) {
         loadTimelineFromObject(obj);
       } else if (Array.isArray(obj?.moves)) {
-        // Load the server-saved game format: { moves: [{ moveKeyStr, notation, ... }] }
-        resetGame(state);
-        clearSelection();
-        V.currentGameNotation = obj.moves.map(m => m?.notation ?? '?');
-        V.totalMoves = 0;
-        V.viewPly = 0;
-        V.timelineSnapshots = [];
-        recordTimelineSnapshot();
+        // Quitar campos pesados para la visualización
+        obj.moves = obj.moves.map(m => {
+          const { _nnFloat32, boardSnapshot, ...rest } = m;
+          return rest;
+        });
 
-        const parseMoveKeyStr = (s) => {
-          if (typeof s !== 'string') return null;
-          if (s.startsWith('M:')) {
-            const m = s.match(/^M:(\d+),(\d+)->(\d+),(\d+):p([01])$/);
-            if (!m) return null;
-            return {
-              from: { r: Number(m[1]), c: Number(m[2]) },
-              to: { r: Number(m[3]), c: Number(m[4]) },
-              promotion: m[5] === '1',
-            };
-          }
-          if (s.startsWith('R:')) {
-            const m = s.match(/^R:(\d+)->(\d+),(\d+)$/);
-            if (!m) return null;
-            return { fromReserve: true, reserveIndex: Number(m[1]), to: { r: Number(m[2]), c: Number(m[3]) }, promotion: false };
-          }
-          return null;
-        };
+        // Si el primer movimiento tiene stateAfter, usamos ese método (rápido y fiable)
+        const hasStateAfter = obj.moves.length > 0 && obj.moves[0].stateAfter;
+        if (hasStateAfter) {
+          resetGame(state);
+          clearSelection();
+          V.currentGameNotation = obj.moves.map(m => m?.notation ?? '?');
+          V.totalMoves = 0;
+          V.viewPly = 0;
+          V.timelineSnapshots = [];
+          recordTimelineSnapshot(); // snapshot inicial (tablero inicial)
 
-        // Build snapshots by replaying moves deterministically from moveKeyStr.
-        for (let i = 0; i < obj.moves.length; i++) {
-          const mk = obj.moves[i]?.moveKeyStr;
-          const mv = parseMoveKeyStr(mk);
-          if (!mv) break;
-          if (mv.fromReserve) {
-            // Best-effort: reserveIndex is order-dependent; if it fails, stop building snapshots.
-            const ok = executeDrop(state, mv.reserveIndex, mv.to);
-            if (!ok) break;
-          } else {
-            applyMove(state, mv);
+          for (let i = 0; i < obj.moves.length; i++) {
+            const st = obj.moves[i].stateAfter;
+            if (!st) break;
+            restoreStateFromSerialized(state, st);
+            V.totalMoves = i + 1;
+            recordTimelineSnapshot();
+            if (st.status && st.status !== 'playing') break;
           }
-          afterMoveEvaluation(state);
-          V.totalMoves = i + 1;
+          V.viewPly = V.totalMoves;
+          // Trim notation to match actually loaded moves-only
+          V.currentGameNotation.length = V.totalMoves;
+          goToPly(V.totalMoves);
+        } else {
+          // Fallback: repetición tradicional para partidas antiguas sin stateAfter
+          resetGame(state);
+          clearSelection();
+          V.currentGameNotation = obj.moves.map(m => m?.notation ?? '?');
+          V.totalMoves = 0;
+          V.viewPly = 0;
+          V.timelineSnapshots = [];
           recordTimelineSnapshot();
-          if (state.status !== "playing") {
-            // keep going snapshots if file includes longer, but state is terminal; stop to avoid divergence
-            break;
+
+          const parseMoveKeyStr = (s) => {
+            if (typeof s !== 'string') return null;
+            if (s.startsWith('M:')) {
+              const m = s.match(/^M:(\d+),(\d+)->(\d+),(\d+):p([01])$/);
+              if (!m) return null;
+              return {
+                from: { r: Number(m[1]), c: Number(m[2]) },
+                to: { r: Number(m[3]), c: Number(m[4]) },
+                promotion: m[5] === '1',
+              };
+            }
+            if (s.startsWith('R:')) {
+              const m = s.match(/^R:(\d+)->(\d+),(\d+)$/);
+              if (!m) return null;
+              return { fromReserve: true, reserveIndex: Number(m[1]), to: { r: Number(m[2]), c: Number(m[3]) }, promotion: false };
+            }
+            return null;
+          };
+
+          for (let i = 0; i < obj.moves.length; i++) {
+            const mk = obj.moves[i]?.moveKeyStr;
+            const mv = parseMoveKeyStr(mk);
+            if (!mv) break;
+
+            if (mv.fromReserve) {
+              const ok = executeDrop(state, mv.reserveIndex, mv.to);
+              if (!ok) break;
+            } else {
+              applyMove(state, mv);
+
+              if (state.archerAmbush) {
+                const ambush = state.archerAmbush;
+                state.archerAmbush = null;
+                const captor = state.board[ambush.archerTo.r][ambush.archerTo.c];
+                const captorSide = captor?.side;
+
+                if (ambush.type === 'chooseCapture') {
+                  executeArcherAmbush(state, { archerTo: ambush.archerTo, chosenIndex: 0 });
+                } else {
+                  const victims = ambush.type === 'autoCaptureAll' ? ambush.victims : [ambush.victim];
+                  for (const v of victims) {
+                    const piece = state.board[v.r]?.[v.c];
+                    if (piece && captorSide) {
+                      captureToReserve(state, piece, captorSide);
+                      state.board[v.r][v.c] = null;
+                    }
+                  }
+                }
+              }
+            }
+
+            afterMoveEvaluation(state);
+            V.totalMoves = i + 1;
+            recordTimelineSnapshot();
+            if (state.status !== "playing") break;
           }
+          // Trim notation to match actually loaded moves-only
+          V.currentGameNotation.length = V.totalMoves;
+          goToPly(V.totalMoves);
         }
-        // Restore to final ply we managed to reconstruct
-        goToPly(V.totalMoves);
       } else {
         throw new Error("Format not recognized.");
       }
@@ -243,10 +334,8 @@ if (loadGameBtn && loadGameInput) {
   });
 }
 
-// Make wheel scroll move the timeline, not the whole page.
 if (moveTimeline) {
   moveTimeline.addEventListener("wheel", (e) => {
-    // Always keep scroll inside the timeline when pointer is over it.
     e.preventDefault();
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     moveTimeline.scrollLeft += delta;

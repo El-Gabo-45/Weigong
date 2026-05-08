@@ -138,10 +138,26 @@ function markLastMoveNotation(moves, state) {
   if (!moves || moves.length === 0) return;
   let note = moves[moves.length - 1].notation ?? '';
   const end = terminalSuffixForStatus(state.status, state.message);
-  if (end && !note.endsWith(end)) note += end;
+  if (end && !note.endsWith(end)) {
+    // Insert status suffix before any existing & suffix (palace curse notation)
+    const idx = note.indexOf('&');
+    if (idx >= 0 && !note.includes(end)) {
+      note = note.slice(0, idx) + end + note.slice(idx);
+    } else {
+      note += end;
+    }
+  }
   if (!end && state.status === 'playing') {
     try {
-      if (isKingInCheck(state, state.turn) && !note.endsWith('%')) note += '%';
+      if (isKingInCheck(state, state.turn)) {
+        // Insert % before any existing & suffix (palace curse notation)
+        const idx = note.indexOf('&');
+        if (idx >= 0 && !note.includes('%')) {
+          note = note.slice(0, idx) + '%' + note.slice(idx);
+        } else if (!note.endsWith('%')) {
+          note += '%';
+        }
+      }
     } catch {}
   }
   moves[moves.length - 1].notation = note;
@@ -274,7 +290,7 @@ function boardSnapshot(board) {
 export async function playSelfPlayGame(botParams) {
   const state = createGame();
   const moves  = [];
-  const MAX_MOVES = 600;
+  const MAX_MOVES = 800;
 
   while (state.status === 'playing' && moves.length < MAX_MOVES) {
     const side = state.turn;
