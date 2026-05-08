@@ -72,9 +72,17 @@ app.post('/api/memory', async (req, res) => {
 /* ---------- Guardado de partidas (COMPRIMIDO) ---------- */
 app.post('/api/saveGame', async (req, res) => {
   try {
-    const chunks = [];
-    req.on('data', chunk => chunks.push(chunk));
-    req.on('end', async () => {
+    let game;
+
+    // Si el body ya fue parseado (por express.json), lo usamos directamente.
+    if (req.body && Object.keys(req.body).length > 0) {
+      game = req.body;
+    } else {
+      // Si no, leemos el stream crudo (compresión gzip desde el frontend).
+      const chunks = [];
+      for await (const chunk of req) {
+        chunks.push(chunk);
+      }
       const buffer = Buffer.concat(chunks);
       let jsonString;
       try {
@@ -82,19 +90,21 @@ app.post('/api/saveGame', async (req, res) => {
       } catch {
         return res.status(400).json({ error: 'Data corrupted (invalid gzip)' });
       }
-      const game = JSON.parse(jsonString);
-      if (!game.moves || !game.finalStatus) {
-        return res.status(400).json({ error: 'There are missing data (moves, finalStatus)' });
-      }
-      await fs.mkdir(GAMES_DIR, { recursive: true });
-      const name = `game_${Date.now()}_${Math.random().toString(36).slice(2,8)}.json`;
-      await fs.writeFile(path.join(GAMES_DIR, name), JSON.stringify(game, null, 2), 'utf8');
-      console.log(`✔ Partida guardada: ${name} (${(buffer.length/1024).toFixed(1)} KB subidos)`);
-      res.json({ ok: true, file: name });
-    });
+      game = JSON.parse(jsonString);
+    }
+
+    if (!game.moves || !game.finalStatus) {
+      return res.status(400).json({ error: 'There are missing data (moves, finalStatus)' });
+    }
+
+    await fs.mkdir(GAMES_DIR, { recursive: true });
+    const name = `game_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.json`;
+    await fs.writeFile(path.join(GAMES_DIR, name), JSON.stringify(game, null, 2), 'utf8');
+    console.log(`✔ Game saved: ${name}`);
+    res.json({ ok: true, file: name });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: 'Error al guardar' });
+    res.status(500).json({ error: 'Saving error' });
   }
 });
 
