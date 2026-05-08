@@ -8,6 +8,28 @@ import { SIDE } from './constants.js';
 import { trainFromGames, getModelInfo } from './nn-bridge.js';
 import pako from 'pako';
 
+// ─── Funciones del juego (necesarias para el bot) ───
+import {
+  getAllLegalMoves, applyMove, executeDrop,
+  afterMoveEvaluation, isKingInCheck, executeArcherAmbush,
+  isPromotionAvailableForMove,
+} from './rules/index.js';
+import { chooseBlackBotMove, evaluate, computeFullHash } from './ai/index.js';
+import { predictScore } from './nn-bridge.js';
+
+// ═══════════════════════ AGREGADOS ═══════════════════════
+import { isPalaceSquare, opponent } from './constants.js';
+
+const PIECE_VALUES = {
+  king:0, queen:950, general:560, elephant:240, priest:400,
+  horse:320, cannon:450, tower:520, carriage:390, archer:450,
+  pawn:110, crossbow:240,
+};
+const PROMOTED_VALUES = {
+  pawn:240, tower:650, horse:430, elephant:320, priest:540, cannon:540,
+};
+// ═════════════════════════════════════════════════════════
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -286,7 +308,6 @@ app.post('/api/selfPlay', async (req, res) => {
             gameResult = lastSide === SIDE.BLACK ? 'win' : 'loss';
           }
 
-          // Mapa de Turn -> nn encoding
           const nnMap = {};
           if (_nnFloat32 && Array.isArray(_nnFloat32)) {
             for (const entry of _nnFloat32) {
@@ -393,6 +414,178 @@ app.get('/api/nn/info', async (_req, res) => {
     res.json(modelInfo);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════
+//  🆕 ENDPOINT DEL BOT CON RED NEURONAL
+// ═══════════════════════════════════════
+
+/** Codifica un tablero para la red neuronal (misma que usas en el cliente) */
+const PIECE_CHANNEL = {
+  king:0, queen:1, general:2, elephant:3, priest:4, horse:5,
+  cannon:6, tower:7, carriage:8, archer:9, pawn:10, crossbow:11,
+};
+const NN_CHANNELS = 24;
+function encodeBoardForNN(board) {
+  const enc = new Float32Array(13 * 13 * NN_CHANNELS);
+  for (let r = 0; r < 13; r++) {
+    for (let c = 0; c < 13; c++) {
+      const p = board[r][c];
+      if (!p) continue;
+      const ch = PIECE_CHANNEL[p.type];
+      if (ch === undefined) continue;
+      const offset = p.side === SIDE.WHITE ? 0 : 12;
+      enc[(r * 13 + c) * NN_CHANNELS + offset + ch] = 1.0;
+    }
+  }
+  return enc;
+}
+
+/** Clona el estado del juego (versión usada en el servidor) */
+function cloneStateForBot(state) {
+  const board = new Array(13);
+  for (let r = 0; r < 13; r++) {
+    board[r] = new Array(13);
+    for (let c = 0; c < 13; c++) {
+      const p = state.board[r][c];
+      board[r][c] = p ? { ...p } : null;
+    }
+  }
+  return {
+    board,
+    turn:        state.turn,
+    reserves: {
+      white: state.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
+      black: state.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
+    },
+    palaceTaken:  { white: state.palaceTaken.white,  black: state.palaceTaken.black  },
+    palaceTimers: {
+      white: { ...state.palaceTimers.white },
+      black: { ...state.palaceTimers.black },
+    },
+    palaceCurse: state.palaceCurse ? {
+      white: { active: state.palaceCurse.white.active, turnsInPalace: state.palaceCurse.white.turnsInPalace },
+      black: { active: state.palaceCurse.black.active, turnsInPalace: state.palaceCurse.black.turnsInPalace },
+    } : { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } },
+    lastMove:           state.lastMove ? { ...state.lastMove } : null,
+    lastRepeatedMoveKey: state.lastRepeatedMoveKey ?? null,
+    repeatMoveCount:    state.repeatMoveCount ?? 0,
+    history:            state.history ? [...state.history] : [],
+    positionHistory:    state.positionHistory instanceof Map ? new Map(state.positionHistory) : new Map(),
+    status:   state.status,
+    selected: null,
+    legalMoves: [],
+    message: '',
+  };
+}
+
+/** Resuelve emboscadas automáticamente (copia de selfplay.js) */
+function resolveAmbushAuto(ambush, side, state) {
+  if (!ambush) return;
+  if (ambush.type === 'autoCaptureAll') {
+    for (const v of ambush.victims) {
+      const victim = state.board[v.r]?.[v.c];
+      if (victim) { state.board[v.r][v.c] = null; }
+    }
+  } else if (ambush.type === 'singleCapture') {
+    const victim = state.board[ambush.victim.r]?.[ambush.victim.c];
+    if (victim) { state.board[ambush.victim.r][ambush.victim.c] = null; }
+  } else if (ambush.type === 'chooseCapture') {
+    let bestIdx = 0, bestScore = -Infinity;
+    for (let i = 0; i < ambush.options.length; i++) {
+      const opt = ambush.options[i];
+      let sc = (opt.piece.promoted ? (PROMOTED_VALUES[opt.piece.type] ?? PIECE_VALUES[opt.piece.type] + 120) : (PIECE_VALUES[opt.piece.type] ?? 0));
+      if (!opt.canRetreat) sc += 80;
+      if (isPalaceSquare(opt.r, opt.c, opponent(side))) sc += 120;
+      if (sc > bestScore) { bestScore = sc; bestIdx = i; }
+    }
+    executeArcherAmbush(state, { archerTo: ambush.archerTo, chosenIndex: bestIdx });
+  }
+}
+
+/** Parámetros del bot según dificultad */
+function getBotParams(level = 5) {
+  const params = [
+    { maxDepth: 5, timeLimitMs: 1500 }, { maxDepth: 6, timeLimitMs: 2000 },
+    { maxDepth: 7, timeLimitMs: 2500 }, { maxDepth: 8, timeLimitMs: 3000 },
+    { maxDepth: 9, timeLimitMs: 3500 }, { maxDepth: 10, timeLimitMs: 4000 },
+    { maxDepth: 11, timeLimitMs: 4500 }, { maxDepth: 12, timeLimitMs: 5000 },
+    { maxDepth: 13, timeLimitMs: 5500 }, { maxDepth: 14, timeLimitMs: 6000 },
+  ];
+  return params[Math.min(params.length - 1, level - 1)];
+}
+
+// Endpoint principal que el cliente llamará
+app.post('/api/botMove', async (req, res) => {
+  try {
+    const { state: clientState, difficulty } = req.body;
+    // Reconstruye el estado del juego a partir del JSON enviado por el cliente
+    const state = cloneStateForBot(clientState);
+    const params = getBotParams(difficulty || 5);
+
+    // 1. Obtener todos los movimientos legales
+    const legalMoves = getAllLegalMoves(state, state.turn);
+    if (legalMoves.length === 0) {
+      return res.json({ move: null });
+    }
+
+    // 2. Evaluar cada movimiento legal con heurística + red
+    const evalResults = await Promise.all(legalMoves.map(async (move) => {
+      // Simular el movimiento en una copia
+      const simState = cloneStateForBot(state);
+      const simMove = { ...move, promotion: move.promotion ?? false };
+
+      if (move.fromReserve) {
+        if (!executeDrop(simState, move.reserveIndex, move.to)) return null;
+      } else {
+        applyMove(simState, simMove);
+        // Resolver emboscada si aparece
+        if (simState.archerAmbush) {
+          resolveAmbushAuto(simState.archerAmbush, state.turn, simState);
+        }
+      }
+      afterMoveEvaluation(simState);
+
+      // Score heurístico
+      const heurScore = evaluate(simState, computeFullHash(simState)).score;
+
+      // Score de la red neuronal
+      const nnInput = encodeBoardForNN(simState.board);
+      let nnScore = 0;
+      try {
+        const predicted = await predictScore(nnInput);
+        nnScore = predicted ?? 0;
+      } catch (e) {
+        // Si falla la GPU, usamos solo heurística
+        nnScore = 0;
+      }
+
+      return { move, heurScore, nnScore };
+    }));
+
+    // Filtrar movimientos válidos
+    const valid = evalResults.filter(e => e !== null);
+
+    // 3. Combinar heurística + red (ajusta los pesos a tu gusto)
+    const NN_WEIGHT = 0.3;   // peso de la red
+    let bestMove = null;
+    let bestCombined = -Infinity;
+    for (const ev of valid) {
+      const combined = ev.heurScore + NN_WEIGHT * ev.nnScore;
+      if (combined > bestCombined) {
+        bestCombined = combined;
+        bestMove = ev.move;
+      }
+    }
+
+    // Fallback: si no hay movimiento válido, usamos el primer legal
+    if (!bestMove) bestMove = legalMoves[0];
+
+    res.json({ move: bestMove });
+  } catch (err) {
+    console.error('/api/botMove error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

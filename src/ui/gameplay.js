@@ -151,16 +151,24 @@ function boardSnapshot(board) {
   return snap;
 }
 
-function serializeState(st) {
+function serializeState(state) {
   return {
-    board: st.board.map(row => row.map(p => p ? { type: p.type, side: p.side, promoted: p.promoted } : null)),
-    turn: st.turn,
+    board: state.board.map(row => row.map(p => p ? { type: p.type, side: p.side, promoted: p.promoted } : null)),
+    turn: state.turn,
     reserves: {
-      white: st.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false })),
-      black: st.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false })),
+      white: state.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
+      black: state.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
     },
-    status: st.status,
-    message: st.message,
+    palaceTaken: { white: state.palaceTaken.white, black: state.palaceTaken.black },
+    palaceTimers: { white: { ...state.palaceTimers.white }, black: { ...state.palaceTimers.black } },
+    palaceCurse: state.palaceCurse ? {
+      white: { active: state.palaceCurse.white.active, turnsInPalace: state.palaceCurse.white.turnsInPalace },
+      black: { active: state.palaceCurse.black.active, turnsInPalace: state.palaceCurse.black.turnsInPalace },
+    } : { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } },
+    lastMove: state.lastMove ? { ...state.lastMove } : null,
+    history: state.history ? [...state.history] : [],
+    positionHistory: [...(state.positionHistory?.entries() ?? [])],
+    status: state.status,
   };
 }
 
@@ -257,18 +265,33 @@ function resolveAmbushAuto(ambush, side) {
   }
 }
 
-function runBotTurn() {
-  if (!V.botEnabled || state.status !== "playing" || state.turn !== SIDE.BLACK) { V.botThinking = false; return; }
+async function runBotTurn() {
+  if (!V.botEnabled || state.status !== "playing" || state.turn !== SIDE.BLACK) {
+    V.botThinking = false;
+    return;
+  }
+  V.botThinking = true;
   try {
-    const stateCopy = cloneStateForBot(state); const params = getBotParams(); const { move } = chooseBlackBotMove(stateCopy, params);
-    const fallbackMoves = getAllLegalMoves(state, SIDE.BLACK); let chosen = null;
-    if (move) {
-      if (move.fromReserve) { const entry = state.reserves[SIDE.BLACK]?.[move.reserveIndex]; if (entry) chosen = move; }
-      else if (move.from && move.to) { const piece = state.board[move.from.r]?.[move.from.c]; if (piece && piece.side === SIDE.BLACK) { const legal = getPieceMoves(state, move.from.r, move.from.c); if (legal.some(m => m.r === move.to.r && m.c === move.to.c)) chosen = move; } }
+    // Serializa el estado (debe ser un objeto JSON puro)
+    const payload = {
+      state: serializeState(state),   // <-- tienes que definir esta función
+      difficulty: parseInt(difficultySelect?.value) || 5
+    };
+    const resp = await fetch('/api/botMove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (!data.move) {
+      state.message = "Bot has no legal moves.";
+      V.botThinking = false;
+      render();
+      return;
     }
-    if (!chosen) chosen = fallbackMoves.find(m => { if (m.fromReserve) return true; const p = state.board[m.from?.r]?.[m.from?.c]; return p && p.side === SIDE.BLACK; }) ?? fallbackMoves[0] ?? null;
-    if (!chosen) return;
-    if (!chosen.fromReserve) { const p = state.board[chosen.from?.r]?.[chosen.from?.c]; if (!p || p.side !== SIDE.BLACK) return; }
+
+    // Ejecutar el movimiento recibido (igual que antes pero sin recalcular la IA)
+    const chosen = data.move;
     const evalBefore = evaluate(state, computeFullHash(state)).score;
     let notation;
     if (chosen.fromReserve) {
@@ -280,8 +303,7 @@ function runBotTurn() {
       markLastNotationForCurrentState();
     } else {
       const piece = state.board[chosen.from.r][chosen.from.c];
-      const shouldProm = chosen.from && chosen.to && isPromotionAvailableForMove(state, chosen.from, chosen.to) && isPromotableType(piece.type) && !piece.promoted;
-      const botMove = { from: chosen.from, to: chosen.to, promotion: shouldProm };
+      const botMove = { from: chosen.from, to: chosen.to, promotion: chosen.promotion ?? false };
       const capturedPiece = state.board[chosen.to.r][chosen.to.c];
       applyMove(state, botMove);
       if (state.archerAmbush) {
@@ -297,11 +319,18 @@ function runBotTurn() {
       markLastNotationForCurrentState();
     }
     const evalResult = evaluate(state, computeFullHash(state));
-    if (!V.aiVsAiRunning && !V.trainingRunning) V.gameMovesData.push(buildMoveData(SIDE.BLACK, chosen, notation, evalBefore, evalResult, state));
+    if (!V.aiVsAiRunning && !V.trainingRunning)
+      V.gameMovesData.push(buildMoveData(SIDE.BLACK, chosen, notation, evalBefore, evalResult, state));
     console.log(`Turn ${V.totalMoves + 1}: ${notation}`);
     V.totalMoves++; clearSelection();
     recordTimelineSnapshot();
-  } finally { V.botThinking = false; render(); }
+  } catch (e) {
+    console.error('Bot request failed:', e);
+    state.message = "Bot error.";
+  } finally {
+    V.botThinking = false;
+    render();
+  }
 }
 
 export async function init() {
@@ -791,8 +820,7 @@ async function runAiVsAi() {
       let notation;
       if (!chosen.fromReserve) {
         const piece = state.board[chosen.from.r][chosen.from.c];
-        const shouldProm = chosen.from && chosen.to && isPromotionAvailableForMove(state, chosen.from, chosen.to) && isPromotableType(piece.type) && !piece.promoted;
-        const aiMove = { from: chosen.from, to: chosen.to, promotion: shouldProm };
+        const aiMove = { from: chosen.from, to: chosen.to, promotion: chosen.promotion ?? false };
         const capturedPiece = state.board[chosen.to.r][chosen.to.c];
         applyMove(state, aiMove);
         if (state.archerAmbush) { const ambush = state.archerAmbush; state.archerAmbush = null; resolveAmbushAuto(ambush, side); notation = generateMoveNotation(state, aiMove, ambush); }
@@ -880,8 +908,7 @@ async function runTrainingGame() {
         executeDrop(state, chosen.reserveIndex, chosen.to);
       } else {
         const piece = state.board[chosen.from.r][chosen.from.c];
-        const shouldProm = chosen.from && chosen.to && isPromotionAvailableForMove(state, chosen.from, chosen.to) && isPromotableType(piece.type) && !piece.promoted;
-        const tMove = { from: chosen.from, to: chosen.to, promotion: shouldProm };
+        const tMove = { from: chosen.from, to: chosen.to, promotion: chosen.promotion ?? false };
         const capturedPiece = state.board[chosen.to.r][chosen.to.c];
         applyMove(state, tMove);
         if (state.archerAmbush) { const ambush = state.archerAmbush; state.archerAmbush = null; resolveAmbushAuto(ambush, side); notation = generateMoveNotation(state, tMove, ambush); }

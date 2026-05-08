@@ -262,7 +262,8 @@ function appendCurseNotation(state) {
       const parts = [];
       for (const act of curse.curseActivators) {
         const sym = act.promoted
-          ? (PROMO_SYMBOLS[act.type] ?? SYMS[act.type] || '?')
+          // DESPUÉS
+          ? (PROMO_SYMBOLS[act.type] ?? SYMS[act.type] ?? '?')
           : (SYMS[act.type] || '?');
         const loc = `${COLS[act.c]}${13 - act.r}`;
         parts.push(`${sym}${loc}`);
