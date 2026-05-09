@@ -15,7 +15,7 @@ import {
 } from './ai/index.js';
 import crypto from 'crypto';
 
-/* ─── Codificación para NNUE (sin cambios) NNUE encoding (no changes) ─── */
+/* ─── Codificación para NNUE ─── */
 const PIECE_CHANNEL = {
   king:0, queen:1, general:2, elephant:3, priest:4, horse:5,
   cannon:6, tower:7, carriage:8, archer:9, pawn:10, crossbow:11,
@@ -38,7 +38,7 @@ function encodeBoardForNN(board) {
   return enc;
 }
 
-/* ─── Valores de pieza Piece value ─── */
+/* ─── Valores de pieza ─── */
 const PIECE_VALUES = {
   king:0, queen:950, general:560, elephant:240, priest:400,
   horse:320, cannon:450, tower:520, carriage:390, archer:450,
@@ -77,7 +77,7 @@ function notation(state, move, promote = false, ambushInfo = null, originalPiece
 
   const sym = p.promoted ? (PROMO_SYMBOLS[p.type] ?? SYMS[p.type]) : SYMS[p.type];
 
-  // ── Caso arquero con emboscada Archer with ambush──
+  // ── Caso arquero con emboscada ──
   if (p.type === 'archer' && ambushInfo) {
     const options = ambushInfo.options || [];
     if (options.length === 0) return `A${toStr}`;
@@ -107,7 +107,7 @@ function notation(state, move, promote = false, ambushInfo = null, originalPiece
     return nota;
   }
 
-  // ── Notación normal Normal notation──
+  // ── Notación normal ──
   const target = capturedPiece;
   let n = sym;
   if (target && target.side !== p.side) {
@@ -139,7 +139,6 @@ function markLastMoveNotation(moves, state) {
   let note = moves[moves.length - 1].notation ?? '';
   const end = terminalSuffixForStatus(state.status, state.message);
   if (end && !note.endsWith(end)) {
-    // Insert status suffix before any existing & suffix (palace curse notation)
     const idx = note.indexOf('&');
     if (idx >= 0 && !note.includes(end)) {
       note = note.slice(0, idx) + end + note.slice(idx);
@@ -150,7 +149,6 @@ function markLastMoveNotation(moves, state) {
   if (!end && state.status === 'playing') {
     try {
       if (isKingInCheck(state, state.turn)) {
-        // Insert % before any existing & suffix (palace curse notation)
         const idx = note.indexOf('&');
         if (idx >= 0 && !note.includes('%')) {
           note = note.slice(0, idx) + '%' + note.slice(idx);
@@ -197,7 +195,7 @@ function resolveAmbush(ambush, side, state) {
   }
 }
 
-/* ─── Clonar estado mínimamente para el bot Clone minimal state for the bot ─── */
+/* ─── Clonar estado para el bot ─── */
 function cloneStateForBot(state) {
   const board = new Array(13);
   for (let r = 0; r < 13; r++) {
@@ -223,21 +221,21 @@ function cloneStateForBot(state) {
       white: { active: state.palaceCurse.white.active, turnsInPalace: state.palaceCurse.white.turnsInPalace },
       black: { active: state.palaceCurse.black.active, turnsInPalace: state.palaceCurse.black.turnsInPalace },
     } : { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } },
-    lastMove:           state.lastMove ? { ...state.lastMove } : null,
+    lastMove:            state.lastMove ? { ...state.lastMove } : null,
     lastRepeatedMoveKey: state.lastRepeatedMoveKey ?? null,
-    repeatMoveCount:    state.repeatMoveCount ?? 0,
-    history:            state.history ? [...state.history] : [],
-    positionHistory:    state.positionHistory instanceof Map
-                          ? new Map(state.positionHistory)
-                          : new Map(),
-    status:   state.status,
-    selected: null,
+    repeatMoveCount:     state.repeatMoveCount ?? 0,
+    history:             state.history ? [...state.history] : [],
+    positionHistory:     state.positionHistory instanceof Map
+                           ? new Map(state.positionHistory)
+                           : new Map(),
+    status:     state.status,
+    selected:   null,
     legalMoves: [],
-    message: '',
+    message:    '',
   };
 }
 
-/* ─── Diversidad en apertura Opening diversity ─── */
+/* ─── Diversidad en apertura ─── */
 function pickOpeningMove(legalMoves, state) {
   const safe = legalMoves.filter(m => {
     if (m.fromReserve) return true;
@@ -254,7 +252,6 @@ function pickOpeningMove(legalMoves, state) {
 }
 
 function appendCurseNotation(state) {
-  const PROMO_SYMBOLS = { tower: 'U', horse: 'S', elephant: 'F', priest: 'W', cannon: 'R', pawn: 'B' };
   let suffix = '';
   for (const side of [SIDE.WHITE, SIDE.BLACK]) {
     const curse = state.palaceCurse?.[side];
@@ -262,7 +259,6 @@ function appendCurseNotation(state) {
       const parts = [];
       for (const act of curse.curseActivators) {
         const sym = act.promoted
-          // DESPUÉS
           ? (PROMO_SYMBOLS[act.type] ?? SYMS[act.type] ?? '?')
           : (SYMS[act.type] || '?');
         const loc = `${COLS[act.c]}${13 - act.r}`;
@@ -287,7 +283,23 @@ function boardSnapshot(board) {
   return snap;
 }
 
-/* ─── FUNCIÓN PRINCIPAL Main function ─── */
+/* ─── Captura el estado mínimo para el timeline ─── */
+function captureStateAfter(state) {
+  return {
+    board: state.board.map(row =>
+      row.map(p => p ? { type: p.type, side: p.side, promoted: p.promoted ?? false } : null)
+    ),
+    turn: state.turn,
+    reserves: {
+      white: state.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false })),
+      black: state.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false })),
+    },
+    status:  state.status,
+    message: state.message ?? '',
+  };
+}
+
+/* ─── FUNCIÓN PRINCIPAL ─── */
 export async function playSelfPlayGame(botParams) {
   const state = createGame();
   const moves  = [];
@@ -323,8 +335,8 @@ export async function playSelfPlayGame(botParams) {
     }
     if (!move) move = legalMoves[0];
 
-    let shouldProm = false;
-    let movingPiece = null;
+    let shouldProm    = false;
+    let movingPiece   = null;
     let capturedPiece = null;
     if (!move.fromReserve && move.from && move.to) {
       const piece = state.board[move.from.r]?.[move.from.c];
@@ -337,8 +349,9 @@ export async function playSelfPlayGame(botParams) {
     }
 
     const evalBefore = evaluate(state, currentHash).score;
-    const snap = boardSnapshot(state.board);
+    const snap       = boardSnapshot(state.board);
 
+    // ── Aplicar movimiento ──
     if (move.fromReserve) {
       executeDrop(state, move.reserveIndex, move.to);
     } else {
@@ -354,11 +367,14 @@ export async function playSelfPlayGame(botParams) {
     afterMoveEvaluation(state);
 
     const curseSuffix = appendCurseNotation(state);
-    const note = notation(state, move, shouldProm, ambushInfo, movingPiece, capturedPiece) + curseSuffix;
+    const note        = notation(state, move, shouldProm, ambushInfo, movingPiece, capturedPiece) + curseSuffix;
 
     const newHash    = computeFullHash(state);
     const evalResult = evaluate(state, newHash);
     const nnEncoding = encodeBoardForNN(state.board);
+
+    // ── Capturar stateAfter AQUÍ, después de afterMoveEvaluation ──
+    const stateAfter = captureStateAfter(state);
 
     moves.push({
       side,
@@ -371,19 +387,23 @@ export async function playSelfPlayGame(botParams) {
       positionHash:  newHash.toString(),
       _nnFloat32:    nnEncoding,
       boardSnapshot: snap,
+      stateAfter,
     });
 
-    // Mark check/draw/mate symbols on the move that just happened.
     markLastMoveNotation(moves, state);
 
     if (state.status !== 'playing') break;
   }
 
   if (state.status === 'playing' && moves.length >= MAX_MOVES) {
-    state.status = 'draw_move_limit';
+    state.status  = 'draw_move_limit';
     state.message = 'Draw by movement limit (600 moves).';
-    // Add end marker to last move.
     markLastMoveNotation(moves, state);
+
+    // Actualizar el stateAfter del último move con el status final
+    if (moves.length > 0) {
+      moves[moves.length - 1].stateAfter = captureStateAfter(state);
+    }
   }
 
   const finalMessage = state.message || 'Game ended';
@@ -402,6 +422,7 @@ export async function playSelfPlayGame(botParams) {
     notation:      m.notation,
     positionHash:  m.positionHash,
     boardSnapshot: m.boardSnapshot,
+    stateAfter:    m.stateAfter,
     _nnFloat32:    m._nnFloat32 ? Array.from(m._nnFloat32) : undefined,
   }));
 

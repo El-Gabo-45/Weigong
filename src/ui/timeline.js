@@ -341,3 +341,241 @@ if (moveTimeline) {
     moveTimeline.scrollLeft += delta;
   }, { passive: false });
 }
+
+// ══════════════════════════════════════════
+//  EXPORT / SHARE SYSTEM
+// ══════════════════════════════════════════
+
+/* ── Helpers ── */
+function notationText() {
+  if (!V.currentGameNotation?.length) return null;
+  // Formato estilo ajedrez: "1. e4 e5  2. Nf3 Nc6 ..."
+  const lines = [];
+  for (let i = 0; i < V.currentGameNotation.length; i += 2) {
+    const num  = Math.floor(i / 2) + 1;
+    const white = V.currentGameNotation[i]     ?? '';
+    const black = V.currentGameNotation[i + 1] ?? '';
+    lines.push(`${num}. ${white}${black ? '  ' + black : ''}`);
+  }
+  return lines.join('\n');
+}
+
+function exportJSON() {
+  // JSON compacto: solo notación + stateAfter de cada snapshot
+  const snaps = V.timelineSnapshots ?? [];
+  const moves = snaps.slice(1).map((s, i) => ({
+    move:  i + 1,
+    nota:  V.currentGameNotation?.[i] ?? '?',
+    state: s ? {
+      board:    s.state.board.map(row =>
+        row.map(p => p ? `${p.type[0]}${p.side[0]}${p.promoted ? '+' : ''}` : null)
+      ),
+      turn:     s.state.turn,
+      reserves: {
+        white: s.state.reserves.white.map(p => p.type),
+        black: s.state.reserves.black.map(p => p.type),
+      },
+      status:  s.state.status,
+    } : null,
+  }));
+  return {
+    version:  2,
+    date:     new Date().toISOString(),
+    total:    V.totalMoves,
+    status:   state.status,
+    notation: V.currentGameNotation ?? [],
+    moves,
+  };
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function exportAsTXT() {
+  const nota = notationText();
+  if (!nota) { alert('No moves to export.'); return; }
+  const header = [
+    `13×13 Game – ${new Date().toLocaleString()}`,
+    `Result: ${state.status}   Moves: ${V.totalMoves}`,
+    '─'.repeat(48),
+    '',
+  ].join('\n');
+  const blob = new Blob([header + nota], { type: 'text/plain' });
+  downloadBlob(blob, `game_${Date.now()}.txt`);
+}
+
+function exportAsJSONFile() {
+  const data = exportJSON();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `game_${Date.now()}.json`);
+}
+
+function exportAsPGN() {
+  // Pseudo-PGN adaptado (el formato real es para ajedrez, aquí lo adaptamos)
+  const date = new Date();
+  const dd   = String(date.getDate()).padStart(2,'0');
+  const mm   = String(date.getMonth()+1).padStart(2,'0');
+  const yyyy = date.getFullYear();
+
+  let result = '*';
+  if (state.status === 'checkmate' || state.status === 'palacemate') {
+    // el bando que NO tiene turno ganó
+    result = state.turn === 'white' ? '0-1' : '1-0';
+  } else if (state.status !== 'playing') {
+    result = '1/2-1/2';
+  }
+
+  const tags = [
+    `[Event "Local Game"]`,
+    `[Date "${yyyy}.${mm}.${dd}"]`,
+    `[White "White"]`,
+    `[Black "Black"]`,
+    `[Result "${result}"]`,
+    `[Variant "13x13"]`,
+    '',
+  ].join('\n');
+
+  const nota = notationText() ?? '';
+  const blob = new Blob([tags + nota + (nota ? '\n' : '') + result + '\n'],
+    { type: 'text/plain' });
+  downloadBlob(blob, `game_${Date.now()}.pgn`);
+}
+
+async function exportAsPNG() {
+  if (!V.currentGameNotation?.length) { alert('No moves to export.'); return; }
+
+  const nota  = V.currentGameNotation ?? [];
+  const W     = 680, PAD = 32, LINE_H = 22, HEADER_H = 90;
+  const cols  = 2, COL_W = (W - PAD * 2) / cols;
+  const rows  = Math.ceil(nota.length / 2);
+  const H     = HEADER_H + rows * LINE_H + PAD * 2;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * 2; canvas.height = H * 2;          // HiDPI x2
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+
+  // Fondo
+  ctx.fillStyle = '#13171f';
+  ctx.fillRect(0, 0, W, H);
+
+  // Borde sutil
+  ctx.strokeStyle = '#2d3442';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+  // Header
+  ctx.fillStyle = '#f3f6fb';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('13×13 Game', PAD, PAD + 20);
+
+  ctx.fillStyle = '#aab3c2';
+  ctx.font = '12px monospace';
+  ctx.fillText(`${new Date().toLocaleString()}   ·   ${V.totalMoves} moves   ·   ${state.status}`, PAD, PAD + 40);
+
+  // Línea divisoria
+  ctx.strokeStyle = '#2d3442';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, HEADER_H - 10); ctx.lineTo(W - PAD, HEADER_H - 10); ctx.stroke();
+
+  // Movimientos en dos columnas
+  ctx.font = '12px monospace';
+  for (let i = 0; i < nota.length; i += 2) {
+    const pair = Math.floor(i / 2);
+    const col  = 0;                                      // ambos en col izquierda/derecha
+    const x    = PAD;
+    const y    = HEADER_H + pair * LINE_H + 14;
+
+    // Número
+    ctx.fillStyle = '#4a5568';
+    ctx.fillText(`${pair + 1}.`, x, y);
+
+    // Blanca
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(nota[i] ?? '', x + 34, y);
+
+    // Negra
+    if (nota[i + 1]) {
+      ctx.fillStyle = '#aab3c2';
+      ctx.fillText(nota[i + 1], x + COL_W, y);
+    }
+  }
+
+  // Footer
+  ctx.fillStyle = '#2d3442';
+  ctx.font = '10px monospace';
+  ctx.fillText('13×13 Chess Variant', PAD, H - 10);
+
+  canvas.toBlob(blob => {
+    if (blob) downloadBlob(blob, `game_${Date.now()}.png`);
+  }, 'image/png');
+}
+
+/* ── Popup DOM ── */
+function buildExportPopup() {
+  if (document.getElementById('exportPopup')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'exportPopup';
+  overlay.className = 'exportPopup hidden';
+  overlay.innerHTML = `
+    <div class="exportCard">
+      <h3>Export game</h3>
+      <p>Choose the format you want to download.</p>
+      <div class="exportGrid">
+        <button class="exportBtn" id="exp-png">
+          <span class="eIcon">🖼</span>
+          <span class="eLabel">PNG</span>
+          <span class="eDesc">Image with full move list, ready to share</span>
+        </button>
+        <button class="exportBtn" id="exp-txt">
+          <span class="eIcon">📄</span>
+          <span class="eLabel">TXT</span>
+          <span class="eDesc">Plain text notation, chess-style pairs</span>
+        </button>
+        <button class="exportBtn" id="exp-pgn">
+          <span class="eIcon">♟</span>
+          <span class="eLabel">PGN</span>
+          <span class="eDesc">Standard notation file (compatible with chess tools)</span>
+        </button>
+        <button class="exportBtn" id="exp-json">
+          <span class="eIcon">{ }</span>
+          <span class="eLabel">JSON</span>
+          <span class="eDesc">Compact: notation + board snapshots per move</span>
+        </button>
+      </div>
+      <button class="exportClose" id="exp-close">✕ Close</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Cerrar al hacer click fuera de la card
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeExportPopup();
+  });
+
+  document.getElementById('exp-close').addEventListener('click', closeExportPopup);
+  document.getElementById('exp-png').addEventListener('click',  () => { exportAsPNG();      closeExportPopup(); });
+  document.getElementById('exp-txt').addEventListener('click',  () => { exportAsTXT();      closeExportPopup(); });
+  document.getElementById('exp-pgn').addEventListener('click',  () => { exportAsPGN();      closeExportPopup(); });
+  document.getElementById('exp-json').addEventListener('click', () => { exportAsJSONFile(); closeExportPopup(); });
+}
+
+function openExportPopup()  {
+  buildExportPopup();
+  document.getElementById('exportPopup').classList.remove('hidden');
+}
+function closeExportPopup() {
+  document.getElementById('exportPopup')?.classList.add('hidden');
+}
+
+/* ── Conectar botón ── */
+const shareBtn = document.getElementById('shareBtn');
+if (shareBtn) {
+  shareBtn.addEventListener('click', openExportPopup);
+}

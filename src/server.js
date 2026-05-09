@@ -345,6 +345,7 @@ app.post('/api/selfPlay', async (req, res) => {
                 metrics: m.metrics,
                 notation: m.notation ?? '',
                 positionHash: m.positionHash,
+                stateAfter: m.stateAfter ?? undefined,
                 ...(nnEncoded ? { _nnFloat32: nnEncoded } : {}),
               };
             }),

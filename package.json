@@ -1,7 +1,11 @@
 {
   "type": "module",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "dev": "DEBUG=server,nn,selfplay node src/server.js",
+    "dev:ai": "DEBUG=ai,search,memory,perf node src/server.js",
+    "dev:all": "DEBUG=all node src/server.js",
+    "selfplay": "DEBUG=selfplay,perf node src/server.js"
   },
   "dependencies": {
     "express": "^5.2.1",
