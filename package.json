@@ -1,11 +1,23 @@
 {
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "DEBUG=server,nn,selfplay node src/server.js",
-    "dev:ai": "DEBUG=ai,search,memory,perf node src/server.js",
-    "dev:all": "DEBUG=all node src/server.js",
-    "selfplay": "DEBUG=selfplay,perf node src/server.js"
+    "start":            "node src/server.js",
+    "dev":              "DEBUG=server,nn,selfplay node src/server.js",
+    "dev:ai":           "DEBUG=ai,search,memory,perf node src/server.js",
+    "dev:all":          "DEBUG=all node src/server.js",
+
+    "debug":            "node src/debug-cli.js",
+    "debug:eval":       "node src/debug-cli.js eval",
+    "debug:search":     "node src/debug-cli.js search 5 2000",
+    "debug:memory":     "node src/debug-cli.js memory stats",
+    "debug:top":        "node src/debug-cli.js memory top 15",
+    "debug:blunders":   "node src/debug-cli.js memory blunders 10",
+    "debug:nn":         "node src/debug-cli.js nn info",
+    "debug:nn:predict": "node src/debug-cli.js nn predict",
+    "debug:games":      "node src/debug-cli.js games",
+    "debug:perft":      "node src/debug-cli.js perft 3",
+    "debug:selfplay":   "node src/debug-cli.js selfplay 1",
+    "debug:tt":         "node src/debug-cli.js tt 6"
   },
   "dependencies": {
     "express": "^5.2.1",
