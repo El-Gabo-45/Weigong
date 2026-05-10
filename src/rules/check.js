@@ -1,3 +1,4 @@
+import { dbg } from '../debug.js';
 import { BOARD_SIZE, SIDE, isPalaceSquare, opponent, inBounds, forwardDir, onBank, isOwnSide, isRiverSquare } from '../constants.js';
 import { findKings, pathSquares } from './board.js';
 
@@ -83,14 +84,6 @@ export function attackSquaresForPiece(board, piece, r, c, state) {
   return moves;
 }
 
-export function isKingInCheck(state, side) {
-  const board = state.board;
-  const kings = findKings(board);
-  const king = kings[side];
-  if (!king) return true;
-  return isSquareAttacked(board, king.r, king.c, opponent(side), state);
-}
-
 export function isSquareAttacked(board, r, c, bySide, state) {
   if (!board || !Array.isArray(board)) return false;
 
@@ -118,4 +111,20 @@ export function isSquareAttacked(board, r, c, bySide, state) {
     }
   }
   return false;
+}
+
+export function isKingInCheck(state, side) {
+  const t = dbg.perf.start('isKingInCheck');
+  const board = state.board;
+  const kings = findKings(board);
+  const king = kings[side];
+  if (!king) {
+    dbg.rules.warn('King not found!', { side });
+    dbg.perf.end(t);
+    return true;
+  }
+  const result = isSquareAttacked(board, king.r, king.c, opponent(side), state);
+  if (result) dbg.rules(`Check! ${side} king at ${king.r},${king.c} attacked`);
+  dbg.perf.end(t);
+  return result;
 }

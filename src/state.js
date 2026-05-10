@@ -1,7 +1,7 @@
 import { BOARD_SIZE, SIDE } from "./constants.js";
 import { createGame } from "./rules/index.js";
 
-// ── Copia mínima del estado para el bot ──
+// ── Copia mínima del estado para el bot State minimal coty for the bot──
 export function cloneStateForBot(state) {
   const board = new Array(BOARD_SIZE);
   for (let r = 0; r < BOARD_SIZE; r++) board[r] = state.board[r].map(p => p ? { ...p } : null);
@@ -36,10 +36,10 @@ export function cloneStateForBot(state) {
   };
 }
 
-// ────────── Estado de la partida ──────────
+// ────────── Estado de la partida Game state──────────
 export const state = createGame();
 
-// ─── Todas las variables mutables en un solo objeto ───
+// ─── Todas las variables mutables en un solo objeto All mutable variables───
 export const V = {
   totalMoves: 0,
   currentGameNotation: [],

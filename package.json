@@ -1,27 +1,37 @@
 {
   "type": "module",
   "scripts": {
-    "start":            "node src/server.js",
-    "dev":              "DEBUG=server,nn,selfplay node src/server.js",
-    "dev:ai":           "DEBUG=ai,search,memory,perf node src/server.js",
-    "dev:all":          "DEBUG=all node src/server.js",
-
-    "debug":            "node src/debug-cli.js",
-    "debug:eval":       "node src/debug-cli.js eval",
-    "debug:search":     "node src/debug-cli.js search 5 2000",
-    "debug:memory":     "node src/debug-cli.js memory stats",
-    "debug:top":        "node src/debug-cli.js memory top 15",
-    "debug:blunders":   "node src/debug-cli.js memory blunders 10",
-    "debug:nn":         "node src/debug-cli.js nn info",
+    "start": "node src/server.js",
+    "dev": "DEBUG=server,nn,selfplay node src/server.js",
+    "dev:ai": "DEBUG=ai,search,memory,perf node src/server.js",
+    "dev:all": "DEBUG=all node src/server.js",
+    "debug": "node src/debug-cli.js",
+    "debug:eval": "node src/debug-cli.js eval",
+    "debug:search": "node src/debug-cli.js search 5 2000",
+    "debug:memory": "node src/debug-cli.js memory stats",
+    "debug:top": "node src/debug-cli.js memory top 15",
+    "debug:blunders": "node src/debug-cli.js memory blunders 10",
+    "debug:nn": "node src/debug-cli.js nn info",
     "debug:nn:predict": "node src/debug-cli.js nn predict",
-    "debug:games":      "node src/debug-cli.js games",
-    "debug:perft":      "node src/debug-cli.js perft 3",
-    "debug:selfplay":   "node src/debug-cli.js selfplay 1",
-    "debug:tt":         "node src/debug-cli.js tt 6"
+    "debug:games": "node src/debug-cli.js games",
+    "debug:perft": "node src/debug-cli.js perft 3",
+    "debug:selfplay": "node src/debug-cli.js selfplay 1",
+    "debug:tt": "node src/debug-cli.js tt 6",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --verbose",
+    "lint": "eslint src/ tests/",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "express": "^5.2.1",
     "node-fetch": "^3.3.2",
     "pako": "^2.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "jest": "^30.4.2",
+    "prettier": "^3.8.3"
   }
 }

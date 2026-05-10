@@ -1,3 +1,4 @@
+import { dbg } from '../debug.js';
 import { SIDE, opponent, isPromotableType, isPalaceSquare, onBank } from '../constants.js';
 import { applyMove, isPromotionAvailableForMove } from '../rules/index.js';
 import {
@@ -13,7 +14,12 @@ export function isValidMove(move) {
 }
 
 export function makeMove(state, move, promote, currentHash, currentEval = null) {
-  if (!isValidMove(move)) return { action: null, undo: null, hash: currentHash, evalDiff: 0 };
+  const t = dbg.perf.start('makeMove');
+  if (!isValidMove(move)) {
+    dbg.moves.warn('makeMove invalid', { move, promote });
+    dbg.perf.end(t);
+    return { action: null, undo: null, hash: currentHash, evalDiff: 0 };
+  }
   const from = move.from ?? null, to = move.to ?? null;
   const undo = {
     cells: [], turn: state.turn, lastMove: state.lastMove ? { ...state.lastMove } : null,
@@ -70,6 +76,8 @@ export function makeMove(state, move, promote, currentHash, currentEval = null) 
   const newPalH = (state.palaceTaken?.white ? ZobristPalaceWhite : 0n) ^ (state.palaceTaken?.black ? ZobristPalaceBlack : 0n);
   newHash ^= oldPalH ^ newPalH ^ ZobristTurn[0] ^ ZobristTurn[1];
   state.history = state.history ?? []; state.history.push(currentHash);
+  dbg.moves('makeMove', { from: from ? `${from.r},${from.c}` : 'R', to: to ? `${to.r},${to.c}` : 'R', promote, evalDiff: evalDiff.toFixed(1) });
+  dbg.perf.end(t);
   return { action, undo, hash: newHash, evalDiff };
 }
 

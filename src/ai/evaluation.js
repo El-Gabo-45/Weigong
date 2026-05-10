@@ -1,3 +1,4 @@
+import { dbg } from '../debug.js';
 import { SIDE, isPalaceSquare, opponent, onBank } from '../constants.js';
 import { isKingInCheck } from '../rules/index.js';
 import { adaptiveMemory, extractFeatures } from './memory.js';
@@ -65,7 +66,16 @@ const KING_ESCAPE_PENALTY     = 200;
 const KING_SHUFFLE_PENALTY    = 400;
 const REPEAT_PENALTY          = 1200;
 
+// Palace defense: penalty for leaving own palace open / ES: penalización por descuidar palacio propio
+const PALACE_DEFENSE_BONUS    = 200;
+const PALACE_UNDEFENDED_PEN   = 300;
+
+// River control: bonus for pieces near or across the river / ES: bono por control del río
+const RIVER_CONTROL_BONUS     = 80;
+const CROSSED_RIVER_BONUS     = 120;
+
 export function evaluate(state, hash, precomputedMaps = null) {
+  const t = dbg.perf.start('evaluate');
   const board = state.board;
   const phaseFactor = gamePhaseFactor(board);
   const endgame = 1 - phaseFactor;
@@ -197,6 +207,7 @@ export function evaluate(state, hash, precomputedMaps = null) {
     score -= adaptiveMemory.getFeatureScore(whiteFk, phaseFactor);
     score += adaptiveMemory.applyWeights(metrics);
   }
+  dbg.perf.end(t);
   return { score, metrics };
 }
 

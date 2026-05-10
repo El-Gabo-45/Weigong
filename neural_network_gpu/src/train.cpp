@@ -173,14 +173,26 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "Loaded %d samples (input_dim=%d)\n", n_samples, input_dim);
 
-    // Crear modelo: input_dim -> 256 -> 128 -> 1
+    // Build deep network: 4 hidden layers with LeakyReLU + BatchNorm + Dropout
+    //  Red profunda: 4 capas ocultas con LeakyReLU + BatchNorm + Dropout
+    // Architecture: input_dim -> 512 -> 256 -> 128 -> 64 -> output_dim
+    //  Arquitectura: input_dim -> 512 -> 256 -> 128 -> 64 -> output_dim
+    float drop_prob = 0.8f; // keep probability 80% (dropout 20%) /  probabilidad de mantener 80%
+    
     NeuralNetwork nn(device, context, queue);
-    nn.add_layer(input_dim, 256, Activation::RELU);
-    nn.add_layer(256, 128, Activation::RELU);
-    nn.add_layer(128, output_dim, Activation::TANH);
-    nn.set_loss(LossType::MSE);
-    nn.set_optimizer(OptimizerType::ADAM, 0.001f);
+    
+    nn.add_layer(input_dim, 512, Activation::LEAKY_RELU, drop_prob);  // Layer 1: input -> 512
+    nn.add_layer(512, 256, Activation::LEAKY_RELU, drop_prob);        // Layer 2: 512 -> 256
+    nn.add_layer(256, 128, Activation::LEAKY_RELU, drop_prob);        // Layer 3: 256 -> 128
+    nn.add_layer(128, 64, Activation::LEAKY_RELU);                    // Layer 4: 128 -> 64 (no dropout)
+    nn.add_layer(64, output_dim, Activation::TANH);                   // Output: 64 -> 1 (Tanh [-1, 1])
+    
+    // Huber loss is more robust than MSE for outliers
+    //  Huber es más robusto que MSE para valores atípicos
+    nn.set_loss(LossType::HUBER);
+    nn.set_optimizer(OptimizerType::ADAMW, 0.001f, 0.9f, 0.999f, 1e-8f);
     nn.build();
+    nn.print_summary(); // Debug: print architecture /  imprime arquitectura
 
     // Intentar cargar modelo existente
     FILE *f = fopen(model_path, "rb");
@@ -246,7 +258,7 @@ int main(int argc, char **argv) {
     float ms = std::chrono::duration<float, std::milli>(end - start).count();
     fprintf(stderr, "Training time: %.2f ms\n", ms);
 
-    // Guardar modelo
+    // Guardar modelo Model saving
     try {
         nn.save(model_path);
         fprintf(stderr, "Model saved: %s\n", model_path);
@@ -254,7 +266,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Save error: %s\n", e.what());
     }
 
-    // Limpiar
+    // Limpiar Clean up
     for (auto p : inputs) delete[] p;
     delete[] X_flat;
     delete[] Y_flat;

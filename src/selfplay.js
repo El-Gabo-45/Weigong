@@ -330,10 +330,11 @@ export async function playSelfPlayGame(botParams) {
       }) ?? null;
     }
 
-    if (!move || (moves.length < 8 && Math.random() < 0.25)) {
+    const exploreChance = moves.length < 8  ? 0.5 : moves.length < 30 ? 0.15 : moves.length < 80 ? 0.05 : 0;
+
+    if (!move || Math.random() < exploreChance) {
       move = pickOpeningMove(legalMoves, state);
     }
-    if (!move) move = legalMoves[0];
 
     let shouldProm    = false;
     let movingPiece   = null;

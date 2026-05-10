@@ -1,3 +1,4 @@
+import { dbg } from '../debug.js';
 import { SIDE } from '../constants.js';
 import { getAllLegalMoves } from '../rules/index.js';
 import { search, searchRoot, allocateTime, moveKey } from './search.js';
@@ -35,8 +36,14 @@ export function chooseBlackBotMove(state, options = {}) {
         const result = searchRoot(state, depth, alpha, beta, localDeadline, tt, rootHash, prevScore);
         if (result.bestMove) { best = result.bestMove; prevScore = result.score; }
         if (Math.abs(result.score) > MATE_SCORE - 50) remainingDepth = depth;
-        if (result.score <= alpha) { alpha = -Infinity; continue; }
-        if (result.score >= beta)  { beta  =  Infinity; continue; }
+        if (result.score <= alpha) {
+          dbg.ai.warn(`aspiration fail-low`, { alpha, score: result.score, depth, best: best ? moveKey(best, false) : 'null' });
+          alpha = -Infinity; continue;
+        }
+        if (result.score >= beta) {
+          dbg.ai.warn(`aspiration fail-high`, { beta, score: result.score, depth, best: best ? moveKey(best, false) : 'null' });
+          beta  =  Infinity; continue;
+        }
         break;
       } catch (err) { 
         // SearchTimeout: just use best from previous depth
@@ -44,6 +51,15 @@ export function chooseBlackBotMove(state, options = {}) {
         console.error('[chooseBlackBotMove] Error en depth', depth, ':', err);
         break;
       }
+    }
+    // Log IDS progress at each depth (or at least every other depth)
+    if (depth % 2 === 0 || depth === remainingDepth || depth === 1) {
+      dbg.ai(`IDS depth=${depth}`, {
+        best: best ? moveKey(best, false) : 'null',
+        score: prevScore,
+        elapsed: (now() - startTime).toFixed(0) + 'ms',
+        ttSize: tt.map.size,
+      });
     }
     if (now() > deadline) break;
   }

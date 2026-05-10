@@ -1,8 +1,8 @@
 /*
- * Neural Network GPU - Ejemplo con OpenCL
- * Optimizado para AMD RX 570 (Polaris) via Mesa/Rusticl
- * Compilar: make
- * Ejecutar: make run
+ * Neural Network GPU - Examples with OpenCL (EN/ES)
+ * Optimized for AMD RX 570 (Polaris) via Mesa/Rusticl
+ * Compile: make  |  Run: make run
+ * ES: Ejemplos de red neuronal acelerada por GPU con OpenCL
  */
 
 #include "nn.h"

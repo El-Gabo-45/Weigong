@@ -1,6 +1,9 @@
-// ============================================================
-// Neural Network OpenCL Kernels - Optimized for RX 570 (Polaris)
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+//  Neural Network OpenCL Kernels (EN/ES)
+//  Optimized for AMD RX 570 (Polaris) via Mesa/Rusticl
+//  Version 2.0 - BatchNorm, LeakyReLU, Gradient Clipping, AdamW
+//  ES: Kernels OpenCL optimizados para AMD RX 570
+// ═══════════════════════════════════════════════════════════
 
 // ----------------------------------------------------------
 // MATMUL: C = A * B  (optimizado con tiling)
@@ -125,6 +128,28 @@ __kernel void relu_deriv(
 }
 
 // ----------------------------------------------------------
+// ACTIVATION: Leaky ReLU (alpha=0.01)
+// ----------------------------------------------------------
+__kernel void leaky_relu(__global float *x, const int size) {
+    int i = get_global_id(0);
+    if (i < size)
+        x[i] = x[i] >= 0.0f ? x[i] : 0.01f * x[i];
+}
+
+// ----------------------------------------------------------
+// ACTIVATION: Leaky ReLU derivative
+// ----------------------------------------------------------
+__kernel void leaky_relu_deriv(
+    __global const float *x,
+    __global float *out,
+    const int size)
+{
+    int i = get_global_id(0);
+    if (i < size)
+        out[i] = x[i] >= 0.0f ? 1.0f : 0.01f;
+}
+
+// ----------------------------------------------------------
 // ACTIVATION: Sigmoid / Logistic
 // ----------------------------------------------------------
 __kernel void sigmoid(__global float *x, const int size) {
@@ -134,7 +159,7 @@ __kernel void sigmoid(__global float *x, const int size) {
 }
 
 // ----------------------------------------------------------
-// ACTIVATION: Sigmoid derivative: sigmoid(x) * (1 - sigmoid(x))
+// ACTIVATION: Sigmoid derivative
 // ----------------------------------------------------------
 __kernel void sigmoid_deriv(
     __global const float *x,
@@ -158,7 +183,7 @@ __kernel void tanh_act(__global float *x, const int size) {
 }
 
 // ----------------------------------------------------------
-// ACTIVATION: Tanh derivative: 1 - tanh(x)^2
+// ACTIVATION: Tanh derivative
 // ----------------------------------------------------------
 __kernel void tanh_deriv(
     __global const float *x,
@@ -209,7 +234,7 @@ __kernel void softmax(
 }
 
 // ----------------------------------------------------------
-// BIAS ADD: output[i] = input[i] + bias[i % biasSize]
+// BIAS ADD: output[i] = output[i] + bias[i % biasSize]
 // ----------------------------------------------------------
 __kernel void bias_add(
     __global float *output,
@@ -223,8 +248,89 @@ __kernel void bias_add(
 }
 
 // ----------------------------------------------------------
-// BACKPROP: delta_output = delta_next * weights^T  (acumular error)
-// delta_next: MxN_out, weights: N_out x N_in, delta_output: MxN_in
+// BATCH NORM FORWARD (training)
+// y = gamma * (x - mean) / sqrt(var + eps) + beta
+// Computes mean and variance per feature across batch
+// Also accumulates running_mean and running_var
+// Input: x (M x N), Output: y (M x N)
+// Mean/var per feature: N elements
+// ----------------------------------------------------------
+__kernel void batch_norm_fwd(
+    __global const float *x,
+    __global float *y,
+    __global float *running_mean,
+    __global float *running_var,
+    __global float *gamma,
+    __global float *beta,
+    __global float *save_mean,
+    __global float *save_var,
+    const int M,
+    const int N,
+    const float momentum,
+    const float eps)
+{
+    int col = get_global_id(0); // feature index
+    if (col >= N) return;
+
+    // Compute mean for this feature
+    float mean = 0.0f;
+    for (int i = 0; i < M; i++)
+        mean += x[i * N + col];
+    mean /= (float)M;
+
+    // Compute variance for this feature
+    float var = 0.0f;
+    for (int i = 0; i < M; i++) {
+        float diff = x[i * N + col] - mean;
+        var += diff * diff;
+    }
+    var /= (float)M;
+
+    // Save for backward pass
+    save_mean[col] = mean;
+    save_var[col] = var;
+
+    // Update running stats (for inference)
+    running_mean[col] = momentum * running_mean[col] + (1.0f - momentum) * mean;
+    running_var[col] = momentum * running_var[col] + (1.0f - momentum) * var;
+
+    // Normalize and scale
+    float inv_std = rsqrt(var + eps);
+    float g = gamma[col];
+    float b = beta[col];
+    for (int i = 0; i < M; i++)
+        y[i * N + col] = (x[i * N + col] - mean) * inv_std * g + b;
+}
+
+// ----------------------------------------------------------
+// BATCH NORM FORWARD (inference)
+// Uses running_mean and running_var
+// ----------------------------------------------------------
+__kernel void batch_norm_fwd_infer(
+    __global const float *x,
+    __global float *y,
+    __global const float *running_mean,
+    __global const float *running_var,
+    __global const float *gamma,
+    __global const float *beta,
+    const int M,
+    const int N,
+    const float eps)
+{
+    int col = get_global_id(0); // feature index
+    if (col >= N) return;
+
+    float mean = running_mean[col];
+    float inv_std = rsqrt(running_var[col] + eps);
+    float g = gamma[col];
+    float b = beta[col];
+
+    for (int i = 0; i < M; i++)
+        y[i * N + col] = (x[i * N + col] - mean) * inv_std * g + b;
+}
+
+// ----------------------------------------------------------
+// BACKPROP: delta_output = delta_next * weights^T
 // ----------------------------------------------------------
 __kernel void backprop_delta(
     __global const float *delta_next,
@@ -241,15 +347,13 @@ __kernel void backprop_delta(
 
     float sum = 0.0f;
     for (int k = 0; k < N_out; k++) {
-        // weights[k * N_in + col] es weight de k->col
         sum += delta_next[row * N_out + k] * weights[k * N_in + col];
     }
     delta_curr[row * N_in + col] = sum;
 }
 
 // ----------------------------------------------------------
-// GRADIENT WEIGHT: dW = A^T * delta (acumular gradientes)
-// A: M x K, delta: M x N, dW: K x N
+// GRADIENT WEIGHT: dW = A^T * delta
 // ----------------------------------------------------------
 __kernel void grad_weight(
     __global const float *A,
@@ -264,11 +368,11 @@ __kernel void grad_weight(
     float sum = 0.0f;
     for (int i = 0; i < M; i++)
         sum += A[i * K + row] * delta[i * N + col];
-    dW[row * N + col] = sum;
+    dW[row * N + col] = sum / (float)M; // promedio sobre batch
 }
 
 // ----------------------------------------------------------
-// GRADIENT BIAS: db = sum(delta, axis=0)
+// GRADIENT BIAS: db = mean(delta, axis=0)
 // ----------------------------------------------------------
 __kernel void grad_bias(
     __global const float *delta,
@@ -281,11 +385,56 @@ __kernel void grad_bias(
     float sum = 0.0f;
     for (int i = 0; i < M; i++)
         sum += delta[i * N + col];
-    db[col] = sum;
+    db[col] = sum / (float)M;
 }
 
 // ----------------------------------------------------------
-// SGD UPDATE: param -= lr * grad
+// BATCH NORM BACKWARD
+// Computes gradients for gamma, beta, and dx
+// ----------------------------------------------------------
+__kernel void batch_norm_bwd(
+    __global const float *dy,
+    __global const float *x,
+    __global const float *save_mean,
+    __global const float *save_var,
+    __global const float *gamma,
+    __global float *dx,
+    __global float *dgamma,
+    __global float *dbeta,
+    const int M,
+    const int N,
+    const float eps)
+{
+    int col = get_global_id(0);
+    if (col >= N) return;
+
+    float mean = save_mean[col];
+    float var = save_var[col];
+    float inv_std = rsqrt(var + eps);
+    float g = gamma[col];
+
+    // dBeta and dGamma
+    float sum_dy = 0.0f;
+    float sum_dy_xhat = 0.0f;
+    for (int i = 0; i < M; i++) {
+        float x_hat = (x[i * N + col] - mean) * inv_std;
+        sum_dy += dy[i * N + col];
+        sum_dy_xhat += dy[i * N + col] * x_hat;
+    }
+    dgamma[col] = sum_dy_xhat;
+    dbeta[col] = sum_dy;
+
+    // dy normalized
+    float factor1 = g * inv_std / (float)M;
+    float factor2 = sum_dy_xhat * inv_std / ((float)M * (float)M);
+    for (int i = 0; i < M; i++) {
+        float x_hat = (x[i * N + col] - mean) * inv_std;
+        dx[i * N + col] = factor1 * ((float)M * dy[i * N + col] - sum_dy - x_hat * sum_dy_xhat);
+    }
+}
+
+// ----------------------------------------------------------
+// SGD UPDATE: param -= lr * (grad)
 // ----------------------------------------------------------
 __kernel void sgd_update(
     __global float *param,
@@ -299,20 +448,20 @@ __kernel void sgd_update(
 }
 
 // ----------------------------------------------------------
-// ADAM UPDATE: actualización con Adam optimizador
+// ADAM UPDATE
 // ----------------------------------------------------------
 __kernel void adam_update(
     __global float *param,
     __global const float *grad,
-    __global float *m,      // 1er momento
-    __global float *v,      // 2do momento
+    __global float *m,
+    __global float *v,
     const int size,
     const float lr,
     const float beta1,
     const float beta2,
     const float eps,
-    const float corr1,      // 1 / (1 - beta1^t)
-    const float corr2)      // 1 / (1 - beta2^t)
+    const float corr1,
+    const float corr2)
 {
     int i = get_global_id(0);
     if (i >= size) return;
@@ -328,6 +477,37 @@ __kernel void adam_update(
     float vt_hat = vt * corr2;
 
     param[i] -= lr * mt_hat / (sqrt(vt_hat) + eps);
+}
+
+// ----------------------------------------------------------
+// WEIGHT DECAY (AdamW style): param -= lr * weight_decay * param
+// ----------------------------------------------------------
+__kernel void weight_decay(
+    __global float *param,
+    const int size,
+    const float lr,
+    const float wd)
+{
+    int i = get_global_id(0);
+    if (i < size)
+        param[i] -= lr * wd * param[i];
+}
+
+// ----------------------------------------------------------
+// GRADIENT CLIPPING (global norm): clip each grad element
+// Per-element clipping for simplicity
+// ----------------------------------------------------------
+__kernel void gradient_clip(
+    __global float *grad,
+    const int size,
+    const float max_norm)
+{
+    int i = get_global_id(0);
+    if (i >= size) return;
+
+    // Simple per-element clipping - prevents any single gradient from being too large
+    if (grad[i] > max_norm) grad[i] = max_norm;
+    else if (grad[i] < -max_norm) grad[i] = -max_norm;
 }
 
 // ----------------------------------------------------------
@@ -347,7 +527,28 @@ __kernel void mse_loss(
 }
 
 // ----------------------------------------------------------
-// CROSS-ENTROPY LOSS: -target * log(pred + epsilon)
+// HUBER LOSS: Smooth L1
+// ----------------------------------------------------------
+__kernel void huber_loss(
+    __global const float *pred,
+    __global const float *target,
+    __global float *loss,
+    const int size,
+    const float delta)
+{
+    int i = get_global_id(0);
+    if (i < size) {
+        float diff = pred[i] - target[i];
+        float abs_diff = fabs(diff);
+        if (abs_diff <= delta)
+            loss[i] = 0.5f * diff * diff;
+        else
+            loss[i] = delta * (abs_diff - 0.5f * delta);
+    }
+}
+
+// ----------------------------------------------------------
+// CROSS-ENTROPY LOSS
 // ----------------------------------------------------------
 __kernel void cross_entropy_loss(
     __global const float *pred,
@@ -418,59 +619,27 @@ __kernel void copy(
 }
 
 // ----------------------------------------------------------
-// SUM REDUCE (parcial): reduce array a sumas parciales
+// LABEL SMOOTHING
+// Replaces one-hot targets with smoothed targets
 // ----------------------------------------------------------
-__kernel void sum_reduce(
-    __global const float *input,
-    __global float *partial,
-    const int size)
-{
-    int gid = get_global_id(0);
-    int lid = get_local_id(0);
-    int lsize = get_local_size(0);
-    int base = gid * lsize;
-
-    __local float cache[256];
-
-    float sum = 0.0f;
-    int end = min(base + lsize, size);
-    for (int i = base + lid; i < end; i += lsize)
-        sum += input[i];
-
-    cache[lid] = sum;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    // Reducción en árbol
-    for (int s = lsize / 2; s > 0; s >>= 1) {
-        if (lid < s)
-            cache[lid] += cache[lid + s];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-
-    if (lid == 0)
-        partial[get_group_id(0)] = cache[0];
-}
-
-// ----------------------------------------------------------
-// VECTOR DOT PRODUCT (para normalización de capas)
-// ----------------------------------------------------------
-__kernel void dot_product(
-    __global const float *A,
-    __global const float *B,
-    __global float *C,
-    const int M, const int N)
+__kernel void label_smooth(
+    __global float *target,
+    const int size,
+    const int num_classes,
+    const float smoothing)
 {
     int i = get_global_id(0);
-    if (i >= M) return;
+    if (i >= size) return;
 
-    float sum = 0.0f;
-    for (int j = 0; j < N; j++)
-        sum += A[i * N + j] * B[i * N + j];
-    C[i] = sum;
+    int row = i / num_classes;
+    int col = i % num_classes;
+    float val = target[i];
+    // One-hot: val is 1.0 or 0.0
+    target[i] = val * (1.0f - smoothing) + smoothing / (float)num_classes;
 }
 
 // ----------------------------------------------------------
-// LAYER NORM: y = (x - mean) / sqrt(var + eps) * gamma + beta
+// LAYER NORM (kept for compatibility)
 // ----------------------------------------------------------
 __kernel void layer_norm(
     __global float *x,
@@ -485,13 +654,11 @@ __kernel void layer_norm(
 
     int base = row * cols;
 
-    // mean
     float mean = 0.0f;
     for (int i = 0; i < cols; i++)
         mean += x[base + i];
     mean /= cols;
 
-    // variance
     float var = 0.0f;
     for (int i = 0; i < cols; i++) {
         float d = x[base + i] - mean;
@@ -505,7 +672,7 @@ __kernel void layer_norm(
 }
 
 // ----------------------------------------------------------
-// DROPOUT MASK: genera máscara de Bernoulli
+// DROPOUT MASK
 // ----------------------------------------------------------
 __kernel void dropout_mask(
     __global float *mask,
@@ -525,7 +692,7 @@ __kernel void dropout_mask(
 }
 
 // ----------------------------------------------------------
-// DROPOUT APPLY: x *= mask
+// DROPOUT APPLY
 // ----------------------------------------------------------
 __kernel void dropout_apply(
     __global float *x,

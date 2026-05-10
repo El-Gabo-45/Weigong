@@ -1,6 +1,13 @@
+// ═════════════════════════════════════════════════════
+//  Game State Factory (EN/ES)
+//  createGame and resetGame - initializes/resets a full game state
+// ═════════════════════════════════════════════════════
+
 import { SIDE, BOARD_SIZE } from '../constants.js';
 import { initialLayout, boardSignature, findKings } from './board.js';
 
+// Create a fresh game state with initial board layout
+//  Crea un estado de juego nuevo con la disposición inicial del tablero
 export function createGame() {
   const state = {
     positionHistory: new Map(),
@@ -8,10 +15,7 @@ export function createGame() {
     turn: SIDE.WHITE,
     selected: null,
     legalMoves: [],
-    reserves: {
-      white: [],
-      black: [],
-    },
+    reserves: { white: [], black: [] },
     promotionRequest: null,
     status: "playing",
     message: "Partida lista.",
@@ -19,10 +23,7 @@ export function createGame() {
       white: { pressure: 0, invaded: false, attackerSide: null },
       black: { pressure: 0, invaded: false, attackerSide: null },
     },
-    palaceTaken: {
-      white: false,
-      black: false,
-    },
+    palaceTaken: { white: false, black: false },
     palaceCurse: {
       white: { active: false, turnsInPalace: 0 },
       black: { active: false, turnsInPalace: 0 },
@@ -38,19 +39,10 @@ export function createGame() {
   return state;
 }
 
+// Reset an existing state to a fresh game (for replay)
+//  Reinicia un estado existente a un juego nuevo (para repetición)
 export function resetGame(state) {
   const fresh = createGame();
   Object.assign(state, fresh);
   return state;
-}
-
-export function getBoardMeta() {
-  const RIVER_ROW = 6;
-  const PALACE_COL_START = 5;
-  const PALACE_COL_END = 7;
-  return {
-    size: BOARD_SIZE,
-    riverRows: [RIVER_ROW],
-    palaceCols: [PALACE_COL_START, PALACE_COL_END],
-  };
 }
