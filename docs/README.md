@@ -2,6 +2,8 @@
 
 Complete technical documentation for the Wéigōng project, a turn-based strategy game on a 13×13 board inspired by Xiangqi (Chinese chess), developed as a modular web application with an advanced AI engine and GPU neural network.
 
+> **[📖 Documentación en Español](./es/README.md)**
+
 ---
 
 ## Table of Contents
