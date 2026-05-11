@@ -1,41 +1,41 @@
-# Documentación de Wéigōng (圍宮)
+# Wéigōng (圍宮) Documentation
 
-Documentación técnica completa del proyecto Wéigōng, un juego de estrategia por turnos en tablero 13×13 inspirado en el Xiangqi (ajedrez chino), desarrollado como aplicación web modular con motor de IA avanzado y red neuronal GPU.
-
----
-
-## Índice General
-
-| # | Sección | Archivo | Descripción |
-|---|---------|---------|-------------|
-| 1 | [Visión General](./01-vision-general.md) | `01-vision-general.md` | Concepto, reglas del juego, tablero, piezas |
-| 2 | [Arquitectura del Proyecto](./02-arquitectura.md) | `02-arquitectura.md` | Estructura de carpetas, dependencias, stack |
-| 3 | [Motor de Reglas](./03-motor-reglas.md) | `03-motor-reglas.md` | Lógica del tablero, movimientos, jaque, empate |
-| 4 | [Sistema de Piezas](./04-sistema-piezas.md) | `04-sistema-piezas.md` | Cada pieza, movimiento, promoción, reserva |
-| 5 | [Motor de IA](./05-motor-ia.md) | `05-motor-ia.md` | Búsqueda, evaluación, hashing, memoria |
-| 6 | [Red Neuronal GPU](./06-red-neuronal.md) | `06-red-neuronal.md` | Arquitectura C++/OpenCL, entrenamiento, bridge |
-| 7 | [Servidor y API](./07-servidor-api.md) | `07-servidor-api.md` | Express, endpoints, self-play, guardado |
-| 8 | [Interfaz de Usuario](./08-interfaz-usuario.md) | `08-interfaz-usuario.md` | Gameplay, editor, timeline, herramientas dev |
-| 9 | [Sistema de Depuración](./09-sistema-depuracion.md) | `09-sistema-depuracion.md` | Debug, CLI, profiling, panel browser |
-| 10 | [Guía de Desarrollo](./10-guia-desarrollo.md) | `10-guia-desarrollo.md` | Setup, scripts, testing, linting, contribución |
+Complete technical documentation for the Wéigōng project, a turn-based strategy game on a 13×13 board inspired by Xiangqi (Chinese chess), developed as a modular web application with an advanced AI engine and GPU neural network.
 
 ---
 
-## Inicio Rápido
+## Table of Contents
+
+| # | Section | File | Description |
+|---|---------|------|-------------|
+| 1 | [Overview](./01-overview.md) | `01-overview.md` | Game concept, rules, board, pieces |
+| 2 | [Project Architecture](./02-architecture.md) | `02-architecture.md` | Folder structure, dependencies, stack |
+| 3 | [Rules Engine](./03-rules-engine.md) | `03-rules-engine.md` | Board logic, moves, check, draw |
+| 4 | [Piece System](./04-piece-system.md) | `04-piece-system.md` | Each piece, movement, promotion, reserve |
+| 5 | [AI Engine](./05-ai-engine.md) | `05-ai-engine.md` | Search, evaluation, hashing, memory |
+| 6 | [GPU Neural Network](./06-neural-network.md) | `06-neural-network.md` | C++/OpenCL architecture, training, bridge |
+| 7 | [Server & API](./07-server-api.md) | `07-server-api.md` | Express, endpoints, self-play, saving |
+| 8 | [User Interface](./08-user-interface.md) | `08-user-interface.md` | Gameplay, editor, timeline, dev tools |
+| 9 | [Debug System](./09-debug-system.md) | `09-debug-system.md` | Debug, CLI, profiling, browser panel |
+| 10 | [Development Guide](./10-development-guide.md) | `10-development-guide.md` | Setup, scripts, testing, linting, contributing |
+
+---
+
+## Quick Start
 
 ```bash
-# Clonar el repositorio
+# Clone the repository
 git clone https://github.com/El-Gabo-45/Weigong.git
 cd Weigong
 
-# Instalar dependencias
+# Install dependencies
 npm install
 
-# Iniciar el servidor de desarrollo
+# Start the development server
 npm start
-# Abre http://localhost:3000 en tu navegador
+# Open http://localhost:3000 in your browser
 
-# Ejecutar tests
+# Run tests
 npm test
 
 # Lint
@@ -44,14 +44,14 @@ npm run lint
 
 ---
 
-## Stack Tecnológico
+## Technology Stack
 
-| Componente | Tecnología |
+| Component | Technology |
 |-----------|------------|
 | Frontend | HTML5, CSS3, JavaScript (ES Modules) |
 | Backend | Node.js + Express 5 |
-| IA | Minimax con Alpha-Beta, IDS, Aspiration Windows |
-| Red Neuronal | C++ / OpenCL (GPU) |
+| AI | Minimax with Alpha-Beta, IDS, Aspiration Windows |
+| Neural Network | C++ / OpenCL (GPU) |
 | Testing | Jest 30 |
 | Linting | ESLint 10 + Prettier |
-| Compresión | pako (gzip) |
+| Compression | pako (gzip) |
