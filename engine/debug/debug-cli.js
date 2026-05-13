@@ -200,8 +200,8 @@ async function cmdBench(args) {
     const moves = getAllLegalMoves(cur, cur.turn);
     if (!moves.length) break;
     const m = moves[Math.floor(Math.random() * moves.length)];
-    // Shallow clone for bench
-    // ES: Shallow clone for bench
+  // Shallow clone for benchmark
+  // ES: Clon superficial para benchmark
     const next = JSON.parse(JSON.stringify({ board: cur.board, turn: cur.turn,
       reserves: cur.reserves, palaceTaken: cur.palaceTaken, palaceTimers: cur.palaceTimers,
       palaceCurse: cur.palaceCurse, lastMove: cur.lastMove, status: cur.status,
@@ -411,7 +411,7 @@ async function cmdNNPredict() {
     }
 
     // Run 3 times for consistency check
-    // ES: Run 3 times for consistency check
+    // ES: Ejecutar 3 veces para verificar consistencia
     const runs = [];
     for (let i = 0; i < 3; i++) {
       const t0    = performance.now();

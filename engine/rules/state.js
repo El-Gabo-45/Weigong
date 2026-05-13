@@ -6,7 +6,7 @@ export function isPalaceCursedFor(state, side) {
 }
 
 // Returns the piece symbols of enemy pieces currently inside the palace
-// ES: Returns the piece symbols of enemy pieces currently inside the palace
+// ES: Devuelve los símbolos de piezas enemigas actualmente dentro del palacio
 export function getPalaceInvaders(state, side) {
   if (!state.board) return [];
   const enemy = opponent(side);
@@ -27,7 +27,7 @@ export function updatePalaceState(state) {
     state.palaceCurse = { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } };
   }
   // Reset justActivated flags at start of each call (new turn)
-  // ES: Reset justActivated flags at start of each call (new turn)
+  // ES: Reinicia banderas justActivated al inicio de cada llamada (nuevo turno)
   state.palaceCurse.white.justActivated = false;
   state.palaceCurse.black.justActivated = false;
   state.palaceCurse.white.curseActivators = null;
@@ -52,14 +52,14 @@ export function updatePalaceState(state) {
       if (state.palaceTimers[side].pressure >= 3) state.palaceTaken[side] = true;
       state.palaceCurse[side].turnsInPalace += 1;
       // Check if curse JUST became active this turn
-      // ES: Check if curse JUST became active this turn
+      // ES: Verifica si la maldición ACABA de activarse este turno
       const wasActive = state.palaceCurse[side].active;
       if (state.palaceCurse[side].turnsInPalace >= 3) {
         state.palaceCurse[side].active = true;
         if (!wasActive) {
           state.palaceCurse[side].justActivated = true;
           // Store which enemy pieces are in the palace as the activators
-          // ES: Store which enemy pieces are in the palace as the activators
+          // ES: Almacena qué piezas enemigas están en el palacio como activadoras
           const invaderInfo = enemyInPalace.map(({ r, c, p }) => ({
             type: p.type, r, c, promoted: p.promoted ?? false
           }));

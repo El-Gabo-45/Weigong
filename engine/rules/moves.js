@@ -205,13 +205,13 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
 
     if (kind === "crossbow") {
       // River-skip with blocking/capture:
-      // ES: River-skip with blocking/capture:
+      // ES: Salto de río con bloqueo/captura:
       // - if the adjacent destination is the river row:
-      // ES: - if the adjacent destination is the river row:
+      // ES: - si el destino adyacente es la fila del río:
       //   - if occupied: can capture it (if enemy) and cannot go beyond
-      // ES: - if occupied: can capture it (if enemy) and cannot go beyond
+      // ES: - si está ocupado: puede capturar (si es enemigo) y no puede ir más allá
       //   - if empty: may go one more square in same direction (and capture there)
-      // ES: - if empty: may go one more square in same direction (and capture there)
+      // ES: - si está vacío: puede ir una casilla más en la misma dirección (y capturar allí)
       const pushWithRiverRule = (dr, dc) => {
         const step1r = r + dr;
         const step1c = c + dc;
@@ -219,10 +219,10 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
         if (isRiverSquare(step1r)) {
           const mid = board[step1r][step1c];
           // No piece can ever end on the river: if blocked, stop.
-          // ES: No piece can ever end on the river: if blocked, stop.
+          // ES: Ninguna pieza puede terminar en el río: si está bloqueado, detenerse.
           if (mid) return;
           // Jump over the river: advance row again, keep same column offset (no double-dc).
-          // ES: Jump over the river: advance row again, keep same column offset (no double-dc).
+          // ES: Saltar el río: avanzar fila de nuevo, mantener el mismo desplazamiento de columna.
           const step2r = step1r + dr;
           const step2c = step1c;
           if (!inBounds(step2r, step2c)) return;
@@ -235,11 +235,11 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
       };
       
       // Movement: One square forward
-      // ES: Movement: One square forward
+      // ES: Movimiento: una casilla hacia adelante
       pushWithRiverRule(f, 0);
 
       // Movement: One square in all diagonals
-      // ES: Movement: One square in all diagonals
+      // ES: Movimiento: una casilla en todas las diagonales
       for (const [dr, dc] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
         pushWithRiverRule(dr, dc);
       }
@@ -278,7 +278,7 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
       }
     } else if (kind === "pawn") {
       // Promoted pawn (now crossbow) moves
-      // ES: Promoted pawn (now crossbow) moves
+      // ES: Peón promocionado (ahora ballesta) movimientos
       const pushWithRiverRule = (dr, dc) => {
         const step1r = r + dr;
         const step1c = c + dc;
@@ -298,11 +298,11 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
       };
       
       // Movement: One square forward
-      // ES: Movement: One square forward
+      // ES: Movimiento: una casilla hacia adelante
       pushWithRiverRule(f, 0);
 
       // Movement: One square in all diagonals
-      // ES: Movement: One square in all diagonals
+      // ES: Movimiento: una casilla en todas las diagonales
       for (const [dr, dc] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
         pushWithRiverRule(dr, dc);
       }
@@ -325,11 +325,11 @@ export function getLegalMovesForSquare(state, r, c) {
   }
 
   // River squares are "dead": no piece may ever end a move on the river row.
-  // ES: River squares are "dead": no piece may ever end a move on the river row.
+  // ES: Las casillas del río están "muertas": ninguna pieza puede terminar un movimiento en la fila del río.
   moves = moves.filter(m => !isRiverSquare(m.r));
 
   // Crossbow now can cross the river (no restrictions for crossbow)
-  // ES: Crossbow now can cross the river (no restrictions for crossbow)
+  // ES: La ballesta ahora puede cruzar el río (sin restricciones para ballesta)
   moves = moves.filter(m => {
     const target = board[m.r][m.c];
     if (target && target.side === piece.side) return false;

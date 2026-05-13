@@ -87,7 +87,8 @@ function givesCheck(state, move) {
   return inCheck;
 }
 
-// ── Cuenta cuántas veces aparece hash en history ──────────────────────────────
+// Counts how many times hash appears in history
+// ES: Cuenta cuántas veces aparece hash en el historial
 function countRepetitions(history, hash) {
   let seen = 0;
   for (const h of history) if (h === hash) seen++;
@@ -136,11 +137,12 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
                        staticEval = null, isNullMove = false) {
   if (now() > deadline) throw new SearchTimeout();
 
-  // ── Detección de repetición dentro de la búsqueda ────────────────────────
-  // Si esta posición ya apareció en el historial de la búsqueda actual,
-  // devolver un score de empate ajustado por contempt.
-  // ES: devolver un score de empate ajustado por contempt.
-  // El bot solo acepta el empate si está perdiendo; si está ganando, lo rechaza.
+  // Repetition detection inside search
+  // ES: Detección de repetición dentro de la búsqueda
+  // If this position already appeared in the current search history,
+  // return a draw score adjusted by contempt.
+  // The bot only accepts the draw if losing; if winning, it rejects it.
+  // ES: El bot solo acepta el empate si está perdiendo; si está ganando, lo rechaza.
   if (state.history?.length >= 2) {
     const reps = countRepetitions(state.history, hash);
     if (reps >= 2) {
@@ -151,9 +153,9 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       return contempt;
     }
     if (reps === 1) {
-      // Segunda vez que aparece — penalizar en la evaluación estática
-      // para que el bot busque alternativas antes de llegar a la tercera
-      // ES: para que el bot busque alternativas antes de llegar a la tercera
+      // Second time it appears — penalize in static evaluation
+      // so the bot looks for alternatives before reaching a third
+      // ES: Segunda vez que aparece — penalizar en la evaluación estática para que el bot busque alternativas
       if (staticEval === null) staticEval = evaluate(state, hash).score;
       const sign = state.turn === SIDE.BLACK ? 1 : -1;
       staticEval -= sign * 600;
@@ -180,7 +182,8 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   const inCheck    = isKingInCheck(state, state.turn);
   if (staticEval === null) staticEval = evaluate(state, hash).score;
 
-  // ── Razoring ─────────────────────────────────────────────────────────────
+  // Razoring
+  // ES: Razoring (poda por evaluación reducida)
   if (!inCheck && depth <= 2) {
     const razorMargin = depth === 1 ? 250 : 450;
     if (maximizing && staticEval + razorMargin <= alpha)
@@ -202,7 +205,8 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   const hasDrops    = state.reserves[state.turn].length > 0;
   const curseActive = state.palaceCurse?.[state.turn]?.active;
 
-  // ── Null move ─────────────────────────────────────────────────────────────
+  // Null move pruning
+  // ES: Poda de movimiento nulo
   if (!isNullMove && depth >= 3 && !inCheck && !hasDrops && !curseActive
       && countMaterial(state.board) > 4) {
     const enemyAttackMap = buildAttackMap(state.board, opponent(state.turn)).attackMap;
@@ -237,7 +241,8 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     .sort((a, b) => b.score - a.score)
     .map(o => o.move);
 
-  // ── ProbCut ───────────────────────────────────────────────────────────────
+  // ProbCut
+  // ES: ProbCut (poda probabilística)
   if (depth >= 3 && !inCheck && Math.abs(beta) < MATE_SCORE / 2) {
     const probDepth  = depth - 4;
     const probMargin = 150;
@@ -500,22 +505,27 @@ function moveOrderScore(state, move, depth) {
   const mk = moveKey(move, move.promotion);
   score -= adaptiveMemory.getMovepenalty(mk);
 
-  // ── Penalización de repetición ────────────────────────────────────────────
-  // Calcula el hash futuro tras este movimiento y lo compara con el historial.
+  // Repetition penalty
+  // ES: Penalización de repetición
+  // Calculates future hash after this move and compares with history.
   // ES: Calcula el hash futuro tras este movimiento y lo compara con el historial.
-  // seen=0 → posición nueva       → solo penalizar si adaptiveMemory la marcó
-  // seen=1 → segunda visita       → penalizar fuerte para evitar la tercera
-  // ES: seen=1 → segunda visita       → penalizar fuerte para evitar la tercera
-  // seen≥2 → tercera visita/más   → prácticamente prohibir el movimiento
+  // seen=0 → new position → only penalize if adaptiveMemory marked it
+  // ES: seen=0 → posición nueva → solo penalizar si adaptiveMemory la marcó
+  // seen=1 → second visit → heavy penalty to avoid third
+  // ES: seen=1 → segunda visita → penalizar fuerte para evitar la tercera
+  // seen≥2 → third visit or more → practically forbid the move
+  // ES: seen≥2 → tercera visita o más → prácticamente prohibir el movimiento
   if (state.history?.length >= 2) {
     const currentHash = computeFullHash(state);
     const futureHash  = currentHash ^ ZobristTurn[0] ^ ZobristTurn[1];
     const seen        = countRepetitions(state.history, futureHash);
 
     if (seen >= 2) {
-      score -= 20000;   // tercera repetición → casi prohibido
+      score -= 20000;   // third repetition → almost forbidden
+      // ES: tercera repetición → casi prohibido
     } else if (seen === 1) {
-      score -= 4000;    // segunda repetición → fuertemente penalizado
+      score -= 4000;    // second repetition → heavily penalized
+      // ES: segunda repetición → fuertemente penalizado
     } else {
       const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
       score -= drawPen * 3;

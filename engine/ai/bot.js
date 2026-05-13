@@ -46,15 +46,15 @@ export function chooseBlackBotMove(state, options = {}) {
         }
         break;
       } catch (err) { 
-        // SearchTimeout: just use best from previous depth
-        // ES: SearchTimeout: just use best from previous depth
+        // Search timeout: use best from previous depth
+        // ES: Tiempo de búsqueda agotado: usar el mejor de la profundidad anterior
         if (best) break;
         console.error('[chooseBlackBotMove] Error en depth', depth, ':', err);
         break;
       }
     }
     // Log IDS progress at each depth (or at least every other depth)
-    // ES: Log IDS progress at each depth (or at least every other depth)
+    // ES: Registra progreso IDS en cada profundidad (o al menos cada dos)
     if (depth % 2 === 0 || depth === remainingDepth || depth === 1) {
       dbg.ai(`IDS depth=${depth}`, {
         best: best ? moveKey(best, false) : 'null',

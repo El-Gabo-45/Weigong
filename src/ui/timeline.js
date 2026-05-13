@@ -5,8 +5,8 @@ import { state, V, COLS, cloneStateForBot, cancelBotTimer, clearSelection, moveT
 
 import { render } from "./gameplay.js";
 
-// ---------- Helper para mover piezas a la reserva (igual que en core.js) ----------
-// ES: ---------- Helper para mover piezas a la reserva (igual que en core.js) ----------
+// Helper to move pieces to reserve (same as core.js)
+// ES: Helper para mover piezas a la reserva (igual que en core.js)
 function captureToReserve(st, piece, captorSide) {
   if (!piece) return;
   const type = piece.promoted ? (piece.type === "pawn" ? "crossbow" : piece.type) : piece.type;
@@ -15,7 +15,8 @@ function captureToReserve(st, piece, captorSide) {
   }
 }
 
-// ---------- Restaurar estado desde representación serializada ----------
+// Restore state from serialized representation
+// ES: Restaurar estado desde representación serializada
 function restoreStateFromSerialized(gameState, serialized) {
   const { board, turn, reserves, status, message } = serialized;
   for (let r = 0; r < BOARD_SIZE; r++) {
@@ -31,8 +32,7 @@ function restoreStateFromSerialized(gameState, serialized) {
   gameState.message = message || '';
 }
 
-// ---------- Timeline Snapshot ----------
-// ES: ---------- Timeline Snapshot ----------
+// Timeline Snapshot
 export function snapshotForTimeline() {
   const snap = cloneStateForBot(state);
   snap.selected = null;
@@ -348,14 +348,15 @@ if (moveTimeline) {
 }
 
 // ══════════════════════════════════════════
-//  EXPORT / SHARE SYSTEM
-// ES: EXPORT / SHARE SYSTEM
+//  Export / Share System
+// ES: Export / Share System
 // ══════════════════════════════════════════
 
-/* ── Helpers ── */
+// Helpers
+// ES: Helpers
 function notationText() {
   if (!V.currentGameNotation?.length) return null;
-  // Formato estilo ajedrez: "1. e4 e5  2. Nf3 Nc6 ..."
+  // Chess-style format: "1. e4 e5  2. Nf3 Nc6 ..."
   // ES: Formato estilo ajedrez: "1. e4 e5  2. Nf3 Nc6 ..."
   const lines = [];
   for (let i = 0; i < V.currentGameNotation.length; i += 2) {
@@ -368,7 +369,8 @@ function notationText() {
 }
 
 function exportJSON() {
-  // JSON compacto: solo notación + stateAfter de cada snapshot
+  // Compact JSON: notation only + stateAfter per snapshot
+  // ES: JSON compacto: solo notación + stateAfter de cada snapshot
   const snaps = V.timelineSnapshots ?? [];
   const moves = snaps.slice(1).map((s, i) => ({
     move:  i + 1,
@@ -422,7 +424,8 @@ function exportAsJSONFile() {
 }
 
 function exportAsPGN() {
-  // Pseudo-PGN adaptado (el formato real es para ajedrez, aquí lo adaptamos)
+  // Adapted pseudo-PGN (real format is for chess, adapted here)
+  // ES: Pseudo-PGN adaptado (el formato real es para ajedrez, aquí lo adaptamos)
   const date = new Date();
   const dd   = String(date.getDate()).padStart(2,'0');
   const mm   = String(date.getMonth()+1).padStart(2,'0');
@@ -529,7 +532,8 @@ async function exportAsPNG() {
   }, 'image/png');
 }
 
-/* ── Popup DOM ── */
+// Popup DOM
+// ES: Popup DOM
 function buildExportPopup() {
   if (document.getElementById('exportPopup')) return;
 
@@ -568,7 +572,7 @@ function buildExportPopup() {
 
   document.body.appendChild(overlay);
 
-  // Cerrar al hacer click fuera de la card
+  // Close when clicking outside the card
   // ES: Cerrar al hacer click fuera de la card
   overlay.addEventListener('click', e => {
     if (e.target === overlay) closeExportPopup();
@@ -589,7 +593,8 @@ function closeExportPopup() {
   document.getElementById('exportPopup')?.classList.add('hidden');
 }
 
-/* ── Navigation buttons ── */
+// Navigation buttons
+// ES: Botones de navegación
 function goToFirst() { goToPly(0); }
 function goToPrev() { goToPly(Math.max(0, V.viewPly - 1)); }
 function goToNext() { goToPly(Math.min(V.totalMoves, V.viewPly + 1)); }
@@ -605,7 +610,8 @@ if (navPrevBtn)  navPrevBtn.addEventListener('click',  goToPrev);
 if (navNextBtn)  navNextBtn.addEventListener('click',  goToNext);
 if (navLastBtn)  navLastBtn.addEventListener('click',  goToLast);
 
-/* ── Conectar botón ── */
+// Wire share button
+// ES: Conecta botón de compartir
 const shareBtn = document.getElementById('shareBtn');
 if (shareBtn) {
   shareBtn.addEventListener('click', openExportPopup);

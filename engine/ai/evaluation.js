@@ -66,23 +66,27 @@ const KING_ESCAPE_PENALTY     = 200;
 const KING_SHUFFLE_PENALTY    = 400;
 const REPEAT_PENALTY          = 1200;
 
-// Palace defense: penalización real por descuidar el propio palacio
-// PALACE_DEFENSE_BONUS  = bono total repartido entre las 9 casillas del palacio propias cubiertas
+// Palace defense: penalty for neglecting own palace
+// ES: Defensa de palacio: penalización por descuidar el propio palacio
+// PALACE_DEFENSE_BONUS  = total bonus distributed across own 9 palace squares covered
 // ES: PALACE_DEFENSE_BONUS  = bono total repartido entre las 9 casillas del palacio propias cubiertas
-// PALACE_UNDEFENDED_PEN = penalización total repartida entre casillas del palacio propias que el enemigo ataca sin defensa
+// PALACE_UNDEFENDED_PEN = total penalty distributed across own palace squares attacked by enemy with no defense
+// ES: PALACE_UNDEFENDED_PEN = penalización total repartida entre casillas del palacio propias que el enemigo ataca sin defensa
 const PALACE_DEFENSE_BONUS    = 200;
 const PALACE_UNDEFENDED_PEN   = 300;
 
-// River control: bono por controlar el río y por piezas que ya cruzaron
-// RIVER_CONTROL_BONUS  = bono total por columnas del río (fila 6) que el bando ataca
-// CROSSED_RIVER_BONUS  = bono por pieza ya en territorio enemigo (excluye rey/arquero con bonos propios)
+// River control: bonus for controlling the river and for pieces that crossed
+// ES: Control del río: bono por controlar el río y por piezas que ya cruzaron
+// RIVER_CONTROL_BONUS  = total bonus per river column (row 6) that the side attacks
+// ES: RIVER_CONTROL_BONUS  = bono total por columnas del río (fila 6) que el bando ataca
+// CROSSED_RIVER_BONUS  = bonus per piece already in enemy territory (excludes king/archer with own bonuses)
 // ES: CROSSED_RIVER_BONUS  = bono por pieza ya en territorio enemigo (excluye rey/arquero con bonos propios)
 const RIVER_CONTROL_BONUS     = 80;
 const CROSSED_RIVER_BONUS     = 120;
 
-// Casillas del palacio de cada bando
+// Palace squares for each side
 // ES: Casillas del palacio de cada bando
-// Negro: filas 0-2, cols 5-7  |  Blanco: filas 10-12, cols 5-7
+// Black: rows 0-2, cols 5-7  |  White: rows 10-12, cols 5-7
 // ES: Negro: filas 0-2, cols 5-7  |  Blanco: filas 10-12, cols 5-7
 const PALACE_ROWS_BLACK = [0, 1, 2];
 const PALACE_ROWS_WHITE = [10, 11, 12];
@@ -90,7 +94,9 @@ const PALACE_COLS       = [5, 6, 7];
 const RIVER_ROW         = 6;
 
 /**
- * Calcula el score neto de defensa del palacio propio para `side`.
+ * Calculates net palace defense score for `side`.
+ * Returns positive if well defended, negative if neglected.
+ * ES: Calcula el score neto de defensa del palacio propio para `side`.
  * Retorna positivo si bien defendido, negativo si descuidado.
  */
 function palaceDefenseScore(ownAttackMap, enemyAttackMap, side) {
@@ -110,7 +116,8 @@ function palaceDefenseScore(ownAttackMap, enemyAttackMap, side) {
 }
 
 /**
- * Calcula el bono por control del río y piezas ya cruzadas al territorio enemigo.
+ * Calculates bonus for river control and pieces crossed to enemy territory.
+ * ES: Calcula el bono por control del río y piezas ya cruzadas al territorio enemigo.
  */
 function riverAndCrossedScore(board, side, ownAttackMap) {
   let riverCtrl = 0, crossedPieces = 0;
@@ -131,7 +138,10 @@ function riverAndCrossedScore(board, side, ownAttackMap) {
 }
 
 /**
- * Valor ponderado de la reserva de un bando.
+ * Weighted value of a side's reserve.
+ * Tower and General have high urgency — heavy pieces the opponent can
+ * drop and erase material advantages. Pawn has low urgency.
+ * ES: Valor ponderado de la reserva de un bando.
  * Torre y General tienen urgencia alta — piezas pesadas que el oponente
  * puede soltar y borrar ventajas materiales. Peón tiene urgencia baja.
  */
@@ -194,7 +204,8 @@ export function evaluate(state, hash, precomputedMaps = null) {
         score += isBlack ? ps : -ps;
         if (isBlack) blackPawnCols[c]++; else whitePawnCols[c]++;
       }
-      // ── Arquero en el banco: bono por casillas bloqueadas y tropas protegidas ──
+      // Archer on bank: bonus for blocked squares and protected troops
+      // ES: Arquero en el banco: bono por casillas bloqueadas y tropas protegidas
       if (piece.type === 'archer' && onBank(piece.side, r)) {
         const dir = piece.side === SIDE.WHITE ? 1 : -1;
         let blockedCount = 0, blocksPalace = false;
@@ -253,11 +264,11 @@ export function evaluate(state, hash, precomputedMaps = null) {
   score += Math.min(blackValuableAttacked * 8, 30);
   score -= Math.min(whiteValuableAttacked * 8, 30);
 
-  // ── Reservas: ponderadas por tipo y amenaza relativa ─────────────────────
-  // Si el bot tiene ventaja material, la reserva enemiga vale más como amenaza
-  // porque el oponente puede soltarla y borrar esa ventaja antes de que se cierre.
-  // ES: porque el oponente puede soltarla y borrar esa ventaja antes de que se cierre.
-  // threatMultiplier escala de 1.0 (equilibrio) hasta 1.8 (ventaja > 1600 pts).
+  // Reserves: weighted by type and relative threat
+  // ES: Reservas: ponderadas por tipo y amenaza relativa
+  // If the bot has material advantage, the enemy reserve is worth more as a threat
+  // because the opponent can drop it and erase that advantage before it closes.
+  // threatMultiplier scales from 1.0 (balanced) to 1.8 (advantage > 1600 pts).
   // ES: threatMultiplier escala de 1.0 (equilibrio) hasta 1.8 (ventaja > 1600 pts).
   const materialAdv = blackMaterial - whiteMaterial;
   const blackReserveVal = reserveValue(state, SIDE.BLACK);
@@ -294,12 +305,14 @@ export function evaluate(state, hash, precomputedMaps = null) {
   score += blackInvasion * 55;
   score -= whiteInvasion * 55;
 
-  // ── Palace defense ────────────────────────────────────────────────────────
+  // Palace defense
+  // ES: Defensa de palacio
   const blackPalaceDef = palaceDefenseScore(blackMap.attackMap, whiteMap.attackMap, SIDE.BLACK);
   const whitePalaceDef = palaceDefenseScore(whiteMap.attackMap, blackMap.attackMap, SIDE.WHITE);
   score += blackPalaceDef - whitePalaceDef;
 
-  // ── River control ─────────────────────────────────────────────────────────
+  // River control
+  // ES: Control del río
   const blackRiver = riverAndCrossedScore(board, SIDE.BLACK, blackMap.attackMap);
   const whiteRiver = riverAndCrossedScore(board, SIDE.WHITE, whiteMap.attackMap);
   score += blackRiver - whiteRiver;

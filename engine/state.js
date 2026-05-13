@@ -1,7 +1,8 @@
 import { BOARD_SIZE, SIDE } from "../backup/constants.js";
 import { createGame } from "./rules/index.js";
 
-// ── Copia mínima del estado para el bot State minimal coty for the bot──
+// Minimal state copy for the bot
+// ES: Copia mínima del estado para el bot
 export function cloneStateForBot(state) {
   const board = new Array(BOARD_SIZE);
   for (let r = 0; r < BOARD_SIZE; r++) board[r] = state.board[r].map(p => p ? { ...p } : null);
@@ -36,10 +37,12 @@ export function cloneStateForBot(state) {
   };
 }
 
-// ────────── Estado de la partida Game state──────────
+// Game state
+// ES: Estado de la partida
 export const state = createGame();
 
-// ─── Todas las variables mutables en un solo objeto All mutable variables───
+// All mutable variables in a single object
+// ES: Todas las variables mutables en un solo objeto
 export const V = {
   totalMoves: 0,
   currentGameNotation: [],
@@ -66,7 +69,8 @@ export const V = {
   viewPly: 0,
 };
 
-// ── Utilidades simples que solo modifican V/ simple utilities, it just modify V/ ──
+// Simple utilities that only modify V
+// ES: Utilidades simples que solo modifican V
 export function cancelBotTimer() { if (V.botTimeout) { clearTimeout(V.botTimeout); V.botTimeout = null; } V.botThinking = false; V.botToken += 1; }
 export function clearSelection() { state.selected = null; state.legalMoves = []; V.selectedReserve = null; V.pendingMove = null; V.pendingAmbush = null; }
 

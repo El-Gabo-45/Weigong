@@ -36,7 +36,7 @@ export function attackSquaresForPiece(board, piece, r, c, state) {
         if (inBounds(r, c - 1)) { const t = board[r][c - 1]; if (!t || t.side !== piece.side) add(r, c - 1); }
         if (inBounds(r, c + 1)) { const t = board[r][c + 1]; if (!t || t.side !== piece.side) add(r, c + 1); }
         // Keep pawn behavior: no backward-diagonal attacks after crossing.
-        // ES: Keep pawn behavior: no backward-diagonal attacks after crossing.
+        // ES: Mantén el comportamiento del peón: sin ataques en diagonal hacia atrás después de cruzar.
       }
       return moves;
     }
@@ -47,10 +47,10 @@ export function attackSquaresForPiece(board, piece, r, c, state) {
         if (!inBounds(step1r, step1c)) return;
         if (isRiverSquare(step1r)) {
           // No piece can ever end on the river: if blocked, do not attack beyond.
-          // ES: No piece can ever end on the river: if blocked, do not attack beyond.
+          // ES: Ninguna pieza puede terminar en el río: si está bloqueado, no atacar más allá.
           if (board[step1r][step1c]) return;
           // If empty, attack the square beyond (the actual landing square).
-          // ES: If empty, attack the square beyond (the actual landing square).
+          // ES: Si está vacío, ataca la casilla más allá (la casilla de aterrizaje real).
           add(step1r + dr, step1c);
           return;
         }
@@ -69,7 +69,7 @@ export function attackSquaresForPiece(board, piece, r, c, state) {
     else if (kind === "tower") for (const [dr,dc] of [[0,1],[0,-1],[-1,1],[1,-1]]) for (let step=1;step<BOARD_SIZE;step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)) break; add(nr,nc); if (board[nr][nc]) break; }
     else if (kind === "pawn") {
       // Promoted pawn attacks like crossbow (including river skip)
-      // ES: Promoted pawn attacks like crossbow (including river skip)
+      // ES: Peón promocionado ataca como ballesta (incluyendo salto de río)
       const addWithRiverRule = (dr, dc) => {
         const step1r = r + dr;
         const step1c = c + dc;

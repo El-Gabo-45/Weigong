@@ -437,7 +437,8 @@ app.get('/api/nn/info', async (_req, res) => {
 // ES: 🆕 ENDPOINT DEL BOT CON RED NEURONAL
 // ═══════════════════════════════════════
 
-/** Codifica un tablero para la red neuronal (misma que usas en el cliente) */
+// Encode board for neural network (same as used in client)
+// ES: Codifica un tablero para la red neuronal (misma que usas en el cliente)
 const PIECE_CHANNEL = {
   king:0, queen:1, general:2, elephant:3, priest:4, horse:5,
   cannon:6, tower:7, carriage:8, archer:9, pawn:10, crossbow:11,
@@ -458,7 +459,8 @@ function encodeBoardForNN(board) {
   return enc;
 }
 
-/** Clona el estado del juego (versión usada en el servidor) */
+// Clone game state (server version)
+// ES: Clona el estado del juego (versión usada en el servidor)
 function cloneStateForBot(state) {
   const board = new Array(13);
   for (let r = 0; r < 13; r++) {
@@ -496,7 +498,8 @@ function cloneStateForBot(state) {
   };
 }
 
-/** Resuelve emboscadas automáticamente (copia de selfplay.js) */
+// Resolve ambushes automatically (copy from selfplay.js)
+// ES: Resuelve emboscadas automáticamente (copia de selfplay.js)
 function resolveAmbushAuto(ambush, side, state) {
   if (!ambush) return;
   if (ambush.type === 'autoCaptureAll') {
@@ -520,7 +523,8 @@ function resolveAmbushAuto(ambush, side, state) {
   }
 }
 
-/** Parámetros del bot según dificultad */
+// Bot parameters by difficulty level
+// ES: Parámetros del bot según dificultad
 function getBotParams(level = 5) {
   const params = [
     { maxDepth: 5, timeLimitMs: 1500 }, { maxDepth: 6, timeLimitMs: 2000 },
