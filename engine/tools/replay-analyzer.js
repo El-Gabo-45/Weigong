@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════════════════════
 //  REPLAY ANALYZER — Replay saved games move by move
+// ES: REPLAY ANALYZER — Replay saved games move by move
 //  ES: Reproductor de partidas guardadas movimiento por movimiento
 // ══════════════════════════════════════════════════════════════
 
@@ -115,12 +116,14 @@ export class ReplayAnalyzer {
     const snapshot = moves[idx].stateAfter ?? moves[idx].boardSnapshot;
     if (snapshot) {
       // Restore board from snapshot
+      // ES: Restore board from snapshot
       if (snapshot.board) {
         for (let r = 0; r < BOARD_SIZE; r++)
           for (let c = 0; c < BOARD_SIZE; c++)
             state.board[r][c] = snapshot.board[r][c] ? { ...snapshot.board[r][c] } : null;
       } else {
         // boardSnapshot format: array of { t, promoted } or null
+        // ES: boardSnapshot format: array of { t, promoted } or null
         for (let r = 0; r < BOARD_SIZE; r++) {
           for (let c = 0; c < BOARD_SIZE; c++) {
             const s = snapshot[r * BOARD_SIZE + c];

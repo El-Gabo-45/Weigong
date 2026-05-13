@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════════════════════
 //  NN INSPECTOR — Inspect neural network model & predictions
+// ES: NN INSPECTOR — Inspect neural network model & predictions
 //  ES: Inspector de red neuronal - modelo y predicciones
 // ══════════════════════════════════════════════════════════════
 
@@ -58,10 +59,12 @@ export class NNInspector {
     const statusEl = this.pane.querySelector('#nn-status');
 
     // Show encoding stats
+    // ES: Show encoding stats
     const nonZero = Array.from(enc).filter(v => v > 0).length;
     el.textContent = `Board encoding: ${enc.length} floats (${nonZero} non-zero)`;
 
     // Try to call the server NN endpoint
+    // ES: Try to call the server NN endpoint
     statusEl.textContent = 'Predicting…';
     resultEl.innerHTML = '<span style="color:#3a4560">Waiting for server…</span>';
 

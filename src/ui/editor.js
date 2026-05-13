@@ -1,7 +1,8 @@
 // ═════════════════════════════════════════════════════
 //  Board Editor (EN/ES)
+// ES: Board Editor (EN/ES)
 //  Free-edit mode: place/remove/move pieces anywhere
-//  Modo edición libre: colocar/quitar/mover piezas en cualquier lugar
+// Modo edición libre: colocar/quitar/mover piezas en cualquier lugar
 // ═════════════════════════════════════════════════════
 
 import { SIDE, BOARD_SIZE, PIECE_DATA } from '../../engine/constants.js';

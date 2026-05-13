@@ -8,7 +8,9 @@ const { botParams } = workerData;
     const result = await playSelfPlayGame(botParams);
 
     // Serializar moves incluyendo _nnFloat32 para GPU training Serialyze the moves including _nnFloat32 for GPU training
+    // ES: Serializar moves incluyendo _nnFloat32 para GPU training Serialyze the moves including _nnFloat32 for GPU training
     // (transferir como Transferable para mejor performance) Transfer as Transferable for better performance
+    // ES: (transferir como Transferable para mejor performance) Transfer as Transferable for better performance
     const nnData = [];
     for (const m of result.moves) {
       if (m._nnFloat32) {
@@ -17,12 +19,14 @@ const { botParams } = workerData;
           nn: Array.from(m._nnFloat32),
         });
         // No enviar el Float32Array enorme Don't send the huge Float32Array
+        // ES: No enviar el Float32Array enorme Don't send the huge Float32Array
         delete m._nnFloat32;
         delete m.boardSnapshot;
       }
     }
 
     // Agregar los datos NN serializados al resultado para que server.js los reciba
+    // ES: Agregar los datos NN serializados al resultado para que server.js los reciba
     result._nnFloat32 = nnData;
 
     parentPort.postMessage(result);

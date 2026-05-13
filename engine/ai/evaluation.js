@@ -68,6 +68,7 @@ const REPEAT_PENALTY          = 1200;
 
 // Palace defense: penalización real por descuidar el propio palacio
 // PALACE_DEFENSE_BONUS  = bono total repartido entre las 9 casillas del palacio propias cubiertas
+// ES: PALACE_DEFENSE_BONUS  = bono total repartido entre las 9 casillas del palacio propias cubiertas
 // PALACE_UNDEFENDED_PEN = penalización total repartida entre casillas del palacio propias que el enemigo ataca sin defensa
 const PALACE_DEFENSE_BONUS    = 200;
 const PALACE_UNDEFENDED_PEN   = 300;
@@ -75,11 +76,14 @@ const PALACE_UNDEFENDED_PEN   = 300;
 // River control: bono por controlar el río y por piezas que ya cruzaron
 // RIVER_CONTROL_BONUS  = bono total por columnas del río (fila 6) que el bando ataca
 // CROSSED_RIVER_BONUS  = bono por pieza ya en territorio enemigo (excluye rey/arquero con bonos propios)
+// ES: CROSSED_RIVER_BONUS  = bono por pieza ya en territorio enemigo (excluye rey/arquero con bonos propios)
 const RIVER_CONTROL_BONUS     = 80;
 const CROSSED_RIVER_BONUS     = 120;
 
 // Casillas del palacio de cada bando
+// ES: Casillas del palacio de cada bando
 // Negro: filas 0-2, cols 5-7  |  Blanco: filas 10-12, cols 5-7
+// ES: Negro: filas 0-2, cols 5-7  |  Blanco: filas 10-12, cols 5-7
 const PALACE_ROWS_BLACK = [0, 1, 2];
 const PALACE_ROWS_WHITE = [10, 11, 12];
 const PALACE_COLS       = [5, 6, 7];
@@ -252,7 +256,9 @@ export function evaluate(state, hash, precomputedMaps = null) {
   // ── Reservas: ponderadas por tipo y amenaza relativa ─────────────────────
   // Si el bot tiene ventaja material, la reserva enemiga vale más como amenaza
   // porque el oponente puede soltarla y borrar esa ventaja antes de que se cierre.
+  // ES: porque el oponente puede soltarla y borrar esa ventaja antes de que se cierre.
   // threatMultiplier escala de 1.0 (equilibrio) hasta 1.8 (ventaja > 1600 pts).
+  // ES: threatMultiplier escala de 1.0 (equilibrio) hasta 1.8 (ventaja > 1600 pts).
   const materialAdv = blackMaterial - whiteMaterial;
   const blackReserveVal = reserveValue(state, SIDE.BLACK);
   const whiteReserveVal = reserveValue(state, SIDE.WHITE);

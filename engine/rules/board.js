@@ -1,12 +1,14 @@
 // ═════════════════════════════════════════════════════
 //  Board Utilities (EN/ES)
+// ES: Board Utilities (EN/ES)
 //  Board creation, piece factory, position hashing, cloning
+// ES: Board creation, piece factory, position hashing, cloning
 // ═════════════════════════════════════════════════════
 
 import { BOARD_SIZE, SIDE } from '../constants.js';
 
 // Factory: create a piece with unique ID
-//  Crea una pieza con ID único
+// Crea una pieza con ID único
 export function makePiece(type, side, promoted = false) {
   return { id: crypto.randomUUID(), type, side, promoted, locked: false };
 }
@@ -16,7 +18,7 @@ export function mirrorRow(row) {
 }
 
 // Initial board layout following traditional placement
-//  Disposición inicial siguiendo la colocación tradicional
+// Disposición inicial siguiendo la colocación tradicional
 export function initialLayout() {
   const board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null));
 
@@ -52,7 +54,7 @@ export function sameSide(piece, target) {
 }
 
 // Ray-clear check: no pieces between two squares on a straight/diagonal line
-//  Verifica si no hay piezas entre dos casillas en línea recta/diagonal
+// Verifica si no hay piezas entre dos casillas en línea recta/diagonal
 export function lineClear(board, r1, c1, r2, c2) {
   const dr = Math.sign(r2 - r1);
   const dc = Math.sign(c2 - c1);
@@ -67,7 +69,7 @@ export function lineClear(board, r1, c1, r2, c2) {
 }
 
 // Count pieces between two squares (used for cannon jump mechanics)
-//  Cuenta piezas entre dos casillas (para mecánica de salto del cañón)
+// Cuenta piezas entre dos casillas (para mecánica de salto del cañón)
 export function countBetween(board, r1, c1, r2, c2) {
   const dr = Math.sign(r2 - r1);
   const dc = Math.sign(c2 - c1);
@@ -83,7 +85,9 @@ export function countBetween(board, r1, c1, r2, c2) {
 }
 
 // Enumerate all squares between (r1,c1) and (r2,c2), exclusive
+// ES: Enumerate all squares between (r1,c1) and (r2,c2), exclusive
 //  Enumera todas las casillas entre dos posiciones (excluyendo extremos)
+// ES: Enumera todas las casillas entre dos posiciones (excluyendo extremos)
 export function pathSquares(r1, c1, r2, c2) {
   const out = [];
   const dr = Math.sign(r2 - r1);
@@ -112,7 +116,9 @@ export function pathIsClear(board, r1, c1, r2, c2) {
 }
 
 // Find both kings on the board (returns { white: {r,c}, black: {r,c} })
+// ES: Find both kings on the board (returns { white: {r,c}, black: {r,c} })
 //  Encuentra ambos reyes en el tablero
+// ES: Encuentra ambos reyes en el tablero
 export function findKings(board) {
   const out = {};
   for (let r = 0; r < BOARD_SIZE; r++) {
@@ -129,7 +135,7 @@ export function isEnemy(pieceA, pieceB) {
 }
 
 // Position signature string: compact board+turn+reserves encoding (for repetition detection)
-//  Firma de posición: codificación compacta tablero+turno+reservas (para detección de repetición)
+// Firma de posición: codificación compacta tablero+turno+reservas (para detección de repetición)
 export function boardSignature(state) {
   let str = "";
 
@@ -156,7 +162,7 @@ export function boardSignature(state) {
 }
 
 // Deep clone the entire game state (for search simulation)
-//  Clon profundo del estado completo del juego (para simulación en búsqueda)
+// Clon profundo del estado completo del juego (para simulación en búsqueda)
 export function cloneState(state) {
   const board = new Array(BOARD_SIZE);
   for (let r = 0; r < BOARD_SIZE; r++) {

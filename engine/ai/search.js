@@ -139,6 +139,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   // ── Detección de repetición dentro de la búsqueda ────────────────────────
   // Si esta posición ya apareció en el historial de la búsqueda actual,
   // devolver un score de empate ajustado por contempt.
+  // ES: devolver un score de empate ajustado por contempt.
   // El bot solo acepta el empate si está perdiendo; si está ganando, lo rechaza.
   if (state.history?.length >= 2) {
     const reps = countRepetitions(state.history, hash);
@@ -152,6 +153,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     if (reps === 1) {
       // Segunda vez que aparece — penalizar en la evaluación estática
       // para que el bot busque alternativas antes de llegar a la tercera
+      // ES: para que el bot busque alternativas antes de llegar a la tercera
       if (staticEval === null) staticEval = evaluate(state, hash).score;
       const sign = state.turn === SIDE.BLACK ? 1 : -1;
       staticEval -= sign * 600;
@@ -500,8 +502,10 @@ function moveOrderScore(state, move, depth) {
 
   // ── Penalización de repetición ────────────────────────────────────────────
   // Calcula el hash futuro tras este movimiento y lo compara con el historial.
+  // ES: Calcula el hash futuro tras este movimiento y lo compara con el historial.
   // seen=0 → posición nueva       → solo penalizar si adaptiveMemory la marcó
   // seen=1 → segunda visita       → penalizar fuerte para evitar la tercera
+  // ES: seen=1 → segunda visita       → penalizar fuerte para evitar la tercera
   // seen≥2 → tercera visita/más   → prácticamente prohibir el movimiento
   if (state.history?.length >= 2) {
     const currentHash = computeFullHash(state);

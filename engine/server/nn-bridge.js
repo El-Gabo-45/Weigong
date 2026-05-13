@@ -64,17 +64,19 @@ export function diagnoseGames(games) {
 // ── Construcción de targets ───────────────────────────────────────────────────
 //
 // El C++ usa Huber loss y salida tanh → targets deben estar en [-1, 1].
+// ES: El C++ usa Huber loss y salida tanh → targets deben estar en [-1, 1].
 //
 // Problema original: Math.tanh(score/1000) con scores típicos ±300-600
 // da targets en ±0.29–0.54. Con 70% empates, la red aprende a predecir ~0.
+// ES: da targets en ±0.29–0.54. Con 70% empates, la red aprende a predecir ~0.
 //
 // Solución:
 //   1. Escala más agresiva: tanh(score/300) → ±300 ya da ±0.70, ±600 da ±0.92
-//   2. Partidas decisivas: mezcla heurística + señal del resultado,
+// 2. Partidas decisivas: mezcla heurística + señal del resultado,
 //      con el resultado ganando peso hacia el final de la partida.
 //   3. Empates por límite: solo heurística muy suavizada (×0.25).
 //      Los movimientos del último 50% se descartan directamente.
-//   4. Empates reales: heurística suavizada (×0.5), sin señal de resultado.
+// 4. Empates reales: heurística suavizada (×0.5), sin señal de resultado.
 
 function buildTargets(game) {
   const finalStatus = game.finalStatus ?? 'unknown';
@@ -107,6 +109,7 @@ function buildTargets(game) {
 
     if (isDecisive) {
       // Resultado gana peso progresivamente:
+      // ES: Resultado gana peso progresivamente:
       // primer movimiento → 10% resultado, 90% heurística
       // último movimiento → 80% resultado, 20% heurística
       const resultWeight = 0.1 + 0.7 * progress;
@@ -157,6 +160,7 @@ export async function trainFromGames(options = {}) {
     }
 
     // Construir dataset
+    // ES: Construir dataset
     const allInputs = [];
     const allScores = [];
 
@@ -186,6 +190,7 @@ export async function trainFromGames(options = {}) {
     }
 
     // El binario solo acepta "inputs" y "scores" — no "weights"
+    // ES: El binario solo acepta "inputs" y "scores" — no "weights"
     const jsonData = JSON.stringify({ inputs: allInputs, scores: allScores });
 
     console.log(`🧠 Training GPU: ${allInputs.length} samples, ${epochs} epochs, batch ${batchSize}...`);
@@ -212,6 +217,7 @@ function runTrainBinary(modelPath, epochs, batchSize, jsonData) {
     proc.stderr.on('data', d => {
       stderr += d.toString();
       // Pasar stderr del C++ a la consola de Node en tiempo real
+      // ES: Pasar stderr del C++ a la consola de Node en tiempo real
       process.stderr.write(d);
     });
 
@@ -227,6 +233,7 @@ function runTrainBinary(modelPath, epochs, batchSize, jsonData) {
     proc.on('error', reject);
 
     // Escribir en chunks para evitar bloqueo con datasets grandes
+    // ES: Escribir en chunks para evitar bloqueo con datasets grandes
     const CHUNK = 64 * 1024;
     let offset = 0;
     function writeChunk() {

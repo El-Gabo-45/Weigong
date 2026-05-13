@@ -21,6 +21,12 @@
         <p class="subtitle">Single player local · two sides on the same computer</p>
         <div class="timelineBar" aria-label="Move history">
           <div id="moveTimeline" class="timeline" role="navigation" aria-label="Move notation"></div>
+          <div class="timelineNav" role="group" aria-label="Move navigation controls">
+            <button id="navFirstBtn" class="button nav-btn" title="Go to first move">⏮</button>
+            <button id="navPrevBtn" class="button nav-btn" title="Go to previous move">◀</button>
+            <button id="navNextBtn" class="button nav-btn" title="Go to next move">▶</button>
+            <button id="navLastBtn" class="button nav-btn" title="Go to last move">⏭</button>
+          </div>
           <div class="timelineActions">
             <input id="loadGameInput" type="file" accept="application/json" style="display:none;" />
             <button id="loadGameBtn" class="button secondary">Load game</button>

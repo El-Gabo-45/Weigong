@@ -2,20 +2,34 @@
 // src/debug-cli.js
 // ══════════════════════════════════════════════════════
 //  CLI de debug — IA y red neuronal
+// ES: CLI de debug — IA y red neuronal
 //
 //  node src/debug-cli.js help
+// ES: node src/debug-cli.js help
 //  node src/debug-cli.js eval
+// ES: node src/debug-cli.js eval
 //  node src/debug-cli.js search [depth] [ms]
+// ES: node src/debug-cli.js search [depth] [ms]
 //  node src/debug-cli.js bench [N]            ← NEW: benchmark evaluaciones
+// ES: node src/debug-cli.js bench [N]            ← NEW: benchmark evaluaciones
 //  node src/debug-cli.js compare [d1] [d2]    ← NEW: comparar dos profundidades
+// ES: node src/debug-cli.js compare [d1] [d2]    ← NEW: comparar dos profundidades
 //  node src/debug-cli.js watch [cmd] [args]   ← NEW: re-ejecutar al Enter
+// ES: node src/debug-cli.js watch [cmd] [args]   ← NEW: re-ejecutar al Enter
 //  node src/debug-cli.js tt [depth]
+// ES: node src/debug-cli.js tt [depth]
 //  node src/debug-cli.js nn info | predict
+// ES: node src/debug-cli.js nn info | predict
 //  node src/debug-cli.js memory stats | top [N] | blunders [N]
+// ES: node src/debug-cli.js memory stats | top [N] | blunders [N]
 //  node src/debug-cli.js game <file.json>
+// ES: node src/debug-cli.js game <file.json>
 //  node src/debug-cli.js games
+// ES: node src/debug-cli.js games
 //  node src/debug-cli.js perft [depth]
+// ES: node src/debug-cli.js perft [depth]
 //  node src/debug-cli.js selfplay [N]
+// ES: node src/debug-cli.js selfplay [N]
 // ══════════════════════════════════════════════════════
 
 import path   from 'node:path';
@@ -176,6 +190,7 @@ async function cmdBench(args) {
   const { evaluate, computeFullHash } = await loadAI();
 
   // Build N positions by playing random moves from start
+  // ES: Build N positions by playing random moves from start
   const positions = [];
   const base = createGame();
   positions.push({ state: base, hash: computeFullHash(base) });
@@ -186,6 +201,7 @@ async function cmdBench(args) {
     if (!moves.length) break;
     const m = moves[Math.floor(Math.random() * moves.length)];
     // Shallow clone for bench
+    // ES: Shallow clone for bench
     const next = JSON.parse(JSON.stringify({ board: cur.board, turn: cur.turn,
       reserves: cur.reserves, palaceTaken: cur.palaceTaken, palaceTimers: cur.palaceTimers,
       palaceCurse: cur.palaceCurse, lastMove: cur.lastMove, status: cur.status,
@@ -395,6 +411,7 @@ async function cmdNNPredict() {
     }
 
     // Run 3 times for consistency check
+    // ES: Run 3 times for consistency check
     const runs = [];
     for (let i = 0; i < 3; i++) {
       const t0    = performance.now();

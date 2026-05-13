@@ -1,10 +1,14 @@
 // tools/attack-overlay.js
 // ══════════════════════════════════════════════════════════════
 //  ATTACK OVERLAY — Visualize attacked squares, control heat,
+// ES: ATTACK OVERLAY — Visualize attacked squares, control heat,
 //  piece influence lines, and tactical threats on the live board.
+// ES: piece influence lines, and tactical threats on the live board.
 //
 //  How it works: injects a transparent SVG layer over #board.
+// ES: How it works: injects a transparent SVG layer over #board.
 //  Reads the live game state from state.js and ai/evaluation.js.
+// ES: Reads the live game state from state.js and ai/evaluation.js.
 // ══════════════════════════════════════════════════════════════
 
 import { state }           from '../state.js';
@@ -124,6 +128,7 @@ export class AttackOverlay {
 
   _cellXY(r, c) {
     // Board grid starts after coord column
+    // ES: Board grid starts after coord column
     const x = COORD_PX + c * CELL_PX + 2;
     const y = COORD_PX + r * CELL_PX + 2;
     return { x, y, w: CELL_PX - 2, h: CELL_PX - 2 };
@@ -154,6 +159,7 @@ export class AttackOverlay {
         svg.appendChild(rect);
 
         // Attack count label
+        // ES: Attack count label
         if (ba > 0 || wa > 0) {
           const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           label.setAttribute('x', x + w - 6); label.setAttribute('y', y + 14);
@@ -170,6 +176,7 @@ export class AttackOverlay {
 
   _drawPieceInfluence(svg, bm, wm) {
     // Show mobility count per piece position
+    // ES: Show mobility count per piece position
     const map = this.side === 'black' ? bm : wm;
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
@@ -204,6 +211,7 @@ export class AttackOverlay {
 
   _drawThreats(svg, bm, wm) {
     // Highlight pieces that are attacked and undefended (hanging)
+    // ES: Highlight pieces that are attacked and undefended (hanging)
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const p = state.board[r][c];
@@ -216,6 +224,7 @@ export class AttackOverlay {
         if (attacks === 0) continue;
         const { x, y, w, h } = this._cellXY(r, c);
         // Hanging = attacked & not defended or attacked more than defended
+        // ES: Hanging = attacked & not defended or attacked more than defended
         const isHanging = defends === 0 || attacks > defends;
         const col = isHanging ? 'rgba(255,118,118,.45)' : 'rgba(251,191,36,.25)';
         const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -232,6 +241,7 @@ export class AttackOverlay {
 
   _drawLines(svg, bm, wm) {
     // Draw attack lines from pieces to their targets
+    // ES: Draw attack lines from pieces to their targets
     const map = this.side === 'black' ? bm : (this.side === 'white' ? wm : null);
     const maps = map ? [{ m: map, side: this.side }] : [{ m: bm, side: 'black' }, { m: wm, side: 'white' }];
     for (const { m, side } of maps) {
@@ -244,6 +254,7 @@ export class AttackOverlay {
           const mob = m.byPiece.get(key) ?? 0;
           if (mob === 0) continue;
           // Draw lines to all attacked squares with enemy pieces
+          // ES: Draw lines to all attacked squares with enemy pieces
           for (const [k] of m.attackMap) {
             const [tr, tc] = k.split(',').map(Number);
             const target = state.board[tr]?.[tc];

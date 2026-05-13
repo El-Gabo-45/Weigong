@@ -1,7 +1,9 @@
 // tools/benchmark-suite.js
 // ══════════════════════════════════════════════════════════════
 //  BENCHMARK SUITE — NPS, nodes, branching, TT hit rate,
+// ES: BENCHMARK SUITE — NPS, nodes, branching, TT hit rate,
 //  NN latency, move ordering, eval throughput.
+// ES: NN latency, move ordering, eval throughput.
 // ══════════════════════════════════════════════════════════════
 
 import { state }                  from '../state.js';
@@ -113,6 +115,7 @@ export class BenchmarkSuite {
     this.pane.querySelector('#bk-bar').style.width = '40%';
 
     // Eval benchmark
+    // ES: Eval benchmark
     status.textContent = 'Eval benchmark…';
     const evalTimes = [], scores = [];
     for (const { s, h } of positions) {
@@ -124,6 +127,7 @@ export class BenchmarkSuite {
     this.pane.querySelector('#bk-bar').style.width = '60%';
 
     // Move gen benchmark
+    // ES: Move gen benchmark
     status.textContent = 'Move gen benchmark…';
     const moveTimes = [], moveCounts = [];
     for (const { s } of positions.slice(0, Math.min(n, 500))) {
@@ -135,6 +139,7 @@ export class BenchmarkSuite {
     this.pane.querySelector('#bk-bar').style.width = '80%';
 
     // Consistency: eval same position 3x, check variance
+    // ES: Consistency: eval same position 3x, check variance
     const basePos = positions[0];
     const repeatScores = [];
     for (let i = 0; i < 10; i++) repeatScores.push(evaluate(basePos.s, basePos.h).score);

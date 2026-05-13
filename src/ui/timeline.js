@@ -6,6 +6,7 @@ import { state, V, COLS, cloneStateForBot, cancelBotTimer, clearSelection, moveT
 import { render } from "./gameplay.js";
 
 // ---------- Helper para mover piezas a la reserva (igual que en core.js) ----------
+// ES: ---------- Helper para mover piezas a la reserva (igual que en core.js) ----------
 function captureToReserve(st, piece, captorSide) {
   if (!piece) return;
   const type = piece.promoted ? (piece.type === "pawn" ? "crossbow" : piece.type) : piece.type;
@@ -31,6 +32,7 @@ function restoreStateFromSerialized(gameState, serialized) {
 }
 
 // ---------- Timeline Snapshot ----------
+// ES: ---------- Timeline Snapshot ----------
 export function snapshotForTimeline() {
   const snap = cloneStateForBot(state);
   snap.selected = null;
@@ -145,6 +147,7 @@ export function markLastNotationForCurrentState() {
   const end = terminalSuffixForStatus(state.status, state.message);
   if (end && !note.endsWith(end)) {
     // Insert status suffix before any existing & suffix (palace curse notation)
+    // ES: Insert status suffix before any existing & suffix (palace curse notation)
     const idx = note.indexOf('&');
     if (idx >= 0 && !note.includes(end)) {
       note = note.slice(0, idx) + end + note.slice(idx);
@@ -156,6 +159,7 @@ export function markLastNotationForCurrentState() {
     try {
       if (isKingInCheck(state, state.turn)) {
         // Insert % before any existing & suffix (palace curse notation)
+        // ES: Insert % before any existing & suffix (palace curse notation)
         const idx = note.indexOf('&');
         if (idx >= 0 && !note.includes('%')) {
           note = note.slice(0, idx) + '%' + note.slice(idx);
@@ -246,6 +250,7 @@ if (loadGameBtn && loadGameInput) {
           }
           V.viewPly = V.totalMoves;
           // Trim notation to match actually loaded moves-only
+          // ES: Trim notation to match actually loaded moves-only
           V.currentGameNotation.length = V.totalMoves;
           goToPly(V.totalMoves);
         } else {
@@ -315,6 +320,7 @@ if (loadGameBtn && loadGameInput) {
             if (state.status !== "playing") break;
           }
           // Trim notation to match actually loaded moves-only
+          // ES: Trim notation to match actually loaded moves-only
           V.currentGameNotation.length = V.totalMoves;
           goToPly(V.totalMoves);
         }
@@ -343,12 +349,14 @@ if (moveTimeline) {
 
 // ══════════════════════════════════════════
 //  EXPORT / SHARE SYSTEM
+// ES: EXPORT / SHARE SYSTEM
 // ══════════════════════════════════════════
 
 /* ── Helpers ── */
 function notationText() {
   if (!V.currentGameNotation?.length) return null;
   // Formato estilo ajedrez: "1. e4 e5  2. Nf3 Nc6 ..."
+  // ES: Formato estilo ajedrez: "1. e4 e5  2. Nf3 Nc6 ..."
   const lines = [];
   for (let i = 0; i < V.currentGameNotation.length; i += 2) {
     const num  = Math.floor(i / 2) + 1;
@@ -459,15 +467,18 @@ async function exportAsPNG() {
   ctx.scale(2, 2);
 
   // Fondo
+  // ES: Fondo
   ctx.fillStyle = '#13171f';
   ctx.fillRect(0, 0, W, H);
 
   // Borde sutil
+  // ES: Borde sutil
   ctx.strokeStyle = '#2d3442';
   ctx.lineWidth = 1;
   ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
 
   // Header
+  // ES: Header
   ctx.fillStyle = '#f3f6fb';
   ctx.font = 'bold 18px monospace';
   ctx.fillText('13×13 Game', PAD, PAD + 20);
@@ -482,6 +493,7 @@ async function exportAsPNG() {
   ctx.beginPath(); ctx.moveTo(PAD, HEADER_H - 10); ctx.lineTo(W - PAD, HEADER_H - 10); ctx.stroke();
 
   // Movimientos en dos columnas
+  // ES: Movimientos en dos columnas
   ctx.font = '12px monospace';
   for (let i = 0; i < nota.length; i += 2) {
     const pair = Math.floor(i / 2);
@@ -494,10 +506,12 @@ async function exportAsPNG() {
     ctx.fillText(`${pair + 1}.`, x, y);
 
     // Blanca
+    // ES: Blanca
     ctx.fillStyle = '#e2e8f0';
     ctx.fillText(nota[i] ?? '', x + 34, y);
 
     // Negra
+    // ES: Negra
     if (nota[i + 1]) {
       ctx.fillStyle = '#aab3c2';
       ctx.fillText(nota[i + 1], x + COL_W, y);
@@ -505,6 +519,7 @@ async function exportAsPNG() {
   }
 
   // Footer
+  // ES: Footer
   ctx.fillStyle = '#2d3442';
   ctx.font = '10px monospace';
   ctx.fillText('13×13 Chess Variant', PAD, H - 10);
@@ -554,6 +569,7 @@ function buildExportPopup() {
   document.body.appendChild(overlay);
 
   // Cerrar al hacer click fuera de la card
+  // ES: Cerrar al hacer click fuera de la card
   overlay.addEventListener('click', e => {
     if (e.target === overlay) closeExportPopup();
   });
@@ -572,6 +588,22 @@ function openExportPopup()  {
 function closeExportPopup() {
   document.getElementById('exportPopup')?.classList.add('hidden');
 }
+
+/* ── Navigation buttons ── */
+function goToFirst() { goToPly(0); }
+function goToPrev() { goToPly(Math.max(0, V.viewPly - 1)); }
+function goToNext() { goToPly(Math.min(V.totalMoves, V.viewPly + 1)); }
+function goToLast() { goToPly(V.totalMoves); }
+
+const navFirstBtn = document.getElementById('navFirstBtn');
+const navPrevBtn  = document.getElementById('navPrevBtn');
+const navNextBtn  = document.getElementById('navNextBtn');
+const navLastBtn  = document.getElementById('navLastBtn');
+
+if (navFirstBtn) navFirstBtn.addEventListener('click', goToFirst);
+if (navPrevBtn)  navPrevBtn.addEventListener('click',  goToPrev);
+if (navNextBtn)  navNextBtn.addEventListener('click',  goToNext);
+if (navLastBtn)  navLastBtn.addEventListener('click',  goToLast);
 
 /* ── Conectar botón ── */
 const shareBtn = document.getElementById('shareBtn');

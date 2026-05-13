@@ -1,5 +1,6 @@
 // ═════════════════════════════════════════════════════
 //  Game Constants & Utilities (EN/ES)
+// ES: Game Constants & Utilities (EN/ES)
 // ═════════════════════════════════════════════════════
 
 export const BOARD_SIZE = 13;
@@ -13,6 +14,7 @@ export const SIDE = {
 };
 
 // Piece metadata: kanji symbol, promoted variant, and if it goes to reserve on capture
+// ES: Piece metadata: kanji symbol, promoted variant, and if it goes to reserve on capture
 export const PIECE_DATA = {
   king:      { kanji: "王", promoted: null, reusable: false },
   queen:     { kanji: "后", promoted: null, reusable: false },
@@ -38,6 +40,7 @@ export function inBounds(r, c) { return r >= 0 && r < BOARD_SIZE && c >= 0 && c 
 export function isRiverSquare(r) { return r === RIVER_ROW; }
 
 // Palace zones: black at top (rows 0-2), white at bottom (rows 10-12)
+// ES: Palace zones: black at top (rows 0-2), white at bottom (rows 10-12)
 export function isPalaceSquare(r, c, side) {
   if (c < PALACE_COL_START || c > PALACE_COL_END) return false;
   if (side === SIDE.BLACK) return r >= 0 && r <= 2;
@@ -45,21 +48,25 @@ export function isPalaceSquare(r, c, side) {
 }
 
 // Own side: black above river (r<6), white below (r>6)
+// ES: Own side: black above river (r<6), white below (r>6)
 export function isOwnSide(side, r) {
   return side === SIDE.BLACK ? r < RIVER_ROW : r > RIVER_ROW;
 }
 
 // Forward direction: black advances downward (+1), white upward (-1)
+// ES: Forward direction: black advances downward (+1), white upward (-1)
 export function forwardDir(side) {
   return side === SIDE.BLACK ? 1 : -1;
 }
 
 // Promotion zone: last 3 rows of enemy territory
+// ES: Promotion zone: last 3 rows of enemy territory
 export function homePromotionZone(side, r) {
   return side === SIDE.BLACK ? r >= 10 : r <= 2;
 }
 
 // Bank row: the row just before the river (archer placement zone)
+// ES: Bank row: the row just before the river (archer placement zone)
 export function bankRow(side) {
   return side === SIDE.BLACK ? RIVER_ROW - 1 : RIVER_ROW + 1;
 }

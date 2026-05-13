@@ -104,6 +104,38 @@ h1 {
   background: rgba(138, 180, 255, .12);
 }
 
+.timelineNav {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.nav-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.08);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.nav-btn:hover {
+  background: rgba(255,255,255,.14);
+  transform: scale(1.05);
+}
+
+.nav-btn:active {
+  transform: scale(0.95);
+}
+
 .timelineActions {
   display: flex;
   gap: 10px;

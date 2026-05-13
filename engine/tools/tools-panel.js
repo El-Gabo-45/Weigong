@@ -1,8 +1,11 @@
 // tools/tools-panel.js
 // ══════════════════════════════════════════════════════════════
 //  TOOLS PANEL — Floating debug shell for all analysis tools
+// ES: TOOLS PANEL — Floating debug shell for all analysis tools
 //  Usage: import './tools/tools-panel.js' in main.js (dev only)
+// ES: Usage: import './tools/tools-panel.js' in main.js (dev only)
 //  Or:    ?tools in URL to auto-open
+// ES: Or:    ?tools in URL to auto-open
 // ══════════════════════════════════════════════════════════════
 
 import { AttackOverlay }      from './attack-overlay.js';
@@ -238,6 +241,7 @@ function buildPanel() {
     body.appendChild(pane);
 
     // Lazy-init each tool when its tab is first shown
+    // ES: Lazy-init each tool when its tab is first shown
     if (tab.id === _activeTab) initTool(tab);
   }
 
@@ -246,6 +250,7 @@ function buildPanel() {
   _panel = panel;
 
   // Resize handle (drag bar)
+  // ES: Resize handle (drag bar)
   let dragging = false, startY = 0, startH = 0;
   drag.addEventListener('mousedown', e => {
     dragging = true;
@@ -301,17 +306,20 @@ export function togglePanel() {
 }
 
 // Keyboard shortcut: Ctrl+Shift+T
+// ES: Keyboard shortcut: Ctrl+Shift+T
 document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.shiftKey && e.key === 'T') { e.preventDefault(); togglePanel(); }
 });
 
 // Auto-open on ?tools
+// ES: Auto-open on ?tools
 if (new URLSearchParams(location.search).has('tools')) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showPanel);
   else showPanel();
 }
 
 // Floating toggle button (always visible in dev)
+// ES: Floating toggle button (always visible in dev)
 function addToggleButton() {
   const btn = document.createElement('button');
   btn.id = 'dtToggleBtn';

@@ -1,13 +1,15 @@
 // ═════════════════════════════════════════════════════
 //  Game State Factory (EN/ES)
+// ES: Game State Factory (EN/ES)
 //  createGame and resetGame - initializes/resets a full game state
+// ES: createGame and resetGame - initializes/resets a full game state
 // ═════════════════════════════════════════════════════
 
 import { SIDE, BOARD_SIZE } from '../constants.js';
 import { initialLayout, boardSignature, findKings } from './board.js';
 
 // Create a fresh game state with initial board layout
-//  Crea un estado de juego nuevo con la disposición inicial del tablero
+// Crea un estado de juego nuevo con la disposición inicial del tablero
 export function createGame() {
   const state = {
     positionHistory: new Map(),
@@ -40,7 +42,7 @@ export function createGame() {
 }
 
 // Reset an existing state to a fresh game (for replay)
-//  Reinicia un estado existente a un juego nuevo (para repetición)
+// Reinicia un estado existente a un juego nuevo (para repetición)
 export function resetGame(state) {
   const fresh = createGame();
   Object.assign(state, fresh);

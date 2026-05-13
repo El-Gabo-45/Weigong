@@ -1,6 +1,8 @@
 // ═════════════════════════════════════════════════════
 //  Core Game Engine (EN/ES)
+// ES: Core Game Engine (EN/ES)
 //  applyMove, getAllLegalMoves, drop system, checkmate/stalemate detection
+// ES: applyMove, getAllLegalMoves, drop system, checkmate/stalemate detection
 // ═════════════════════════════════════════════════════
 
 import { BOARD_SIZE, SIDE, opponent, isPalaceSquare, onBank, forwardDir, homePromotionZone, canDropOnSide, isPromotableType, isReserveType, pieceLabel, isRiverSquare } from "../constants.js";
@@ -44,7 +46,7 @@ function buildStatusMessage(state) {
 }
 
 // Apply a move to the game state. Handles: drops, captures, promotion, ambush, palace curse.
-//  Aplica un movimiento al estado del juego. Maneja drops, capturas, promoción, emboscada, maldición de palacio.
+// Aplica un movimiento al estado del juego. Maneja drops, capturas, promoción, emboscada, maldición de palacio.
 export function applyMove(state, action) {
   if (!(state.positionHistory instanceof Map)) {
     state.positionHistory = new Map(Object.entries(state.positionHistory || {}));
@@ -82,6 +84,7 @@ export function applyMove(state, action) {
   if (!silent) state.message = buildStatusMessage(state);
   const key = boardSignature(state);
   // Archer ambush trigger when landing on the bank row
+  // ES: Archer ambush trigger when landing on the bank row
   if (!silent && movingPiece.type === "archer" && onBank(movingPiece.side, to.r) && !fromReserve) {
     const ambushResult = getArcherAmbushResult(state, movingPiece, to);
     if (ambushResult) state.archerAmbush = ambushResult;
@@ -93,7 +96,9 @@ export function applyMove(state, action) {
 }
 
 // Palace mate: king trapped inside own palace with no escape
+// ES: Palace mate: king trapped inside own palace with no escape
 //  Mate de palacio: rey atrapado dentro sin escape posible
+// ES: Mate de palacio: rey atrapado dentro sin escape posible
 function isInPalaceMate(state, side) {
   const kings = findKings(state.board);
   const king = kings[side];
@@ -117,7 +122,9 @@ function isInPalaceMate(state, side) {
 }
 
 // Generate all legal moves for a side (pieces + drops)
+// ES: Generate all legal moves for a side (pieces + drops)
 //  Genera todos los movimientos legales para un bando (piezas + drops)
+// ES: Genera todos los movimientos legales para un bando (piezas + drops)
 export function getAllLegalMoves(state, side) {
   const board = state.board;
   const all = [];
@@ -135,7 +142,9 @@ export function getAllLegalMoves(state, side) {
 }
 
 // Generate all legal reserve drops for a side (archer-protected squares excluded)
+// ES: Generate all legal reserve drops for a side (archer-protected squares excluded)
 //  Genera drops legales de reserva (excluye casillas protegidas por arqueros enemigos)
+// ES: Genera drops legales de reserva (excluye casillas protegidas por arqueros enemigos)
 export function getLegalReserveDrops(state, side) {
   const out = [];
   const reserve = state.reserves[side];
@@ -167,7 +176,7 @@ export function isPromotionAvailableForMove(state, from, to) {
 export function moveWouldPromote(state, from, to) { return isPromotionAvailableForMove(state, from, to); }
 
 // Check if a drop is legal: square empty, not river, own side, not archer-protected, king safe
-//  Verifica si un drop es legal: casilla vacía, no río, lado propio, no protegido por arquero, rey seguro
+// Verifica si un drop es legal: casilla vacía, no río, lado propio, no protegido por arquero, rey seguro
 export function isDropLegal(state, side, reserveIndex, to) {
   const entry = state.reserves[side][reserveIndex];
   if (!entry || state.board[to.r][to.c] || isRiverSquare(to.r)) return false;
@@ -196,7 +205,7 @@ export function executeDrop(state, reserveIndex, to) {
 }
 
 // Post-move evaluation: detect checkmate, stalemate, palace mate, 3-fold repetition
-//  Evaluación post-movimiento: detecta jaque mate, ahogado, mate de palacio, triple repetición
+// Evaluación post-movimiento: detecta jaque mate, ahogado, mate de palacio, triple repetición
 export function afterMoveEvaluation(state) {
   try {
     const side = state.turn;

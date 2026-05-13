@@ -1,11 +1,16 @@
 // tools/search-tree.js
 // ══════════════════════════════════════════════════════════════
 //  SEARCH TREE VIEWER — Hook into the bot's alpha-beta search
+// ES: SEARCH TREE VIEWER — Hook into the bot's alpha-beta search
 //  to display: PV, depth reached, score, branching factor,
+// ES: to display: PV, depth reached, score, branching factor,
 //  TT hits, pruning efficiency, and killer move summary.
+// ES: TT hits, pruning efficiency, and killer move summary.
 //
 //  Works by wrapping searchRoot and injecting trace collection.
+// ES: Works by wrapping searchRoot and injecting trace collection.
 //  Does NOT slow down production: trace only runs when panel open.
+// ES: Does NOT slow down production: trace only runs when panel open.
 // ══════════════════════════════════════════════════════════════
 
 import { state }                    from '../state.js';
@@ -38,6 +43,7 @@ export const SearchTrace = {
 };
 
 // Try to import search internals for hooking (best-effort)
+// ES: Try to import search internals for hooking (best-effort)
 let _searchHooked = false;
 
 async function tryHookSearch() {
@@ -45,10 +51,13 @@ async function tryHookSearch() {
   try {
     const mod = await import('../ai/search.js');
     // Wrap searchRoot to intercept IDS progress
+    // ES: Wrap searchRoot to intercept IDS progress
     const orig = mod.searchRoot;
     if (orig) {
       // We cannot modify the export directly in ESM, but we can listen
+      // ES: We cannot modify the export directly in ESM, but we can listen
       // via the global window.__searchTrace hook set in search.js
+      // ES: via the global window.__searchTrace hook set in search.js
       _searchHooked = true;
     }
   } catch { /* search.js might not expose internals - use post-run stats */ }
@@ -125,11 +134,13 @@ export class SearchTreeViewer {
     const ms    = parseInt(this.pane.querySelector('#st-time').value) || 2000;
 
     // Collect IDS data via a manual IDS loop so we can observe each depth
+    // ES: Collect IDS data via a manual IDS loop so we can observe each depth
     const idsProgress = [];
     const stCopy = cloneStateForBot(state);
 
     try {
       // Import search internals
+      // ES: Import search internals
       const { searchRoot, TranspositionTable } = await import('../ai/search.js');
       const { computeFullHash }                = await import('../ai/hashing.js');
 
@@ -165,6 +176,7 @@ export class SearchTreeViewer {
       this._render(idsProgress, tt, totalMs);
     } catch (e) {
       // Fallback: run chooseBotMove and report what we can
+      // ES: Fallback: run chooseBotMove and report what we can
       const t0 = performance.now();
       const result = chooseBotMove(stCopy, { maxDepth: depth, timeLimitMs: ms });
       const elapsed = (performance.now() - t0).toFixed(0);
@@ -210,6 +222,7 @@ export class SearchTreeViewer {
     const el = this.pane.querySelector('#st-pv');
     if (!ids.length) { el.innerHTML = '<span style="color:#2d3860">—</span>'; return; }
     // Last depth's best move
+    // ES: Last depth's best move
     const last = ids[ids.length - 1];
     el.innerHTML = `
       <span class="dt-badge blue" style="margin-right:6px">depth ${last.depth}</span>
@@ -243,6 +256,7 @@ export class SearchTreeViewer {
     const el = this.pane.querySelector('#st-eff');
     if (!ids.length) { el.innerHTML = '<span style="color:#2d3860">—</span>'; return; }
     // Score stability: how much did score change between depths?
+    // ES: Score stability: how much did score change between depths?
     const deltas = ids.slice(1).map((r, i) => Math.abs(r.score - ids[i].score));
     const avgDelta = deltas.length ? (deltas.reduce((a, b) => a + b, 0) / deltas.length).toFixed(1) : '—';
     const scoreStable = parseFloat(avgDelta) < 50 ? 'good' : parseFloat(avgDelta) < 200 ? 'warn' : 'bad';
@@ -259,6 +273,7 @@ export class SearchTreeViewer {
     const el = this.pane.querySelector('#st-branch');
     if (ids.length < 2) { el.innerHTML = '<span style="color:#2d3860">Need ≥2 depths</span>'; return; }
     // Estimated branching from time ratios
+    // ES: Estimated branching from time ratios
     const bars = ids.slice(1).map((r, i) => {
       const prev = ids[i];
       const ratio = prev.ms > 0 ? (parseFloat(r.ms) / parseFloat(prev.ms)).toFixed(1) : '?';

@@ -1,8 +1,11 @@
 // tools/perft-visual.js
 // ══════════════════════════════════════════════════════════════
 //  PERFT VISUAL — Node count per depth with breakdown:
+// ES: PERFT VISUAL — Node count per depth with breakdown:
 //  captures, promotions, checks, drops, branching per ply.
+// ES: captures, promotions, checks, drops, branching per ply.
 //  Runs from current position or start position.
+// ES: Runs from current position or start position.
 // ══════════════════════════════════════════════════════════════
 
 import { state }                    from '../state.js';

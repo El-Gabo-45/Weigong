@@ -1,4 +1,5 @@
 // server.js
+// ES: server.js
 import express from 'express';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -77,6 +78,7 @@ app.post('/api/saveGame', async (req, res) => {
     let game;
 
     // Si el body ya fue parseado (por express.json), lo usamos directamente.
+    // ES: Si el body ya fue parseado (por express.json), lo usamos directamente.
     if (req.body && Object.keys(req.body).length > 0) {
       game = req.body;
     } else {
@@ -432,6 +434,7 @@ app.get('/api/nn/info', async (_req, res) => {
 
 // ═══════════════════════════════════════
 //  🆕 ENDPOINT DEL BOT CON RED NEURONAL
+// ES: 🆕 ENDPOINT DEL BOT CON RED NEURONAL
 // ═══════════════════════════════════════
 
 /** Codifica un tablero para la red neuronal (misma que usas en el cliente) */
@@ -534,10 +537,12 @@ app.post('/api/botMove', async (req, res) => {
   try {
     const { state: clientState, difficulty } = req.body;
     // Reconstruye el estado del juego a partir del JSON enviado por el cliente
+    // ES: Reconstruye el estado del juego a partir del JSON enviado por el cliente
     const state = cloneStateForBot(clientState);
     const params = getBotParams(difficulty || 5);
 
     // 1. Obtener todos los movimientos legales
+    // ES: 1. Obtener todos los movimientos legales
     const legalMoves = getAllLegalMoves(state, state.turn);
     if (legalMoves.length === 0) {
       return res.json({ move: null });
@@ -546,6 +551,7 @@ app.post('/api/botMove', async (req, res) => {
     // 2. Evaluar cada movimiento legal con heurística + red
     const evalResults = await Promise.all(legalMoves.map(async (move) => {
       // Simular el movimiento en una copia
+      // ES: Simular el movimiento en una copia
       const simState = cloneStateForBot(state);
       const simMove = { ...move, promotion: move.promotion ?? false };
 
@@ -554,6 +560,7 @@ app.post('/api/botMove', async (req, res) => {
       } else {
         applyMove(simState, simMove);
         // Resolver emboscada si aparece
+        // ES: Resolver emboscada si aparece
         if (simState.archerAmbush) {
           resolveAmbushAuto(simState.archerAmbush, state.turn, simState);
         }
@@ -564,6 +571,7 @@ app.post('/api/botMove', async (req, res) => {
       const heurScore = evaluate(simState, computeFullHash(simState)).score;
 
       // Score de la red neuronal
+      // ES: Score de la red neuronal
       const nnInput = encodeBoardForNN(simState.board);
       let nnScore = 0;
       try {

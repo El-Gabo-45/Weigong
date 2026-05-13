@@ -6,6 +6,7 @@ export function isPalaceCursedFor(state, side) {
 }
 
 // Returns the piece symbols of enemy pieces currently inside the palace
+// ES: Returns the piece symbols of enemy pieces currently inside the palace
 export function getPalaceInvaders(state, side) {
   if (!state.board) return [];
   const enemy = opponent(side);
@@ -26,6 +27,7 @@ export function updatePalaceState(state) {
     state.palaceCurse = { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } };
   }
   // Reset justActivated flags at start of each call (new turn)
+  // ES: Reset justActivated flags at start of each call (new turn)
   state.palaceCurse.white.justActivated = false;
   state.palaceCurse.black.justActivated = false;
   state.palaceCurse.white.curseActivators = null;
@@ -50,12 +52,14 @@ export function updatePalaceState(state) {
       if (state.palaceTimers[side].pressure >= 3) state.palaceTaken[side] = true;
       state.palaceCurse[side].turnsInPalace += 1;
       // Check if curse JUST became active this turn
+      // ES: Check if curse JUST became active this turn
       const wasActive = state.palaceCurse[side].active;
       if (state.palaceCurse[side].turnsInPalace >= 3) {
         state.palaceCurse[side].active = true;
         if (!wasActive) {
           state.palaceCurse[side].justActivated = true;
           // Store which enemy pieces are in the palace as the activators
+          // ES: Store which enemy pieces are in the palace as the activators
           const invaderInfo = enemyInPalace.map(({ r, c, p }) => ({
             type: p.type, r, c, promoted: p.promoted ?? false
           }));

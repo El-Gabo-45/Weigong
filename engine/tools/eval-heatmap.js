@@ -1,8 +1,11 @@
 // tools/eval-heatmap.js
 // ══════════════════════════════════════════════════════════════
 //  EVAL HEATMAP — per-square contribution to the static eval.
+// ES: EVAL HEATMAP — per-square contribution to the static eval.
 //  Shows piece value + PST bonus per square as a colored grid,
+// ES: Shows piece value + PST bonus per square as a colored grid,
 //  and a breakdown of each eval term (material, king safety, etc.)
+// ES: and a breakdown of each eval term (material, king safety, etc.)
 // ══════════════════════════════════════════════════════════════
 
 import { state }           from '../state.js';
@@ -100,6 +103,7 @@ export class EvalHeatmap {
     let html = `<div style="display:inline-block;padding:4px;background:#0b0e14;border-radius:8px">`;
 
     // Col headers
+    // ES: Col headers
     html += `<div style="display:flex;margin-left:${CELL + 2}px;margin-bottom:2px">`;
     for (let c = 0; c < BOARD_SIZE; c++)
       html += `<div style="width:${CELL}px;text-align:center;font-size:8px;color:#2d3860">${COLS_LBL[c]}</div>`;

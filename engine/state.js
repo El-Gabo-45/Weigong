@@ -74,6 +74,7 @@ console.log("BOARD_SIZE:", BOARD_SIZE);
 console.log("boardEl:", document.getElementById("board"));
 
 // Elementos del DOM
+// ES: Elementos del DOM
 export const boardEl          = document.getElementById("board");
 export const turnLabel        = document.getElementById("turnLabel");
 export const phaseLabel       = document.getElementById("phaseLabel");

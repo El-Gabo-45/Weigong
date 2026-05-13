@@ -1,13 +1,21 @@
 // src/debug.js
 // ══════════════════════════════════════════════════════
 //  PROFESSIONAL DEBUG SYSTEM
+// ES: PROFESSIONAL DEBUG SYSTEM
 //  Features:
+// ES: Features:
 //    • Zero-cost when disabled (all branches check _active)
+// ES: • Zero-cost when disabled (all branches check _active)
 //    • Persistent profiling: calls, total, avg, min, max
+// ES: • Persistent profiling: calls, total, avg, min, max
 //    • Browser panel: module toggles, text search, level filter
+// ES: • Browser panel: module toggles, text search, level filter
 //    • CLI integration via debug-cli.js
+// ES: • CLI integration via debug-cli.js
 //    • JSON export of profiling data
+// ES: • JSON export of profiling data
 //    • fn.assert(), perf.wrapAsync(), sparkline helper
+// ES: • fn.assert(), perf.wrapAsync(), sparkline helper
 // ══════════════════════════════════════════════════════
 
 const IS_NODE    = typeof process !== 'undefined' && process.versions?.node;
@@ -183,6 +191,7 @@ function _makeLogger(module) {
   };
 
   // assert: only fires (as error) when condition is falsy
+  // ES: assert: only fires (as error) when condition is falsy
   fn.assert = (condition, ...args) => {
     if (!condition) _log(module, 'error', ['ASSERT FAILED:', ...args]);
   };
@@ -273,6 +282,7 @@ dbg.perf.reset = () => {
 };
 
 // ASCII sparkline: array of numbers → '▁▂▄▆█▇▅▃'
+// ES: ASCII sparkline: array of numbers → '▁▂▄▆█▇▅▃'
 dbg.perf.sparkline = (values) => {
   if (!values?.length) return '';
   const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
@@ -316,6 +326,7 @@ export const Debug = {
     return JSON.stringify({ counts:_perfCounts, times:_perfTimes, min:_perfMin, max:_perfMax }, null, 2);
   },
   // Panel filter — usable from devtools: Debug.filterModule('search')
+  // ES: Panel filter — usable from devtools: Debug.filterModule('search')
   filterModule: (mod) => { _panelFilterModule = mod; _renderPanel(); },
   filterText:   (txt) => { _panelFilterText   = txt; _renderPanel(); },
   filterLevel:  (lvl) => { _panelFilterLevel  = lvl; _renderPanel(); },
@@ -435,6 +446,7 @@ export function createDebugPanel() {
   document.body.appendChild(panel);
 
   // Sync toggle state from _active
+  // ES: Sync toggle state from _active
   panel.querySelectorAll('.dbg-tog').forEach(btn => {
     const m = btn.dataset.mod;
     if (m === 'all' && _active.has('all')) btn.classList.add('on');
@@ -448,6 +460,7 @@ export function createDebugPanel() {
         if (_active.has(m)) { Debug.disable(m); btn.classList.remove('on'); }
         else                 { Debug.enable(m);  btn.classList.add('on');    }
         // De-sync "all" button if individual toggle
+        // ES: De-sync "all" button if individual toggle
         panel.querySelector('[data-mod="all"]')?.classList.toggle('on', _active.has('all'));
       }
       _renderPanel();

@@ -13,6 +13,7 @@ const debugParam   = new URLSearchParams(location.search).get('debug');
 const toolsParam   = new URLSearchParams(location.search).get('tools');
 
 // Debug panel auto-config
+// ES: Debug panel auto-config
 if (isDev || debugParam !== null) {
   if (debugParam && debugParam !== '') {
     Debug.enable(...debugParam.split(',').map(s => s.trim()));
@@ -66,18 +67,21 @@ try {
 // ES: Atajos de teclado globales
 document.addEventListener('keydown', e => {
   // Ctrl+Shift+E: toggle board editor / activar editor
+  // ES: Ctrl+Shift+E: toggle board editor / activar editor
   if (e.ctrlKey && e.shiftKey && e.key === 'E') {
     e.preventDefault();
     toggleEditor();
     return;
   }
   // Ctrl+Shift+T: toggle dev tools panel / activar panel de herramientas
+  // ES: Ctrl+Shift+T: toggle dev tools panel / activar panel de herramientas
   if (e.ctrlKey && e.shiftKey && e.key === 'T') {
     e.preventDefault();
     togglePanel();
     return;
   }
   // Escape: cancel selection (not in editor mode)
+  // ES: Escape: cancel selection (not in editor mode)
   if (e.key === 'Escape' && promotionModal.classList.contains('hidden') && !isEditorActive()) {
     clearSelection();
     state.message = 'Selection cancelled.';

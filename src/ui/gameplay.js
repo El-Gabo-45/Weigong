@@ -273,6 +273,7 @@ async function runBotTurn() {
   V.botThinking = true;
   try {
     // Serializa el estado (debe ser un objeto JSON puro)
+    // ES: Serializa el estado (debe ser un objeto JSON puro)
     const payload = {
       state: serializeState(state),   // <-- tienes que definir esta función
       difficulty: parseInt(difficultySelect?.value) || 5
@@ -291,6 +292,7 @@ async function runBotTurn() {
     }
 
     // Ejecutar el movimiento recibido (igual que antes pero sin recalcular la IA)
+    // ES: Ejecutar el movimiento recibido (igual que antes pero sin recalcular la IA)
     const chosen = data.move;
     const evalBefore = evaluate(state, computeFullHash(state)).score;
     let notation;

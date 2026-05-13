@@ -8,7 +8,9 @@ import { SIDE } from '../../constants.js';
 
 describe('Core engine', () => {
   // Helper: build a piece object with required properties
+  // ES: Helper: build a piece object with required properties
   // Ayudante: construye una pieza con las propiedades necesarias
+  // ES: Ayudante: construye una pieza con las propiedades necesarias
   const piece = (type, side, extra = {}) => ({
     type, side, promoted: false, locked: false,
     id: Math.random().toString(36).slice(2),
@@ -39,9 +41,11 @@ describe('Core engine', () => {
     game.board[0][0]   = piece('king', SIDE.BLACK);
 
     // Black rook delivering check
+    // ES: Black rook delivering check
     game.board[11][6] = piece('tower', SIDE.BLACK);
 
     // Surround the white king to block all escapes
+    // ES: Surround the white king to block all escapes
     game.board[11][5] = piece('pawn', SIDE.BLACK);
     game.board[11][7] = piece('pawn', SIDE.BLACK);
     game.board[12][5] = piece('pawn', SIDE.BLACK);
@@ -70,6 +74,7 @@ describe('Core engine', () => {
         game.board[r][c] = null;
 
     // White king at bottom‑left corner
+    // ES: White king at bottom‑left corner
     game.board[12][0] = piece('king', SIDE.WHITE);
 
     game.board[11][0] = piece('pawn', SIDE.BLACK);
@@ -78,6 +83,7 @@ describe('Core engine', () => {
     game.board[12][2] = piece('pawn', SIDE.BLACK);
 
     // Black king far away, impossible to give check
+    // ES: Black king far away, impossible to give check
     game.board[0][0] = piece('king', SIDE.BLACK);
 
     game.turn = SIDE.WHITE;

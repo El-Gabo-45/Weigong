@@ -47,12 +47,14 @@ export function chooseBlackBotMove(state, options = {}) {
         break;
       } catch (err) { 
         // SearchTimeout: just use best from previous depth
+        // ES: SearchTimeout: just use best from previous depth
         if (best) break;
         console.error('[chooseBlackBotMove] Error en depth', depth, ':', err);
         break;
       }
     }
     // Log IDS progress at each depth (or at least every other depth)
+    // ES: Log IDS progress at each depth (or at least every other depth)
     if (depth % 2 === 0 || depth === remainingDepth || depth === 1) {
       dbg.ai(`IDS depth=${depth}`, {
         best: best ? moveKey(best, false) : 'null',

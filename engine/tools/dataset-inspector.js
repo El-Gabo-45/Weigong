@@ -1,8 +1,11 @@
 // tools/dataset-inspector.js
 // ══════════════════════════════════════════════════════════════
 //  DATASET INSPECTOR — Open selfplay game JSON files and inspect:
+// ES: DATASET INSPECTOR — Open selfplay game JSON files and inspect:
 //  features, NN encoding, eval targets, position quality,
+// ES: features, NN encoding, eval targets, position quality,
 //  corrupt/degenerate samples, and training data stats.
+// ES: corrupt/degenerate samples, and training data stats.
 // ══════════════════════════════════════════════════════════════
 
 export class DatasetInspector {
@@ -65,6 +68,7 @@ export class DatasetInspector {
     } : { min: 0, max: 0 };
 
     // Detect issues
+    // ES: Detect issues
     const issues = [];
     if (moves.length === 0) issues.push('empty game');
     if (moves.length < 4)   issues.push('very short');
@@ -180,6 +184,7 @@ export class DatasetInspector {
     const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
     const bars = ['▁','▂','▃','▄','▅','▆','▇','█'];
     // Sample max 80 values
+    // ES: Sample max 80 values
     const step = Math.max(1, Math.floor(values.length / 80));
     return values.filter((_, i) => i % step === 0)
       .map(v => bars[Math.round(((v - min) / range) * 7)])
