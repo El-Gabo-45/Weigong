@@ -1,10 +1,10 @@
-import { state, promotionModal } from "./state.js";
+import { state, promotionModal } from "../engine/state.js";
 import { init, render } from "./ui/gameplay.js";
-import { clearSelection } from "./state.js";
-import { adaptiveMemory } from "./ai/index.js";
-import { Debug, createDebugPanel, dbg } from "./debug.js";
+import { clearSelection } from "../engine/state.js";
+import { adaptiveMemory } from "../engine/ai/index.js";
+import { Debug, createDebugPanel, dbg } from "../engine/debug/debug.js";
 import { toggleEditor, isEditorActive, ensureEditorHooks } from "./ui/editor.js";
-import { showPanel, togglePanel } from "./tools/tools-panel.js";
+import { showPanel, togglePanel } from "../engine/tools/tools-panel.js";
 
 // Detect dev environment
 // ES: Detecta entorno de desarrollo

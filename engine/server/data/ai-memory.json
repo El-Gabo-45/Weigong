@@ -1,0 +1,16 @@
+{
+  "moveScores": [],
+  "featureScores": [],
+  "blunderMoves": [],
+  "drawPositions": [],
+  "patternWeights": {
+    "centerControl": 1,
+    "pieceActivity": 1,
+    "kingSafety": 1,
+    "materialBalance": 1,
+    "pawnStructure": 1,
+    "palacePressure": 1
+  },
+  "gamesPlayed": 0,
+  "gamesWon": 0
+}

@@ -4,9 +4,9 @@
 //  Modo edición libre: colocar/quitar/mover piezas en cualquier lugar
 // ═════════════════════════════════════════════════════
 
-import { SIDE, BOARD_SIZE, PIECE_DATA } from '../constants.js';
+import { SIDE, BOARD_SIZE, PIECE_DATA } from '../../engine/constants.js';
 import { render } from './gameplay.js';
-import { state, messageBar } from '../state.js';
+import { state, messageBar } from '../../engine/state.js';
 
 const PIECE_TYPES = [
   'king', 'queen', 'general', 'elephant', 'priest', 'horse',
@@ -201,11 +201,11 @@ export function ensureEditorHooks() {
   const toolsBtn = document.getElementById('devToolsBtn');
   if (toolsBtn && !toolsBtn._hooked) {
     toolsBtn._hooked = true;
-    import('../tools/tools-panel.js').then(m => {
+    import('../../engine/tools/tools-panel.js').then(m => {
       toolsBtn.addEventListener('click', m.togglePanel);
     }).catch(() => {
       toolsBtn.addEventListener('click', () => {
-        import('../tools/tools-panel.js').then(m => m.togglePanel());
+        import('../../engine/tools/tools-panel.js').then(m => m.togglePanel());
       });
     });
   }

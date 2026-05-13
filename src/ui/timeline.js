@@ -1,8 +1,7 @@
-import { SIDE, BOARD_SIZE, isReserveType } from "../constants.js";
-import { isKingInCheck } from "../rules/check.js";
-import { applyMove, afterMoveEvaluation, executeDrop, isPromotionAvailableForMove, resetGame, executeArcherAmbush } from "../rules/index.js";
-import { state, V, COLS, cloneStateForBot, cancelBotTimer, clearSelection } from "../state.js";
-import { moveTimeline, loadGameBtn, loadGameInput, messageBar } from "../state.js";
+import { SIDE, BOARD_SIZE, isReserveType } from "../../engine/constants.js";
+import { isKingInCheck } from "../../engine/rules/check.js";
+import { applyMove, afterMoveEvaluation, executeDrop, isPromotionAvailableForMove, resetGame, executeArcherAmbush } from "../../engine/rules/index.js";
+import { state, V, COLS, cloneStateForBot, cancelBotTimer, clearSelection, moveTimeline, loadGameBtn, loadGameInput, messageBar } from "../../engine/state.js";
 
 import { render } from "./gameplay.js";
 

@@ -1,6 +1,6 @@
 # Wéigōng (圍宮) - 13x13 Strategy Game
 
-Local single-player strategy game inspired by Xiangqi. Developed as a modular web project.
+Local single-player strategy game. Developed as a modular web project.
 
 ---
 

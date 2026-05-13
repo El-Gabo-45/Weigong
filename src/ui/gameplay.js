@@ -2,18 +2,18 @@ import {
   SIDE, BOARD_SIZE, pieceLabel, pieceDisplayType, isPalaceSquare, isRiverSquare,
   homePromotionZone, opponent, isPromotableType, isReserveType, RESERVED_DROP_TYPES, onBank,
   PIECE_DATA
-} from "../constants.js";
+} from "../../engine/constants.js";
 import {
   createGame, resetGame, getPieceMoves, getAllLegalMoves, getReserveEntries,
   applyMove, executeDrop, isPromotionAvailableForMove, afterMoveEvaluation,
   getBoardMeta, getPieceText, executeArcherAmbush, isKingInCheck,
   isPalaceCursedFor, getPalaceInvaders, getLegalReserveDrops,
-} from "../rules/index.js";
+} from "../../engine/rules/index.js";
 import {
   chooseBlackBotMove, adaptiveMemory, loadAdaptiveMemory,
   evaluate, computeFullHash, extractFeatures, moveKey,
   gamePhaseFactor, queueAdaptiveMemorySave,
-} from "../ai/index.js";
+} from "../../engine/ai/index.js";
 import {
   state, V,
   cloneStateForBot,
@@ -23,7 +23,7 @@ import {
   ambushModal, ambushTitle, ambushText, ambushChoices,
   difficultySelect, aiVsAiBtn, trainBtn, messageBar, rulesSummary, moveTimeline,
   loadGameBtn, loadGameInput, COLS,
-} from "../state.js";
+} from "../../engine/state.js";
 import {
   recordTimelineSnapshot, renderTimeline, goToPly, markLastNotationForCurrentState,
   snapshotForTimeline,
@@ -378,7 +378,7 @@ export function render() {
       const tag = document.createElement("div"); tag.className = "small";
       let abbrev;
       if (piece.promoted) {
-        const promoMap = { tower: "HA", elephant: "FO", priest: "WI", horse: "ST", cannon: "AR", pawn: "BA" };
+        const promoMap = { tower: "HA", elephant: "FO", priest: "WI", horse: "ST", cannon: "AR", pawn: "CR" };
         abbrev = promoMap[piece.type] || pieceDisplayType(piece).slice(0, 2).toUpperCase();
       } else {
         abbrev = pieceDisplayType(piece).slice(0, 2).toUpperCase();
