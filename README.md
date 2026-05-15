@@ -227,6 +227,6 @@ Rey en palacio + todas las salidas bloqueadas + al menos una pieza enemiga dentr
 ### 12. Visual Identity / Identidad Visual
 
 | Side / Bando | Piece / Ficha | Reverse / Reverso |
-|---|---|---|---|
+|---|---|---|
 | White / Blanco | White / Blanca | Black + promoted kanji (red) / Negro + kanji prom. (rojo) |
 | Black / Negro | Black / Negra | White + promoted kanji (red) / Blanco + kanji prom. (rojo) |
