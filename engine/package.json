@@ -1,6 +1,6 @@
 {
-  "name": "@weigong/engine",
-  "version": "2.0.0",
+  "name": "@el-gabo-45/weigong-engine",
+  "version": "2.0.1",
   "private": false,
   "type": "module",
   "description": "Weigong 13×13 chess engine – rules, AI, server, debug tools, and utilities",
@@ -16,11 +16,27 @@
     "./server": "./server/server.js",
     "./tools": "./tools/tools-panel.js"
   },
+  "files": [
+    "ai/",
+    "rules/",
+    "debug/",
+    "tools/",
+    "server/",
+    "constants.js",
+    "state.js"
+  ],
   "keywords": ["chess", "variant", "13x13", "engine", "rules", "ai"],
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "start": "node server/server.js",
     "debug": "node debug/debug-cli.js",
     "test": "echo 'Tests are run from the root package' && exit 0"
+  },
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/El-Gabo-45/Weigong.git"
   }
 }

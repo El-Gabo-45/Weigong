@@ -1,0 +1,5 @@
+neural_network_gpu/
+engine/data/
+engine/server/data/
+engine/debug/tests/
+node_modules/

@@ -1,6 +1,6 @@
 {
-  "name": "@weigong/full",
-  "version": "2.0.0",
+  "name": "@el-gabo-45/weigong",
+  "version": "2.0.1",
   "private": false,
   "type": "module",
   "description": "13×13 variant chess game – full browser package (engine + UI + tools)",
@@ -33,13 +33,15 @@
     "styles.css",
     "src/",
     "engine/",
-    "docs/",
-    "neural_network_gpu/"
+    "docs/"
   ],
   "keywords": ["chess", "variant", "13x13", "gpu", "neural-network", "ai", "opencl"],
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "dependencies": {
-    "@weigong/engine": "*",
+    "@el-gabo-45/weigong-engine": "*",
     "express": "^5.2.1",
     "node-fetch": "^3.3.2",
     "pako": "^2.1.0"
@@ -51,5 +53,9 @@
     "globals": "^17.6.0",
     "jest": "^30.4.2",
     "prettier": "^3.8.3"
+  },
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/El-Gabo-45/Weigong.git"
   }
 }
