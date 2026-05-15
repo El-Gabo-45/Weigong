@@ -1,4 +1,4 @@
-import { BOARD_SIZE, SIDE } from "../backup/constants.js";
+import { BOARD_SIZE, SIDE } from "./constants.js";
 import { createGame } from "./rules/index.js";
 
 // Minimal state copy for the bot
