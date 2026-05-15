@@ -159,7 +159,7 @@ export async function trainFromGames(options = {}) {
       return { trained: false, samples: 0, message: 'No _nnFloat32 data. Generate new selfplay games first.', diagnosis: diag };
     }
 
-    // Construir dataset
+    // Build dataset
     // ES: Construir dataset
     const allInputs = [];
     const allScores = [];
@@ -189,7 +189,7 @@ export async function trainFromGames(options = {}) {
       console.log(`   ${labels[i]}: ${bar} ${buckets[i]}`);
     }
 
-    // El binario solo acepta "inputs" y "scores" — no "weights"
+    // The binary only accepts "inputs" and "scores" — no "weights"
     // ES: El binario solo acepta "inputs" y "scores" — no "weights"
     const jsonData = JSON.stringify({ inputs: allInputs, scores: allScores });
 
@@ -216,7 +216,7 @@ function runTrainBinary(modelPath, epochs, batchSize, jsonData) {
     proc.stdout.on('data', d => { stdout += d.toString(); });
     proc.stderr.on('data', d => {
       stderr += d.toString();
-      // Pasar stderr del C++ a la consola de Node en tiempo real
+      // Pass C++ stderr to Node console in real time
       // ES: Pasar stderr del C++ a la consola de Node en tiempo real
       process.stderr.write(d);
     });
@@ -232,7 +232,7 @@ function runTrainBinary(modelPath, epochs, batchSize, jsonData) {
 
     proc.on('error', reject);
 
-    // Escribir en chunks para evitar bloqueo con datasets grandes
+    // Write in chunks to avoid blocking with large datasets
     // ES: Escribir en chunks para evitar bloqueo con datasets grandes
     const CHUNK = 64 * 1024;
     let offset = 0;

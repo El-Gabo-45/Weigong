@@ -13,13 +13,13 @@
 #include <algorithm>
 
 // ============================================================
-// Utilidad: inicializar OpenCL
+// utility: openCl start
 // ============================================================
 static bool init_opencl(cl_device_id &device, cl_context &context,
                          cl_command_queue &queue) {
     cl_int err;
 
-    // Obtener plataformas
+    // Get platforms
     cl_uint num_platforms;
     err = clGetPlatformIDs(0, nullptr, &num_platforms);
     if (err != CL_SUCCESS || num_platforms == 0) {
@@ -46,7 +46,7 @@ static bool init_opencl(cl_device_id &device, cl_context &context,
     clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, sizeof(plat_vendor), plat_vendor, nullptr);
     printf("Platform: %s (%s)\n", plat_name, plat_vendor);
 
-    // Obtener GPU
+    // Get GPU
     err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, nullptr);
     if (err != CL_SUCCESS) {
         fprintf(stderr, "No GPU device found! Trying CPU...\n");
@@ -71,7 +71,7 @@ static bool init_opencl(cl_device_id &device, cl_context &context,
     printf("Clock   : %u MHz\n", max_clock);
     printf("VRAM    : %.1f GB\n", global_mem / (1024.0f * 1024.0f * 1024.0f));
 
-    // Crear context y queue
+    // Create context y queue
     context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &err);
     if (err != CL_SUCCESS) {
         fprintf(stderr, "Failed to create OpenCL context!\n");
@@ -95,7 +95,8 @@ void example_xor(cl_device_id device, cl_context context, cl_command_queue queue
     printf("  EJEMPLO 1: XOR (Clasificación)\n");
     printf("========================================\n\n");
 
-    // Datos XOR
+    // XOR data
+    // ES: Datos XOR
     float X[] = {
         0.0f, 0.0f,
         0.0f, 1.0f,
@@ -112,7 +113,8 @@ void example_xor(cl_device_id device, cl_context context, cl_command_queue queue
     int input_dim = 2;
     int output_dim = 1;
 
-    // Crear red: 2 -> 4 -> 1 (tanh)
+    // Create network: 2 -> 4 -> 1 (tanh)
+    // ES: Crear red: 2 -> 4 -> 1 (tanh)
     NeuralNetwork nn(device, context, queue);
     nn.add_layer(2, 4, Activation::TANH);
     nn.add_layer(4, 1, Activation::TANH);
@@ -122,7 +124,8 @@ void example_xor(cl_device_id device, cl_context context, cl_command_queue queue
 
     printf("Red: 2 -> 4 -> 1 (tanh, ADAM)\n\n");
 
-    // Entrenar
+    // Train
+    // ES: Entrenar
     auto start = std::chrono::high_resolution_clock::now();
     for (int epoch = 1; epoch <= 5000; epoch++) {
         nn.train_epoch(X, Y, n_samples, 4, false);

@@ -8,8 +8,6 @@ import { SIDE } from '../../constants.js';
 
 describe('Core engine', () => {
   // Helper: build a piece object with required properties
-  // ES: Helper: build a piece object with required properties
-  // Ayudante: construye una pieza con las propiedades necesarias
   // ES: Ayudante: construye una pieza con las propiedades necesarias
   const piece = (type, side, extra = {}) => ({
     type, side, promoted: false, locked: false,
@@ -17,7 +15,8 @@ describe('Core engine', () => {
     ...extra
   });
 
-  // ─── Movement & turn change ──────────────────────────
+  // Movement & turn change
+  // ES: Movimiento y cambio de turno
   test('applyMove changes turn and updates board', () => {
     const game = createGame();
     const moves = getAllLegalMoves(game, SIDE.WHITE);
@@ -29,7 +28,8 @@ describe('Core engine', () => {
     expect(JSON.stringify(game.board)).not.toBe(initialBoard);
   });
 
-  // ─── Checkmate detection ────────────────────────────
+  // Checkmate detection
+  // ES: Detección de jaque mate
   test('afterMoveEvaluation detects checkmate', () => {
     const game = createGame();
     for (let r = 0; r < 13; r++)
@@ -66,7 +66,8 @@ describe('Core engine', () => {
     expect(game.status).toBe('checkmate');
   });
 
-  // ─── Stalemate detection ─────────────────────────────
+  // Stalemate detection
+  // ES: Detección de ahogado
   test('afterMoveEvaluation detects stalemate', () => {
     const game = createGame();
     for (let r = 0; r < 13; r++)
@@ -96,7 +97,8 @@ describe('Core engine', () => {
     expect(game.status).toBe('stalemate');
   });
 
-  // ─── Reserve drop ────────────────────────────────────
+  // Reserve drop
+  // ES: Colocación desde reserva
   test('executeDrop places a reserve piece on a legal square', () => {
     const game = createGame();
     game.reserves.white.push({ id: 'test', type: 'tower', side: SIDE.WHITE });
@@ -107,7 +109,8 @@ describe('Core engine', () => {
     expect(game.reserves.white.length).toBe(0);
   });
 
-  // ─── Promotion availability ─────────────────────────
+  // Promotion availability
+  // ES: Disponibilidad de promoción
   test('isPromotionAvailableForMove returns true when piece reaches promotion zone', () => {
     const game = createGame();
     game.board[2][6] = { type: 'pawn', side: SIDE.WHITE, promoted: false, locked: false, id: 'p1' };
