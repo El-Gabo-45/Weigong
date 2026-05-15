@@ -183,7 +183,7 @@ Rey en palacio + todas las salidas bloqueadas + al menos una pieza enemiga dentr
 
 | Piece / Pieza | Base | Promoted / Prom. | Promoted Movement / Movimiento Promocionado |
 |---|---|---|---|
-| Pawn / Peón | 兵 | 弩 Crossbow | 4 diagonals + 1 straight / 4 diagonales + 1 recta |
+| Pawn / Peón | 兵 | 弩 | 4 diagonals + 1 straight / 4 diagonales + 1 recta |
 | Tower / Torre | 塔 | 𨐌 | Horizontal + right diagonal (/). Loses vertical / Horizontal + diagonal derecha. Pierde vertical |
 | Horse / Caballo | 馬 | 駿 | +1 all directions. L tips: +2 extra. Now jumps / +1 todas direcciones. Puntas L: +2 extra. Ahora salta |
 | Elephant / Elefante | 象 | 毅 | Gold General + 2nd square straight back / General de Oro + 2ª casilla atrás en recto |
@@ -226,7 +226,7 @@ Rey en palacio + todas las salidas bloqueadas + al menos una pieza enemiga dentr
 
 ### 12. Visual Identity / Identidad Visual
 
-| Side / Bando | Piece / Ficha | Kanji | Reverse / Reverso |
+| Side / Bando | Piece / Ficha | Reverse / Reverso |
 |---|---|---|---|
-| White / Blanco | White / Blanca | Black + promoted kanji (red) / Negro + kanji prom. (rojo) | — |
-| Black / Negro | Black / Negra | White + promoted kanji (red) / Blanco + kanji prom. (rojo) | — |
+| White / Blanco | White / Blanca | Black + promoted kanji (red) / Negro + kanji prom. (rojo) |
+| Black / Negro | Black / Negra | White + promoted kanji (red) / Blanco + kanji prom. (rojo) |
