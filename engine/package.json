@@ -1,0 +1,26 @@
+{
+  "name": "@weigong/engine",
+  "version": "2.0.0",
+  "private": false,
+  "type": "module",
+  "description": "Weigong 13×13 chess engine – rules, AI, server, debug tools, and utilities",
+  "main": "constants.js",
+  "exports": {
+    ".": "./constants.js",
+    "./rules": "./rules/index.js",
+    "./ai": "./ai/index.js",
+    "./debug": "./debug/debug.js",
+    "./debug/cli": "./debug/debug-cli.js",
+    "./state": "./state.js",
+    "./constants": "./constants.js",
+    "./server": "./server/server.js",
+    "./tools": "./tools/tools-panel.js"
+  },
+  "keywords": ["chess", "variant", "13x13", "engine", "rules", "ai"],
+  "license": "MIT",
+  "scripts": {
+    "start": "node server/server.js",
+    "debug": "node debug/debug-cli.js",
+    "test": "echo 'Tests are run from the root package' && exit 0"
+  }
+}

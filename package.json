@@ -1,13 +1,11 @@
 {
-  "name": "weigong-13x13",
+  "name": "@weigong/full",
   "version": "2.0.0",
+  "private": false,
   "type": "module",
-  "description": "13×13 variant chess game with GPU-accelerated neural network, adaptive AI, and professional debug tools",
-  "main": "src/server.js",
-  "exports": {
-    "./engine/*": "./engine/*.js",
-    "./src/*": "./src/*.js"
-  },
+  "description": "13×13 variant chess game – full browser package (engine + UI + tools)",
+  "main": "src/main.js",
+  "workspaces": ["engine"],
   "scripts": {
     "start": "node engine/server/server.js",
     "dev": "DEBUG=server,nn,selfplay node engine/server/server.js",
@@ -30,9 +28,18 @@
     "lint": "eslint src/ tests/ engine/",
     "format": "prettier --write ."
   },
+  "files": [
+    "index.html",
+    "styles.css",
+    "src/",
+    "engine/",
+    "docs/",
+    "neural_network_gpu/"
+  ],
   "keywords": ["chess", "variant", "13x13", "gpu", "neural-network", "ai", "opencl"],
   "license": "MIT",
   "dependencies": {
+    "@weigong/engine": "*",
     "express": "^5.2.1",
     "node-fetch": "^3.3.2",
     "pako": "^2.1.0"
