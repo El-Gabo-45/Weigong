@@ -77,11 +77,11 @@ Pieces are circular with:
 | King / Rey | 王 | — |
 | Queen / Dama | 后 | — |
 | General | 師 | — |
-| Elephant / Elefante | 象 | 毅 |
-| Priest / Sacerdote | 仙 | 叡 |
-| Horse / Caballo | 馬 | 駿 |
-| Cannon / Cañón | 炮 | 熕 |
-| Tower / Torre | 塔 | 𨐌 |
+| Elephant / Elefante | 象 | 毅 (Fortress/Fortaleza) |
+| Priest / Sacerdote | 仙 | 叡 (Wisdom/Sabio) |
+| Horse / Caballo | 馬 | 駿 (Steed/Corcel) |
+| Cannon / Cañón | 炮 | 熕 (Artillery) |
+| Tower / Torre | 塔 | 𨐌 (Resistant/Resistencia) |
 | Carriage / Carruaje | 輦 | — |
 | Archer / Arquero | 矢 | — |
 | Pawn / Peón | 兵 | 弩 (Crossbow/Ballesta) |
