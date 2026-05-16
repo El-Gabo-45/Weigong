@@ -5,9 +5,11 @@
 // Modo edición libre: colocar/quitar/mover piezas en cualquier lugar
 // ═════════════════════════════════════════════════════
 
-import { SIDE, BOARD_SIZE, PIECE_DATA } from '../../engine/constants.js';
+import { SIDE, BOARD_SIZE, PIECE_DATA, isRiverSquare } from '../../engine/constants.js';
 import { render } from './gameplay.js';
-import { state, messageBar } from '../../engine/state.js';
+import { state, messageBar, V } from '../../engine/state.js';
+import { clearSelection } from '../../engine/state.js';
+import { getLegalMovesForSquare } from '../../engine/rules/index.js';
 
 const PIECE_TYPES = [
   'king', 'queen', 'general', 'elephant', 'priest', 'horse',
@@ -91,8 +93,8 @@ function createEditorPanel() {
   const placeBtn = panel.querySelector('#edPlace');
   const eraseBtn = panel.querySelector('#edErase');
   placeBtn.style.borderColor = '#8ab4ff';
-  placeBtn.addEventListener('click', () => { action = 'place'; placeBtn.style.borderColor = '#8ab4ff'; eraseBtn.style.borderColor = '#1e2535'; updateStatus(); });
-  eraseBtn.addEventListener('click', () => { action = 'erase'; eraseBtn.style.borderColor = '#ff7676'; placeBtn.style.borderColor = '#1e2535'; updateStatus(); });
+  placeBtn.addEventListener('click', () => { action = 'place'; placeBtn.style.borderColor = '#8ab4ff'; eraseBtn.style.borderColor = '#1e2535'; clearSelection(); render(); updateStatus(); });
+  eraseBtn.addEventListener('click', () => { action = 'erase'; eraseBtn.style.borderColor = '#ff7676'; placeBtn.style.borderColor = '#1e2535'; clearSelection(); render(); updateStatus(); });
 
   panel.querySelector('#edTogglePromo').addEventListener('click', () => {
     pendingPromote = !pendingPromote;
@@ -104,6 +106,7 @@ function createEditorPanel() {
       for (let c = 0; c < BOARD_SIZE; c++)
         state.board[r][c] = null;
     state.reserves = { white: [], black: [] };
+    clearSelection();
     render();
     updateStatus('Board cleared');
   });
@@ -138,6 +141,7 @@ function hookBoardForEditor() {
   board.addEventListener('click', (e) => {
     if (!editorMode) return;
     e.stopPropagation();
+    e.stopImmediatePropagation();
     const cell = e.target.closest('.cell');
     if (!cell) return;
     const r = parseInt(cell.dataset.r);
@@ -145,41 +149,60 @@ function hookBoardForEditor() {
     if (isNaN(r) || isNaN(c) || r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) return;
 
     const { activeSide, activeType, action, pendingPromote } = editorPanel._getState();
+    const targetPiece = state.board[r][c];
 
     if (action === 'erase') {
-      const existing = state.board[r][c];
-      if (existing) {
-        clipboard = { type: existing.type, side: existing.side, promoted: existing.promoted ?? false };
-        editorPanel._setClipboard(clipboard);
-      }
       state.board[r][c] = null;
+      clearSelection();
       render();
       return;
     }
 
-    const existing = state.board[r][c];
-    if (existing && existing.side !== activeSide) {
-      clipboard = { type: existing.type, side: existing.side, promoted: existing.promoted ?? false };
-      editorPanel._setClipboard(clipboard);
+    if (action === 'place') {
+      // Prevent placing pieces on the river (row 6)
+      // ES: Evita colocar piezas en el río (fila 6)
+      if (isRiverSquare(r)) {
+        updateStatus('⛔ Cannot place on river');
+        return;
+      }
+      if (targetPiece && targetPiece.side !== activeSide) {
+        clipboard = { type: targetPiece.type, side: targetPiece.side, promoted: targetPiece.promoted ?? false };
+        editorPanel._setClipboard(clipboard);
+      }
+      state.board[r][c] = {
+        id: crypto.randomUUID(),
+        type: activeType,
+        side: activeSide,
+        promoted: pendingPromote,
+        locked: false,
+      };
+      clearSelection();
+      render();
+      return;
     }
-    state.board[r][c] = {
-      id: crypto.randomUUID(),
-      type: activeType,
-      side: activeSide,
-      promoted: pendingPromote,
-      locked: false,
-    };
-    render();
+
+    // Clicking a piece in Place mode shows its possible moves
+    // ES: Hacer clic en una pieza en modo Place muestra sus movimientos posibles
+    if (targetPiece) {
+      state.selected = { r, c };
+      // Use skipKingCheck: true so it works even if there's no king on the board
+      // ES: Usa skipKingCheck: true para que funcione aunque no haya rey en el tablero
+      state.legalMoves = getLegalMovesForSquare(state, r, c, { skipKingCheck: true });
+      updateStatus(`Selected ${targetPiece.type} (${targetPiece.side}) — ${state.legalMoves.length} possible moves`);
+      render();
+    }
   }, true);
 }
 
 export function toggleEditor() {
   editorMode = !editorMode;
+  V.editorActive = editorMode;
   if (!editorPanel) createEditorPanel();
   if (editorMode) {
     editorPanel.style.display = 'block';
-    messageBar.textContent = '🎨 Edit Mode: Click board to place/erase pieces';
+    messageBar.textContent = '🎨 Edit Mode: Click board to place/erase pieces. Click a piece to see its moves.';
     messageBar.classList.remove('hidden');
+    clearSelection();
     hookBoardForEditor();
   } else {
     editorPanel.style.display = 'none';
@@ -191,23 +214,18 @@ export function toggleEditor() {
 
 export function isEditorActive() { return editorMode; }
 
-// Wire HTML buttons after DOM is ready
-// ES: Conecta botones HTML cuando el DOM está listo
 export function ensureEditorHooks() {
   const editBtn = document.getElementById('editModeBtn');
   if (editBtn && !editBtn._hooked) {
     editBtn._hooked = true;
     editBtn.addEventListener('click', toggleEditor);
   }
+
   const toolsBtn = document.getElementById('devToolsBtn');
   if (toolsBtn && !toolsBtn._hooked) {
     toolsBtn._hooked = true;
     import('../../engine/tools/tools-panel.js').then(m => {
       toolsBtn.addEventListener('click', m.togglePanel);
-    }).catch(() => {
-      toolsBtn.addEventListener('click', () => {
-        import('../../engine/tools/tools-panel.js').then(m => m.togglePanel());
-      });
     });
   }
 }

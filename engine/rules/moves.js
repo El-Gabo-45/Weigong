@@ -161,7 +161,7 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
     if (kind === "tower") return rayMoves(board, piece, r, c, [[1,0],[-1,0],[0,1],[0,-1]]);
 
     if (kind === "carriage") {
-      for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]]) {
+      for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) {
         for (let step = 1; step <= (Math.abs(dr) + Math.abs(dc) === 1 ? 4 : 1); step++) {
           const nr = r + dr * step, nc = c + dc * step;
           if (!inBounds(nr, nc) || !isOwnSide(piece.side, nr)) break;
@@ -204,25 +204,13 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
     }
 
     if (kind === "crossbow") {
-      // River-skip with blocking/capture:
-      // ES: Salto de río con bloqueo/captura:
-      // - if the adjacent destination is the river row:
-      // ES: - si el destino adyacente es la fila del río:
-      //   - if occupied: can capture it (if enemy) and cannot go beyond
-      // ES: - si está ocupado: puede capturar (si es enemigo) y no puede ir más allá
-      //   - if empty: may go one more square in same direction (and capture there)
-      // ES: - si está vacío: puede ir una casilla más en la misma dirección (y capturar allí)
       const pushWithRiverRule = (dr, dc) => {
         const step1r = r + dr;
         const step1c = c + dc;
         if (!inBounds(step1r, step1c)) return;
         if (isRiverSquare(step1r)) {
           const mid = board[step1r][step1c];
-          // No piece can ever end on the river: if blocked, stop.
-          // ES: Ninguna pieza puede terminar en el río: si está bloqueado, detenerse.
           if (mid) return;
-          // Jump over the river: advance row again, keep same column offset (no double-dc).
-          // ES: Saltar el río: avanzar fila de nuevo, mantener el mismo desplazamiento de columna.
           const step2r = step1r + dr;
           const step2c = step1c;
           if (!inBounds(step2r, step2c)) return;
@@ -234,12 +222,8 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
         push(step1r, step1c);
       };
       
-      // Movement: One square forward
-      // ES: Movimiento: una casilla hacia adelante
       pushWithRiverRule(f, 0);
 
-      // Movement: One square in all diagonals
-      // ES: Movimiento: una casilla en todas las diagonales
       for (const [dr, dc] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
         pushWithRiverRule(dr, dc);
       }
@@ -247,7 +231,24 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
     }
   } else {
     if (kind === "elephant") {
-      for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1],[2,0]]) push(r + dr, c + dc);
+      const pushWithRiverRule = (dr, dc) => {
+        const step1r = r + dr;
+        const step1c = c + dc;
+        if (!inBounds(step1r, step1c)) return;
+        if (isRiverSquare(step1r)) {
+          const mid = board[step1r][step1c];
+          if (mid) return;
+          const step2r = step1r + dr;
+          const step2c = step1c;
+          if (!inBounds(step2r, step2c)) return;
+          const t = board[step2r][step2c];
+          if (t && t.side === piece.side) return;
+          moves.push({ r: step2r, c: step2c, capture: Boolean(t && t.side !== piece.side) });
+          return;
+        }
+        push(step1r, step1c);
+      };
+      for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1],[f,1],[f,-1],[2,0]]) pushWithRiverRule(dr, dc);
     } else if (kind === "horse") {
       for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { if (dr === 0 && dc === 0) continue; push(r + dr, c + dc); }
       for (const [dr, dc] of [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]) push(r + dr, c + dc);
@@ -255,8 +256,7 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
       for (const m of rayMoves(board, piece, r, c, [[1,1],[1,-1],[-1,1],[-1,-1]], 4)) moves.push(m);
       for (const [dr, dc] of [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]) push(r + dr, c + dc);
     } else if (kind === "cannon") {
-      for (const m of rayMoves(board, piece, r, c, [[1,0],[-1,0]])) moves.push(m);
-      for (const [dr, dc] of [[1,1],[-1,-1]]) {
+      for (const [dr, dc] of [[1,1],[-1,-1],[1,0],[-1,0]]) {
         let seen = 0;
         for (let step = 1; step < BOARD_SIZE; step++) {
           const nr = r + dr*step, nc = c + dc*step;
@@ -277,8 +277,6 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
         push(nr, nc);
       }
     } else if (kind === "pawn") {
-      // Promoted pawn (now crossbow) moves
-      // ES: Peón promocionado (ahora ballesta) movimientos
       const pushWithRiverRule = (dr, dc) => {
         const step1r = r + dr;
         const step1c = c + dc;
@@ -297,12 +295,8 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
         push(step1r, step1c);
       };
       
-      // Movement: One square forward
-      // ES: Movimiento: una casilla hacia adelante
       pushWithRiverRule(f, 0);
 
-      // Movement: One square in all diagonals
-      // ES: Movimiento: una casilla en todas las diagonales
       for (const [dr, dc] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
         pushWithRiverRule(dr, dc);
       }
@@ -313,7 +307,7 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
   return moves;
 }
 
-export function getLegalMovesForSquare(state, r, c) {
+export function getLegalMovesForSquare(state, r, c, opts = {}) {
   const board = state.board;
   const piece = board[r]?.[c];
   if (!piece) return [];
@@ -324,12 +318,8 @@ export function getLegalMovesForSquare(state, r, c) {
     moves = moves.filter(m => isOwnSide(piece.side, m.r));
   }
 
-  // River squares are "dead": no piece may ever end a move on the river row.
-  // ES: Las casillas del río están "muertas": ninguna pieza puede terminar un movimiento en la fila del río.
   moves = moves.filter(m => !isRiverSquare(m.r));
 
-  // Crossbow now can cross the river (no restrictions for crossbow)
-  // ES: La ballesta ahora puede cruzar el río (sin restricciones para ballesta)
   moves = moves.filter(m => {
     const target = board[m.r][m.c];
     if (target && target.side === piece.side) return false;
@@ -339,6 +329,10 @@ export function getLegalMovesForSquare(state, r, c) {
     if (isSquareProtectedByArcher(board, m.r, m.c, opponent(piece.side))) return false;
     return true;
   });
+
+  if (opts.skipKingCheck) {
+    return moves;
+  }
 
   const legal = [];
   const origFrom = board[r][c];

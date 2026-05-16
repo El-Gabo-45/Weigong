@@ -19,7 +19,7 @@ export function attackSquaresForPiece(board, piece, r, c, state) {
     if (kind === "horse") { const clr = p => { for (const [pr,pc] of p) if (!inBounds(pr,pc)||board[pr][pc]) return false; return true; }; const hm = [{d:[r+2,c+1],a:[[r+1,c],[r+2,c]],b:[[r,c+1],[r+1,c+1]]},{d:[r+2,c-1],a:[[r+1,c],[r+2,c]],b:[[r,c-1],[r+1,c-1]]},{d:[r-2,c+1],a:[[r-1,c],[r-2,c]],b:[[r,c+1],[r-1,c+1]]},{d:[r-2,c-1],a:[[r-1,c],[r-2,c]],b:[[r,c-1],[r-1,c-1]]},{d:[r+1,c+2],a:[[r,c+1],[r,c+2]],b:[[r+1,c],[r+1,c+1]]},{d:[r+1,c-2],a:[[r,c-1],[r,c-2]],b:[[r+1,c],[r+1,c-1]]},{d:[r-1,c+2],a:[[r,c+1],[r,c+2]],b:[[r-1,c],[r-1,c+1]]},{d:[r-1,c-2],a:[[r,c-1],[r,c-2]],b:[[r-1,c],[r-1,c-1]]}]; for (const m of hm) { const [nr,nc]=m.d; if (!inBounds(nr,nc)) continue; if (!clr(m.a)&&!clr(m.b)) continue; if (!board[nr][nc]||board[nr][nc].side!==piece.side) add(nr,nc); } return moves; }
     if (kind === "cannon") { for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]) { let seen=0; for (let step=1;step<BOARD_SIZE;step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)) break; if (!board[nr][nc]){if(seen===0)add(nr,nc);continue;} seen++; if(seen===1)continue; if(seen===2&&board[nr][nc].side!==piece.side)add(nr,nc); break; } } return moves; }
     if (kind === "tower") { for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]) for (let step=1;step<BOARD_SIZE;step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)) break; add(nr,nc); if (board[nr][nc]) break; } return moves; }
-    if (kind === "carriage") { for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]]) for (let step=1;step<=(Math.abs(dr)+Math.abs(dc)===1?4:1);step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)||!isOwnSide(piece.side,nr)) break; add(nr,nc); } return moves; }
+    if (kind === "carriage") { for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) for (let step=1;step<=(Math.abs(dr)+Math.abs(dc)===1?4:1);step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)||!isOwnSide(piece.side,nr)) break; add(nr,nc); } return moves; }
     if (kind === "archer") { if (onBank(piece.side,r)) { const row=r+f; for (const dc of [-1,0,1]) { const nc=c+dc; if (inBounds(row,nc)) add(row,nc); } } for (const [dr,dc] of [[3,1],[3,-1],[-3,1],[-3,-1],[1,3],[1,-3],[-1,3],[-1,-3]]) { const nr=r+dr,nc=c+dc; if (!inBounds(nr,nc)||!isOwnSide(piece.side,nr)) continue; add(nr,nc); } return moves; }
     if (kind === "pawn") {
       const sk = row => isRiverSquare(row) ? row + f : row;
@@ -62,10 +62,23 @@ export function attackSquaresForPiece(board, piece, r, c, state) {
     }
   }
   if (promo) {
-    if (kind === "elephant") for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1],[2*f,0]]) add(r+dr,c+dc);
+    if (kind === "elephant") {
+      const addWithRiverRule = (dr, dc) => {
+        const step1r = r + dr;
+        const step1c = c + dc;
+        if (!inBounds(step1r, step1c)) return;
+        if (isRiverSquare(step1r)) {
+          if (board[step1r][step1c]) return;
+          add(step1r + dr, step1c);
+          return;
+        }
+        add(step1r, step1c);
+      };
+      for (const [dr, dc] of [[1,0],[-1,0],[0,1],[0,-1],[f,1],[f,-1],[2,0]]) addWithRiverRule(dr, dc);
+    }
     else if (kind === "horse") { for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) { if (dr===0&&dc===0) continue; add(r+dr,c+dc); } for (const [dr,dc] of [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]) add(r+dr,c+dc); }
     else if (kind === "priest") { for (const [dr,dc] of [[1,1],[1,-1],[-1,1],[-1,-1]]) for (let step=1;step<=4;step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)) break; add(nr,nc); if (board[nr][nc]) break; } for (const [dr,dc] of [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]) add(r+dr,c+dc); }
-    else if (kind === "cannon") { for (const [dr,dc] of [[1,0],[-1,0]]) for (let step=1;step<BOARD_SIZE;step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)) break; add(nr,nc); if (board[nr][nc]) break; } for (const [dr,dc] of [[1,1],[-1,-1]]) { let seen=0; for (let step=1;step<BOARD_SIZE;step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)) break; if (!board[nr][nc]){if(seen===0)add(nr,nc);continue;} seen++; if (seen===2&&board[nr][nc].side!==piece.side) add(nr,nc); if (seen>=2) break; } } }
+    else if (kind === "cannon") { for (const [dr,dc] of [[1,0],[-1,0],[1,1],[-1,-1]]) { let seen=0; for (let step=1;step<BOARD_SIZE;step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)) break; if (!board[nr][nc]){if(seen===0)add(nr,nc);continue;} seen++; if (seen===2&&board[nr][nc].side!==piece.side) add(nr,nc); if (seen>=2) break; } } }
     else if (kind === "tower") for (const [dr,dc] of [[0,1],[0,-1],[-1,1],[1,-1]]) for (let step=1;step<BOARD_SIZE;step++) { const nr=r+dr*step,nc=c+dc*step; if (!inBounds(nr,nc)) break; add(nr,nc); if (board[nr][nc]) break; }
     else if (kind === "pawn") {
       // Promoted pawn attacks like crossbow (including river skip)
@@ -125,7 +138,7 @@ export function isKingInCheck(state, side) {
   if (!king) {
     dbg.rules.warn('King not found!', { side });
     dbg.perf.end(t);
-    return true;
+    return false;
   }
   const result = isSquareAttacked(board, king.r, king.c, opponent(side), state);
   if (result) dbg.rules(`Check! ${side} king at ${king.r},${king.c} attacked`);

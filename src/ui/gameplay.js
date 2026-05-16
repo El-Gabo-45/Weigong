@@ -272,10 +272,8 @@ async function runBotTurn() {
   }
   V.botThinking = true;
   try {
-    // Serializa el estado (debe ser un objeto JSON puro)
-    // ES: Serializa el estado (debe ser un objeto JSON puro)
     const payload = {
-      state: serializeState(state),   // <-- tienes que definir esta función
+      state: serializeState(state),
       difficulty: parseInt(difficultySelect?.value) || 5
     };
     const resp = await fetch('/api/botMove', {
@@ -291,8 +289,6 @@ async function runBotTurn() {
       return;
     }
 
-    // Ejecutar el movimiento recibido (igual que antes pero sin recalcular la IA)
-    // ES: Ejecutar el movimiento recibido (igual que antes pero sin recalcular la IA)
     const chosen = data.move;
     const evalBefore = evaluate(state, computeFullHash(state)).score;
     let notation;
@@ -390,8 +386,6 @@ export function render() {
     }
   });
 
-  // Highlight selected piece or pendingMove
-  // ES: Resalta pieza seleccionada o pendingMove
   if (V.pendingMove) {
     const sel = cells.find(cell =>
       Number(cell.dataset.r) === V.pendingMove.from.r && Number(cell.dataset.c) === V.pendingMove.from.c
@@ -402,8 +396,6 @@ export function render() {
     if (sel) sel.classList.add("selected");
   }
 
-  // Draw hints whenever there are legal moves (board AND reserve)
-  // ES: Pinta hints siempre que haya movimientos legales (tablero Y reserva)
   for (const mv of state.legalMoves) {
     const tgt = cells.find(c => Number(c.dataset.r) === mv.r && Number(c.dataset.c) === mv.c);
     if (tgt) tgt.classList.add(mv.capture ? "captureHint" : "moveHint");
@@ -602,8 +594,6 @@ function onReserveClick(side, type) {
   if (state.turn !== side || state.status !== "playing" || V.botThinking) return;
   if (V.viewPly !== V.totalMoves) goToPly(V.totalMoves);
 
-  // If same slot already selected → deselect
-  // ES: Si ya está seleccionado este mismo slot → deseleccionar
   if (V.selectedReserve?.side === side && V.selectedReserve?.type === type) {
     V.selectedReserve = null;
     state.legalMoves = [];
@@ -621,8 +611,6 @@ function onReserveClick(side, type) {
   V.selectedReserve = { side, type, index };
   state.selected = null;
 
-  // Calculate and show legal squares
-  // ES: Calcula y muestra casillas legales
   const drops = getLegalReserveDrops(state, side);
   state.legalMoves = drops
   .filter(d => d.type === type && !isRiverSquare(d.to.r))
@@ -633,12 +621,14 @@ function onReserveClick(side, type) {
 }
 
 function onCellClick(e) {
+  // If editor is active, the capture-phase editor handler already processed this click
+  // ES: Si el editor está activo, el handler en fase captura ya procesó este click
+  if (V.editorActive) return;
+
   if (state.status !== "playing" || V.botThinking) return;
   if (V.viewPly !== V.totalMoves) goToPly(V.totalMoves);
   const r = Number(e.currentTarget.dataset.r), c = Number(e.currentTarget.dataset.c);
 
-  // If there is a pending promotion → handle before anything else
-  // ES: Si hay promoción pendiente → gestionar antes que cualquier otra cosa
   if (V.pendingMove) {
     if (V.pendingMove.from.r === r && V.pendingMove.from.c === c) {
       const savedFrom = { ...V.pendingMove.from };
@@ -652,8 +642,6 @@ function onCellClick(e) {
     return;
   }
 
-  // Reserve selected mode
-  // ES: Modo reserva seleccionada
   if (V.selectedReserve) {
     const clickedPiece = state.board[r][c];
     if (clickedPiece && clickedPiece.side === state.turn) {
@@ -687,8 +675,6 @@ function onCellClick(e) {
 
   const piece = state.board[r][c];
 
-  // Click on the same square → deselect
-  // ES: Clic en la misma casilla → deseleccionar
   if (state.selected && state.selected.r === r && state.selected.c === c) {
     clearSelection();
     state.message = "Selection cancelled.";
@@ -696,8 +682,6 @@ function onCellClick(e) {
     return;
   }
 
-  // No previous selection
-  // ES: Sin selección previa
   if (!state.selected) {
     if (piece && piece.side === state.turn) {
       state.selected = { r, c };
@@ -710,8 +694,6 @@ function onCellClick(e) {
 
   const chosenMove = state.legalMoves.find(m => m.r === r && m.c === c);
 
-  // Non-legal square → redirect selection if it's own piece
-  // ES: Casilla no legal → redirigir selección si es pieza propia
   if (!chosenMove) {
     if (piece && piece.side === state.turn) {
       state.selected = { r, c };
@@ -725,8 +707,6 @@ function onCellClick(e) {
   const from = state.selected, moving = state.board[from.r][from.c];
   const needsPromo = isPromotionAvailableForMove(state, from, { r, c });
 
-  // Optional promotion
-  // ES: Promoción opcional
   if (needsPromo && isPromotableType(moving.type) && !moving.promoted) {
     V.pendingMove = { from, to: { r, c } };
     openPromotionModal(moving);

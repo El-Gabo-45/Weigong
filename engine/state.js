@@ -67,6 +67,10 @@ export const V = {
 
   timelineSnapshots: [],
   viewPly: 0,
+
+  // Board editor mode: set by editor.js, checked by gameplay.js
+  // ES: Modo editor del tablero: establecido por editor.js, verificado por gameplay.js
+  editorActive: false,
 };
 
 // Simple utilities that only modify V
