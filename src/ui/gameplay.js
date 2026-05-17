@@ -28,6 +28,7 @@ import {
   recordTimelineSnapshot, renderTimeline, goToPly, markLastNotationForCurrentState,
   snapshotForTimeline,
 } from "./timeline.js";
+import { getPieceStyle, getSVGForPiece } from "./piece-style-selector.js";
 import pako from 'pako';
 
 function getPieceSymbol(type) {
@@ -371,9 +372,16 @@ export function render() {
     if (piece) {
       const p = document.createElement("div"); const vis = isVisuallyPromoted(piece);
       p.className = `piece ${piece.side} ${vis ? "promoted" : ""}`;
-      if (state.selected?.r === r && state.selected?.c === c) p.classList.add("selected");
-      const txt = document.createElement("span"); txt.textContent = getPieceText(piece); p.appendChild(txt);
-      const tag = document.createElement("div"); tag.className = "small";
+      const _mo = (promotionModal && !promotionModal.classList.contains("hidden")) || (ambushModal && !ambushModal.classList.contains("hidden"));
+      if (!_mo && state.selected?.r === r && state.selected?.c === c) p.classList.add("selected");
+      const txt = document.createElement("span");
+      if (getPieceStyle() === 'universal') {
+        txt.innerHTML = getSVGForPiece(piece.type, piece.promoted);
+        txt.style.cssText = 'display:flex;align-items:center;justify-content:center;width:62%;height:62%;';
+      } else {
+        txt.textContent = getPieceText(piece);
+      }
+      p.appendChild(txt);      const tag = document.createElement("div"); tag.className = "small";
       let abbrev;
       if (piece.promoted) {
         const promoMap = { tower: "HA", elephant: "FO", priest: "WI", horse: "ST", cannon: "AR", pawn: "CR" };
@@ -386,19 +394,24 @@ export function render() {
     }
   });
 
-  if (V.pendingMove) {
-    const sel = cells.find(cell =>
-      Number(cell.dataset.r) === V.pendingMove.from.r && Number(cell.dataset.c) === V.pendingMove.from.c
-    );
-    if (sel) sel.classList.add("selected");
-  } else if (state.selected) {
-    const sel = cells.find(c => Number(c.dataset.r) === state.selected.r && Number(c.dataset.c) === state.selected.c);
-    if (sel) sel.classList.add("selected");
-  }
+  const modalOpen = (promotionModal && !promotionModal.classList.contains("hidden"))
+                 || (ambushModal    && !ambushModal.classList.contains("hidden"));
 
-  for (const mv of state.legalMoves) {
-    const tgt = cells.find(c => Number(c.dataset.r) === mv.r && Number(c.dataset.c) === mv.c);
-    if (tgt) tgt.classList.add(mv.capture ? "captureHint" : "moveHint");
+  if (!modalOpen) {
+    if (V.pendingMove) {
+      const sel = cells.find(cell =>
+        Number(cell.dataset.r) === V.pendingMove.from.r && Number(cell.dataset.c) === V.pendingMove.from.c
+      );
+      if (sel) sel.classList.add("selected");
+    } else if (state.selected) {
+      const sel = cells.find(c => Number(c.dataset.r) === state.selected.r && Number(c.dataset.c) === state.selected.c);
+      if (sel) sel.classList.add("selected");
+    }
+
+    for (const mv of state.legalMoves) {
+      const tgt = cells.find(c => Number(c.dataset.r) === mv.r && Number(c.dataset.c) === mv.c);
+      if (tgt) tgt.classList.add(mv.capture ? "captureHint" : "moveHint");
+    }
   }
 
   turnLabel.textContent = `Turn: ${sideName(state.turn)}`;
@@ -428,7 +441,14 @@ function renderReserve(container, side) {
     slot.addEventListener("click", () => onReserveClick(side, type)); container.appendChild(slot);
   }
 }
-function pieceGlyph(type) { return { tower:"塔", general:"師", pawn:"兵", crossbow:"弩" }[type] || "?"; }
+// DESPUÉS:
+function pieceGlyph(type) {
+  if (getPieceStyle() === 'universal') {
+    const isPromoted = type === 'crossbow';
+    return `<span style="display:flex;align-items:center;justify-content:center;width:62%;height:62%;">${getSVGForPiece(type === 'crossbow' ? 'crossbow' : type, isPromoted)}</span>`;
+  }
+  return { tower:"塔", general:"師", pawn:"兵", crossbow:"弩" }[type] || "?";
+}
 function typeToName(type) { return { tower:"Tower", general:"General", pawn:"Pawn", crossbow:"crossbow" }[type] || type; }
 
 async function finalizeHumanGame() {

@@ -5,6 +5,7 @@ import { adaptiveMemory } from "../engine/ai/index.js";
 import { Debug, createDebugPanel, dbg } from "../engine/debug/debug.js";
 import { toggleEditor, isEditorActive, ensureEditorHooks } from "./ui/editor.js";
 import { showPanel, togglePanel } from "../engine/tools/tools-panel.js";
+import { showStylePicker, openStylePicker } from "./ui/piece-style-selector.js";
 
 // Detect dev environment
 // ES: Detecta entorno de desarrollo
@@ -34,9 +35,11 @@ if (toolsParam !== null) {
   }
 }
 
-// Initialize the game
-// ES: Inicializa el juego
-init();
+// Show piece style picker on first launch, then initialize the game
+// ES: Muestra selector de estilo al primer inicio, luego inicializa el juego
+showStylePicker().then(() => {
+  init();
+});
 
 // Wire editor & tools buttons from HTML (after DOM ready)
 // ES: Conecta botones de editor y herramientas del HTML
@@ -44,6 +47,13 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', ensureEditorHooks);
 } else {
   ensureEditorHooks();
+}
+
+// Wire piece style button
+// ES: Conecta el botón de estilo de piezas
+const pieceStyleBtn = document.getElementById('pieceStyleBtn');
+if (pieceStyleBtn) {
+  pieceStyleBtn.addEventListener('click', () => openStylePicker());
 }
 
 // Debug console helpers (window.__DBG, window.dbg, window.__editor, window.__tools)
