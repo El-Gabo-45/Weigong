@@ -121,8 +121,12 @@ export function isSquareAttacked(board, r, c, bySide, state) {
   const enemyKing = kings[bySide];
   const myKing = kings[opponent(bySide)];
   if (enemyKing && myKing) {
-    const inPalace = isPalaceSquare(enemyKing.r, enemyKing.c, bySide) || isPalaceSquare(myKing.r, myKing.c, opponent(bySide));
-    if (inPalace && enemyKing.c === myKing.c) {
+    const dr = Math.sign(myKing.r - enemyKing.r);
+    const dc = Math.sign(myKing.c - enemyKing.c);
+    const sameRow = dr === 0 && dc !== 0;
+    const sameCol = dc === 0 && dr !== 0;
+    const sameDiag = dr !== 0 && dc !== 0 && Math.abs(myKing.r - enemyKing.r) === Math.abs(myKing.c - enemyKing.c);
+    if (sameRow || sameCol || sameDiag) {
       const between = pathSquares(enemyKing.r, enemyKing.c, myKing.r, myKing.c);
       if (!between.some(([rr, cc]) => board[rr][cc])) return true;
     }

@@ -152,17 +152,19 @@ const SVG = {
     </g>
   </svg>`,
 
-  pawn: `<svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Head -->
-    <circle cx="13" cy="7" r="3.5" fill="currentColor" opacity=".85"/>
-    <!-- Neck -->
-    <rect x="11.5" y="10" width="3" height="2.5" fill="currentColor" opacity=".7"/>
-    <!-- Body -->
-    <path d="M8 22 L9 14 Q13 12 17 14 L18 22 Z" fill="currentColor" opacity=".75"/>
-    <!-- Base -->
-    <rect x="7" y="21" width="12" height="2.5" rx="1.2" fill="currentColor" opacity=".65"/>
+  pawn: `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="-64 -64 640 640" preserveAspectRatio="xMidYMid meet">
+    <style type="text/css">
+      .st0{fill:currentColor;}
+    </style>
+    <g>
+      <path class="st0" d="M256,161.408c44.568,0,80.71-36.13,80.71-80.698C336.71,36.142,300.567,0,256,0
+        c-44.568,0-80.698,36.142-80.698,80.71C175.302,125.278,211.431,161.408,256,161.408z"/>
+      <path class="st0" d="M113.114,431.973h285.783c0,0,16.267-3.756,16.267-22.57c0-28.216-50.702-46.641-63.92-56.664
+        c-61.577-46.726-57.334-145.58,18.023-145.58v-29.74H142.745v29.74c75.345,0,79.588,98.854,18.01,145.58
+        c-13.218,10.023-63.92,28.448-63.92,56.664C96.836,428.217,113.114,431.973,113.114,431.973z"/>
+      <polygon class="st0" points="113.114,451.8 97.544,478.028 97.544,512 414.456,512 414.456,478.028 398.897,451.8 	"/>
+    </g>
   </svg>`,
-
   crossbow: `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-64 -64 640 640" xml:space="preserve">
     <g fill="currentColor">
       <g>

@@ -1,4 +1,5 @@
 import { SIDE, isPalaceSquare, onBank } from '../constants.js';
+import { findKings } from '../rules/board.js';
 
 const LEARNING_RATE      = 0.12;
 const MAX_MEMORY_SIZE    = 3000;
@@ -18,17 +19,111 @@ export function extractFeatures(state, side) {
   let curseActive = state.palaceCurse?.[side]?.active ? 1 : 0;
   let enemyCurseActive = state.palaceCurse?.[enemy]?.active ? 1 : 0;
 
+  let ownPieces = 0, enemyPieces = 0;
+  let ownCrossed = 0, enemyCrossed = 0;
+  let ownArchers = 0, enemyArchers = 0;
+  let ownHeavy = 0, enemyHeavy = 0;
+  let ownTowers = 0, enemyTowers = 0;
+  let ownCannons = 0, enemyCannons = 0;
+  let kingOutsidePalace = 0, enemyKingOutsidePalace = 0;
+  let ownCenterCtrl = 0, enemyCenterCtrl = 0;
+  let ownPalaceDef = 0, enemyPalaceDef = 0;
+  let ownPromoted = 0, enemyPromoted = 0;
+  let ownAdvPawns = 0, enemyAdvPawns = 0;
+  let ownNearPromo = 0, enemyNearPromo = 0;
+  let ownKingCol = -1, enemyKingCol = -1;
+  let ownKingRow = -1, enemyKingRow = -1;
+
+  // Kings facing (flying general rule): same row/col/diag with clear line
+  let kingsFacing = 0;
+  const kings = findKings(board);
+  if (kings?.[side] && kings?.[enemy]) {
+    const k1 = kings[side], k2 = kings[enemy];
+    ownKingRow = k1.r; ownKingCol = k1.c;
+    enemyKingRow = k2.r; enemyKingCol = k2.c;
+    const dr = Math.sign(k2.r - k1.r);
+    const dc = Math.sign(k2.c - k1.c);
+    const sameRow = dr === 0 && dc !== 0;
+    const sameCol = dc === 0 && dr !== 0;
+    const sameDiag = dr !== 0 && dc !== 0 && Math.abs(k2.r - k1.r) === Math.abs(k2.c - k1.c);
+    if (sameRow || sameCol || sameDiag) {
+      let clear = true;
+      let cr = k1.r + dr, cc = k1.c + dc;
+      while (cr !== k2.r || cc !== k2.c) {
+        if (board[cr]?.[cc]) { clear = false; break; }
+        cr += dr; cc += dc;
+      }
+      if (clear) kingsFacing = 1;
+    }
+  }
+
+  // Reserve composition tracking
+  let ownTowersInReserve = 0, ownGeneralsInReserve = 0, ownPawnsInReserve = 0;
+  let enemyTowersInReserve = 0, enemyGeneralsInReserve = 0, enemyPawnsInReserve = 0;
+  for (const p of state.reserves[side] || []) {
+    if (p.type === 'tower') ownTowersInReserve++;
+    else if (p.type === 'general') ownGeneralsInReserve++;
+    else if (p.type === 'pawn' || p.type === 'crossbow') ownPawnsInReserve++;
+  }
+  for (const p of state.reserves[enemy] || []) {
+    if (p.type === 'tower') enemyTowersInReserve++;
+    else if (p.type === 'general') enemyGeneralsInReserve++;
+    else if (p.type === 'pawn' || p.type === 'crossbow') enemyPawnsInReserve++;
+  }
+
   for (let r = 0; r < 13; r++) {
     for (let c = 0; c < 13; c++) {
       const p = board[r][c];
       if (!p) continue;
       if (p.side === side) {
-        if (p.type === 'archer' && onBank(side, r)) archerOnBank++;
-        if (isPalaceSquare(r, c, enemy)) palacePressure++;
+        ownPieces++;
+        if (p.type === 'king') {
+          if (!isPalaceSquare(r, c, side)) kingOutsidePalace = 1;
+        } else {
+          if (p.type === 'archer') { ownArchers++; if (onBank(side, r)) archerOnBank++; }
+          else if (p.type === 'tower') ownTowers++;
+          else if (p.type === 'cannon') ownCannons++;
+          else if (['queen','general'].includes(p.type)) ownHeavy++;
+          const crossed = side === SIDE.BLACK ? (r <= 5) : (r >= 7);
+          if (crossed) ownCrossed++;
+          if (isPalaceSquare(r, c, enemy)) palacePressure++;
+          const centerDist = Math.abs(r-6) + Math.abs(c-6);
+          if (centerDist <= 4) ownCenterCtrl++;
+          if (isPalaceSquare(r, c, side)) ownPalaceDef++;
+          if (p.promoted) ownPromoted++;
+          if (p.type === 'pawn' && !p.promoted) {
+            const fromOwn = side === SIDE.WHITE ? r : 12 - r;
+            if (fromOwn >= 5) ownAdvPawns++;
+            const inPromoZone = side === SIDE.BLACK ? r >= 10 : r <= 2;
+            if (inPromoZone) ownNearPromo++;
+          }
+        }
+      } else {
+        enemyPieces++;
+        if (p.type === 'king') {
+          if (!isPalaceSquare(r, c, enemy)) enemyKingOutsidePalace = 1;
+        } else {
+          if (p.type === 'archer') enemyArchers++;
+          else if (p.type === 'tower') enemyTowers++;
+          else if (p.type === 'cannon') enemyCannons++;
+          else if (['queen','general'].includes(p.type)) enemyHeavy++;
+          const crossed = enemy === SIDE.BLACK ? (r <= 5) : (r >= 7);
+          if (crossed) enemyCrossed++;
+          const centerDist = Math.abs(r-6) + Math.abs(c-6);
+          if (centerDist <= 4) enemyCenterCtrl++;
+          if (isPalaceSquare(r, c, enemy)) enemyPalaceDef++;
+          if (p.promoted) enemyPromoted++;
+          if (p.type === 'pawn' && !p.promoted) {
+            const fromOwn = enemy === SIDE.WHITE ? r : 12 - r;
+            if (fromOwn >= 5) enemyAdvPawns++;
+            const inPromoZone = enemy === SIDE.BLACK ? r >= 10 : r <= 2;
+            if (inPromoZone) enemyNearPromo++;
+          }
+        }
       }
     }
   }
-  return `ap:${archerOnBank}|pp:${Math.min(palacePressure,3)}|r:${reserveCount}|er:${enemyReserveCount}|pt:${palaceTaken}|ept:${enemyPalaceTaken}|cu:${curseActive}|ecu:${enemyCurseActive}`;
+  return `ap:${archerOnBank}|pp:${Math.min(palacePressure,3)}|r:${reserveCount}|er:${enemyReserveCount}|pt:${palaceTaken}|ept:${enemyPalaceTaken}|cu:${curseActive}|ecu:${enemyCurseActive}|ko:${kingOutsidePalace}|eko:${enemyKingOutsidePalace}|ac:${ownArchers}|eac:${enemyArchers}|hv:${Math.min(ownHeavy,3)}|ehv:${Math.min(enemyHeavy,3)}|xc:${Math.min(ownCrossed,5)}|exc:${Math.min(enemyCrossed,5)}|cc:${Math.min(ownCenterCtrl,3)}|ecc:${Math.min(enemyCenterCtrl,3)}|pd:${Math.min(ownPalaceDef,3)}|epd:${Math.min(enemyPalaceDef,3)}|kf:${kingsFacing}|tw:${Math.min(ownTowers,2)}|etw:${Math.min(enemyTowers,2)}|cn:${Math.min(ownCannons,2)}|ecn:${Math.min(enemyCannons,2)}|pro:${Math.min(ownPromoted,3)}|epro:${Math.min(enemyPromoted,3)}|apw:${Math.min(ownAdvPawns,3)}|eapw:${Math.min(enemyAdvPawns,3)}|npz:${ownNearPromo}|enpz:${enemyNearPromo}|rtr:${ownTowersInReserve}|rgr:${ownGeneralsInReserve}|rpr:${ownPawnsInReserve}|ertr:${enemyTowersInReserve}|ergr:${enemyGeneralsInReserve}|erpr:${enemyPawnsInReserve}|krc:${ownKingCol}|ekc:${enemyKingCol}`;
 }
 
 export class AdaptiveMemory {

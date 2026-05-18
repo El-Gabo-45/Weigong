@@ -334,6 +334,7 @@ async function runBotTurn() {
 
 export async function init() {
   await loadAdaptiveMemory();
+  resetGame(state);
   emptyBoard();
   V.totalMoves = 0;
   V.currentGameNotation = [];

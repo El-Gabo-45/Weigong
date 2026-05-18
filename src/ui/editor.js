@@ -37,8 +37,8 @@ function createEditorPanel() {
   panel.innerHTML = `
     <div style="color:#8ab4ff;font-weight:700;margin-bottom:8px;font-size:12px">🎨 Board Editor</div>
     <div style="display:flex;gap:4px;margin-bottom:8px">
-      <button class="ed-side" data-side="black" style="flex:1;padding:4px;border-radius:6px;border:1px solid #1e2535;background:rgba(192,132,252,.15);color:#c084fc;cursor:pointer;font-weight:700">⚫ Black</button>
       <button class="ed-side" data-side="white" style="flex:1;padding:4px;border-radius:6px;border:1px solid #1e2535;background:rgba(101,211,138,.15);color:#65d38a;cursor:pointer;font-weight:700">⚪ White</button>
+      <button class="ed-side" data-side="black" style="flex:1;padding:4px;border-radius:6px;border:1px solid #1e2535;background:rgba(192,132,252,.15);color:#c084fc;cursor:pointer;font-weight:700">⚫ Black</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:8px" id="edPalette">
       ${PIECE_TYPES.map(t => {
@@ -65,7 +65,7 @@ function createEditorPanel() {
   document.body.appendChild(panel);
   editorPanel = panel;
 
-  let activeSide = SIDE.BLACK;
+  let activeSide = SIDE.WHITE;
   panel.querySelectorAll('.ed-side').forEach(btn => {
     btn.addEventListener('click', () => {
       activeSide = btn.dataset.side;
@@ -74,7 +74,7 @@ function createEditorPanel() {
       updateStatus();
     });
   });
-  panel.querySelector('[data-side="black"]').style.borderColor = '#c084fc';
+  panel.querySelector('[data-side="white"]').style.borderColor = '#65d38a';
 
   let activeType = 'pawn';
   panel.querySelectorAll('.ed-piece').forEach(btn => {

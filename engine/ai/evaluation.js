@@ -1,5 +1,5 @@
 import { dbg } from '../debug/debug.js';
-import { SIDE, isPalaceSquare, opponent, onBank } from '../constants.js';
+import { SIDE, isPalaceSquare, opponent, onBank, isOwnSide, inBounds } from '../constants.js';
 import { isKingInCheck } from '../rules/index.js';
 import { adaptiveMemory, extractFeatures } from './memory.js';
 import { pieceValue } from './moves.js';
@@ -149,7 +149,7 @@ function reserveValue(state, side) {
   return state.reserves[side].reduce((s, p) => {
     const urgency = p.type === 'tower'    ? 1.6
                   : p.type === 'general'  ? 1.6
-                  : p.type === 'crossbow' ? 1.2
+                  : p.type === 'crossbow' ? 1.4
                   : 1.0; // pawn
     return s + pieceValue(p) * urgency;
   }, 0);
@@ -360,6 +360,7 @@ export function evaluate(state, hash, precomputedMaps = null) {
 export function buildAttackMap(board, side) {
   const attackMap = new Map(), mobilityCount = { total: 0 }, byPiece = new Map();
   let kingPos = null;
+  let enemyKingPos = null;
   const mark = (r, c, fromKey) => {
     if (r < 0 || r >= 13 || c < 0 || c >= 13) return;
     const k = `${r},${c}`; attackMap.set(k, (attackMap.get(k) ?? 0) + 1); mobilityCount.total++;
@@ -369,41 +370,72 @@ export function buildAttackMap(board, side) {
   for (let r = 0; r < 13; r++) {
     for (let c = 0; c < 13; c++) {
       const p = board[r][c];
-      if (!p || p.side !== side) continue;
-      const fk = `${r},${c}`; if (p.type === 'king') kingPos = { r, c };
-      const ray = (dr, dc) => { let nr = r+dr, nc = c+dc; while (nr>=0&&nr<13&&nc>=0&&nc<13) { mark(nr,nc,fk); if (board[nr][nc]) break; nr+=dr; nc+=dc; } };
-      const jump = deltas => { for (const [dr,dc] of deltas) mark(r+dr, c+dc, fk); };
-      switch (p.type) {
-        case 'queen': ray(1,0); ray(-1,0); ray(0,1); ray(0,-1); ray(1,1); ray(1,-1); ray(-1,1); ray(-1,-1); break;
-        case 'tower':
-          if (p.promoted) {
-            for (const [dr,dc] of [[0,1],[0,-1],[-1,1],[1,-1]]) {
-              let nr = r+dr, nc = c+dc;
-              while (nr>=0&&nr<13&&nc>=0&&nc<13) { mark(nr,nc,fk); if (board[nr][nc]) break; nr+=dr; nc+=dc; }
+      if (!p) continue;
+      if (p.side === side) {
+        const fk = `${r},${c}`; if (p.type === 'king') kingPos = { r, c };
+        const ray = (dr, dc) => { let nr = r+dr, nc = c+dc; while (nr>=0&&nr<13&&nc>=0&&nc<13) { mark(nr,nc,fk); if (board[nr][nc]) break; nr+=dr; nc+=dc; } };
+        const jump = deltas => { for (const [dr,dc] of deltas) mark(r+dr, c+dc, fk); };
+        switch (p.type) {
+          case 'queen': ray(1,0); ray(-1,0); ray(0,1); ray(0,-1); ray(1,1); ray(1,-1); ray(-1,1); ray(-1,-1); break;
+          case 'tower':
+            if (p.promoted) {
+              for (const [dr,dc] of [[0,1],[0,-1],[-1,1],[1,-1]]) {
+                let nr = r+dr, nc = c+dc;
+                while (nr>=0&&nr<13&&nc>=0&&nc<13) { mark(nr,nc,fk); if (board[nr][nc]) break; nr+=dr; nc+=dc; }
+              }
+            } else {
+              ray(1,0); ray(-1,0); ray(0,1); ray(0,-1);
             }
-          } else {
-            ray(1,0); ray(-1,0); ray(0,1); ray(0,-1);
+            break;
+          case 'priest': ray(1,1); ray(1,-1); ray(-1,1); ray(-1,-1); mark(r+f,c,fk); mark(r-f,c,fk); break;
+          case 'cannon': {
+            for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+              let seen=0, nr=r+dr, nc=c+dc;
+              while (nr>=0&&nr<13&&nc>=0&&nc<13) {
+                if (!board[nr][nc]) { if (seen===0) mark(nr,nc,fk); }
+                else { seen++; if (seen===2) { mark(nr,nc,fk); break; } }
+                nr+=dr; nc+=dc;
+              }
+            } break;
           }
-          break;
-        case 'priest': ray(1,1); ray(1,-1); ray(-1,1); ray(-1,-1); mark(r+f,c,fk); mark(r-f,c,fk); break;
-        case 'cannon': {
-          for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]) {
-            let seen=0, nr=r+dr, nc=c+dc;
-            while (nr>=0&&nr<13&&nc>=0&&nc<13) {
-              if (!board[nr][nc]) { if (seen===0) mark(nr,nc,fk); }
-              else { seen++; if (seen===2) { mark(nr,nc,fk); break; } }
-              nr+=dr; nc+=dc;
-            }
-          } break;
+          case 'king': for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) { if (dr===0&&dc===0) continue; for (let step=1;step<=2;step++) { const nr=r+dr*step, nc=c+dc*step; if (nr<0||nr>=13||nc<0||nc>=13) break; mark(nr,nc,fk); if (board[nr][nc]) break; } } break;
+          case 'general': jump([[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]); for (let i=1;i<=4;i++) { mark(r+i,c+i,fk); mark(r+i,c-i,fk); mark(r-i,c+i,fk); mark(r-i,c-i,fk); } break;
+          case 'horse': jump([[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]); break;
+          case 'elephant': jump([[f,0],[f,-1],[f,1],[-f,-1],[-f,1]]); break;
+          case 'pawn': mark(r+f,c,fk); mark(r+f,c-1,fk); mark(r+f,c+1,fk); mark(r,c-1,fk); mark(r,c+1,fk); break;
+          case 'archer': for (const [dr,dc] of [[3,1],[3,-1],[-3,1],[-3,-1],[1,3],[1,-3],[-1,3],[-1,-3]]) { const nr=r+dr, nc=c+dc; if (!inBounds(nr,nc)) continue; if (!isOwnSide(side, nr)) continue; mark(nr,nc,fk); } if (onBank(side,r)) { mark(r+f,c-1,fk); mark(r+f,c,fk); mark(r+f,c+1,fk); } break;
+          case 'carriage': for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) for (let step=1; step<=(Math.abs(dr)+Math.abs(dc)===1?4:1); step++) { const nr=r+dr*step, nc=c+dc*step; if (!inBounds(nr,nc)) break; if (!isOwnSide(side, nr)) break; mark(nr,nc,fk); if (board[nr][nc]) break; } break;
+          case 'crossbow': jump([[1,1],[1,-1],[-1,1],[-1,-1]]); mark(r+f,c,fk); break;
         }
-        case 'king': for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) { if (dr===0&&dc===0) continue; for (let step=1;step<=2;step++) { const nr=r+dr*step, nc=c+dc*step; if (nr<0||nr>=13||nc<0||nc>=13) break; mark(nr,nc,fk); if (board[nr][nc]) break; } } break;
-        case 'general': jump([[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]); for (let i=1;i<=4;i++) { mark(r+i,c+i,fk); mark(r+i,c-i,fk); mark(r-i,c+i,fk); mark(r-i,c-i,fk); } break;
-        case 'horse': jump([[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]); break;
-        case 'elephant': jump([[f,0],[f,-1],[f,1],[-f,-1],[-f,1]]); break;
-        case 'pawn': mark(r+f,c,fk); mark(r+f,c-1,fk); mark(r+f,c+1,fk); mark(r,c-1,fk); mark(r,c+1,fk); break;
-        case 'archer': jump([[3,1],[3,-1],[-3,1],[-3,-1],[1,3],[1,-3],[-1,3],[-1,-3]]); if (onBank(side,r)) { mark(r+f,c-1,fk); mark(r+f,c,fk); mark(r+f,c+1,fk); } break;
-        case 'carriage': for (const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1]]) for (let step=1; step<=(Math.abs(dr)+Math.abs(dc)===1?4:1); step++) mark(r+dr*step, c+dc*step, fk); break;
-        case 'crossbow': jump([[1,1],[1,-1],[-1,1],[-1,-1]]); mark(r+f,c,fk); break;
+      } else if (p.type === 'king') {
+        enemyKingPos = { r, c };
+      }
+    }
+  }
+  // King confrontation: if both kings face each other on a clear line
+  // (same row, same column, or same diagonal), the king "attacks" the enemy king square.
+  // ES: Confrontación de reyes: si ambos reyes se enfrentan en línea despejada
+  // (misma fila, misma columna o misma diagonal), el rey "ataca" la casilla del rey enemigo.
+  if (kingPos && enemyKingPos) {
+    const dr = Math.sign(enemyKingPos.r - kingPos.r);
+    const dc = Math.sign(enemyKingPos.c - kingPos.c);
+    const sameRow = dr === 0 && dc !== 0;
+    const sameCol = dc === 0 && dr !== 0;
+    const sameDiag = dr !== 0 && dc !== 0 && Math.abs(enemyKingPos.r - kingPos.r) === Math.abs(enemyKingPos.c - kingPos.c);
+    if (sameRow || sameCol || sameDiag) {
+      const clashKey = `${kingPos.r},${kingPos.c}`;
+      let clear = true;
+      const rr = Math.sign(enemyKingPos.r - kingPos.r);
+      const cc = Math.sign(enemyKingPos.c - kingPos.c);
+      let cr = kingPos.r + rr;
+      let cc2 = kingPos.c + cc;
+      while (cr !== enemyKingPos.r || cc2 !== enemyKingPos.c) {
+        if (board[cr][cc2]) { clear = false; break; }
+        cr += rr;
+        cc2 += cc;
+      }
+      if (clear) {
+        mark(enemyKingPos.r, enemyKingPos.c, clashKey);
       }
     }
   }
