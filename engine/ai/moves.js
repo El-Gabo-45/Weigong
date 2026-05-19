@@ -6,6 +6,63 @@ import {
   SIDE_INDEX, PIECE_INDEX
 } from './hashing.js';
 
+// ── Reusable board pool for SEE ──
+// ES: Pool de tableros reutilizables para SEE
+const BOARD_POOL_SIZE = 64;
+let boardPoolIdx = 0;
+const boardPool = [];
+for (let i = 0; i < BOARD_POOL_SIZE; i++) {
+  const b = new Array(13);
+  for (let r = 0; r < 13; r++) b[r] = new Array(13).fill(null);
+  boardPool.push(b);
+}
+
+function acquireBoard() {
+  const b = boardPool[boardPoolIdx];
+  boardPoolIdx = (boardPoolIdx + 1) % BOARD_POOL_SIZE;
+  return b;
+}
+
+function copyBoard(dst, src) {
+  for (let r = 0; r < 13; r++) {
+    const rowDst = dst[r];
+    const rowSrc = src[r];
+    for (let c = 0; c < 13; c++) {
+      rowDst[c] = rowSrc[c];
+    }
+  }
+  return dst;
+}
+
+// ── Undo pool ──
+// ES: Pool de objetos undo reutilizables
+const UNDO_POOL_SIZE = 4096;
+let undoPoolIdx = 0;
+const undoPool = [];
+for (let i = 0; i < UNDO_POOL_SIZE; i++) {
+  undoPool.push({
+    cells: new Array(8).fill(null),
+    cellCount: 0,
+    turn: null, lastMove: null,
+    reservesW: null, reservesB: null,
+    palaceTaken: null, palaceTimers: null, palaceCurse: null,
+    history: null, hash: null, eval: null,
+  });
+}
+
+function acquireUndo() {
+  const u = undoPool[undoPoolIdx];
+  undoPoolIdx = (undoPoolIdx + 1) % UNDO_POOL_SIZE;
+  u.cellCount = 0;
+  u.turn = null; u.lastMove = null;
+  u.reservesW = null; u.reservesB = null;
+  u.palaceTaken = null; u.palaceTimers = null; u.palaceCurse = null;
+  u.history = null; u.hash = null; u.eval = null;
+  return u;
+}
+
+const ARCHER_DC = [-1, 0, 1];
+
 export function isValidMove(move) {
   if (!move || typeof move !== 'object') return false;
   if (move.fromReserve)
@@ -21,19 +78,47 @@ export function makeMove(state, move, promote, currentHash, currentEval = null) 
     return { action: null, undo: null, hash: currentHash, evalDiff: 0 };
   }
   const from = move.from ?? null, to = move.to ?? null;
-  const undo = {
-    cells: [], turn: state.turn, lastMove: state.lastMove ? { ...state.lastMove } : null,
-    reservesW: state.reserves.white.map(p => ({ ...p })), reservesB: state.reserves.black.map(p => ({ ...p })),
-    palaceTaken:  { ...(state.palaceTaken  ?? { white: false, black: false }) },
-    palaceTimers: { white: { ...(state.palaceTimers?.white ?? {}) }, black: { ...(state.palaceTimers?.black ?? {}) } },
-    palaceCurse: state.palaceCurse ? { white: {...state.palaceCurse.white}, black: {...state.palaceCurse.black} } : null,
-    history: state.history ? [...state.history] : [],
-    hash: currentHash, eval: currentEval,
-  };
-  if (!move.fromReserve && from && state.board[from.r]?.[from.c]) undo.cells.push({ r: from.r, c: from.c, p: { ...state.board[from.r][from.c] } });
-  if (to) undo.cells.push({ r: to.r, c: to.c, p: state.board[to.r]?.[to.c] ? { ...state.board[to.r][to.c] } : null });
+  const undo = acquireUndo();
+  undo.turn = state.turn;
+  // BUGFIX: clone lastMove to avoid mutation by applyMove
+  // ES: clonar lastMove para evitar mutación por applyMove
+  undo.lastMove = state.lastMove ? { from: state.lastMove.from ? { ...state.lastMove.from } : null, to: state.lastMove.to ? { ...state.lastMove.to } : null } : null;
+  undo.hash = currentHash;
+  undo.eval = currentEval;
+
+  // Clonar reservas solo si hay piezas
+  // ES: Clonar reservas solo si hay piezas
+  const rw = state.reserves.white;
+  const rb = state.reserves.black;
+  if (rw.length > 0 || rb.length > 0) {
+    undo.reservesW = rw.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id }));
+    undo.reservesB = rb.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id }));
+  } else {
+    undo.reservesW = null;
+    undo.reservesB = null;
+  }
+
+  undo.palaceTaken = state.palaceTaken ? { white: state.palaceTaken.white, black: state.palaceTaken.black } : null;
+  undo.palaceTimers = state.palaceTimers ? { white: { ...state.palaceTimers.white }, black: { ...state.palaceTimers.black } } : null;
+  undo.palaceCurse = state.palaceCurse ? { white: { ...state.palaceCurse.white }, black: { ...state.palaceCurse.black } } : null;
+  // BUGFIX: Clone history array to preserve snapshot
+  // ES: Clonar el array de historial para preservar el snapshot
+  undo.history = state.history ? [...state.history] : [];
+  undo.cellCount = 0;
+
+  if (!move.fromReserve && from && state.board[from.r]?.[from.c]) {
+    const ci = undo.cellCount++;
+    undo.cells[ci] = { r: from.r, c: from.c, p: { ...state.board[from.r][from.c] } };
+  }
+  if (to) {
+    const ci = undo.cellCount++;
+    undo.cells[ci] = { r: to.r, c: to.c, p: state.board[to.r]?.[to.c] ? { ...state.board[to.r][to.c] } : null };
+  }
   const action = normalizeMove(move, promote);
-  if (!action) return { action: null, undo, hash: currentHash, evalDiff: 0 };
+  if (!action) {
+    dbg.perf.end(t);
+    return { action: null, undo, hash: currentHash, evalDiff: 0 };
+  }
 
   let evalDiff = 0;
   if (currentEval !== null) {
@@ -56,10 +141,14 @@ export function makeMove(state, move, promote, currentHash, currentEval = null) 
     }
   }
   if (!move.fromReserve && from && state.board[from.r]?.[from.c]?.type === 'archer' && to) {
-    const f = state.turn === SIDE.WHITE ? 1 : -1;  // blanco avanza +r, negro -r
-    for (const dc of [-1,0,1]) {
+    const f = state.turn === SIDE.WHITE ? 1 : -1;
+    for (let di = 0; di < 3; di++) {
+      const dc = ARCHER_DC[di];
       const nr = to.r + f, nc = to.c + dc;
-      if (nr >= 0 && nr < 13 && nc >= 0 && nc < 13) undo.cells.push({ r: nr, c: nc, p: state.board[nr][nc] ? { ...state.board[nr][nc] } : null });
+      if (nr >= 0 && nr < 13 && nc >= 0 && nc < 13) {
+        const ci = undo.cellCount++;
+        undo.cells[ci] = { r: nr, c: nc, p: state.board[nr][nc] ? { ...state.board[nr][nc] } : null };
+      }
     }
   }
 
@@ -83,10 +172,14 @@ export function makeMove(state, move, promote, currentHash, currentEval = null) 
 
 export function unmakeMove(state, { undo }) {
   if (!undo) return;
-  for (const { r, c, p } of undo.cells) state.board[r][c] = p;
+  for (let i = 0; i < undo.cellCount; i++) {
+    const cell = undo.cells[i];
+    state.board[cell.r][cell.c] = cell.p;
+  }
   state.turn = undo.turn; state.lastMove = undo.lastMove; state.history = undo.history;
   state.palaceTaken = undo.palaceTaken; state.palaceTimers = undo.palaceTimers;
-  state.reserves.white = undo.reservesW; state.reserves.black = undo.reservesB;
+  if (undo.reservesW !== null) state.reserves.white = undo.reservesW;
+  if (undo.reservesB !== null) state.reserves.black = undo.reservesB;
   if (undo.palaceCurse) state.palaceCurse = undo.palaceCurse;
 }
 
@@ -132,26 +225,49 @@ export function seeValue(piece) {
   return PIECE_VALUES[piece.type] ?? 0;
 }
 
-function getAttackers(board, attackMap, r, c, side) {
-  const key = `${r},${c}`;
-  const attackers = [];
-  for (const [pos, val] of attackMap.byPiece) {
-    if (val <= 0) continue;
-    const [pr, pc] = pos.split(',').map(Number);
-    if (board[pr]?.[pc]?.side === side) attackers.push({ r: pr, c: pc, piece: board[pr][pc] });
-  }
-  return attackers.sort((a, b) => seeValue(a.piece) - seeValue(b.piece));
+// Stack of reusable attacker arrays to avoid GC + recursion corruption
+// ES: Stack de arrays de atacantes reutilizables para evitar GC + corrupción por recursión
+const ATTACKER_STACK_DEPTH = 32;
+let attackerStackIdx = 0;
+const attackerStack = [];
+for (let i = 0; i < ATTACKER_STACK_DEPTH; i++) {
+  const arr = [];
+  for (let j = 0; j < 64; j++) arr.push({ r: 0, c: 0, val: 0, piece: null });
+  attackerStack.push(arr);
 }
 
+function findBestAttacker(board, attackMap, side) {
+  // Single pass: find the lowest-value attacker (no sort needed)
+  // ES: Un solo pase: encontrar el atacante de menor valor (sin ordenar)
+  let bestVal = Infinity, bestR = -1, bestC = -1, bestPiece = null;
+  for (const [pos, val] of attackMap.byPiece) {
+    if (val <= 0) continue;
+    const comma = pos.indexOf(',');
+    const pr = +pos.slice(0, comma);
+    const pc = +pos.slice(comma + 1);
+    if (board[pr]?.[pc]?.side === side) {
+      const v = seeValue(board[pr][pc]);
+      if (v < bestVal) {
+        bestVal = v; bestR = pr; bestC = pc; bestPiece = board[pr][pc];
+      }
+    }
+  }
+  if (bestR < 0) return null;
+  return { r: bestR, c: bestC, piece: bestPiece, val: bestVal };
+}
+
+const seeResult = { value: 0 };
+
 function seeWithMap(board, toR, toC, targetVal, attackerSide, attackMap) {
-  const attackers = getAttackers(board, attackMap, toR, toC, attackerSide);
-  if (attackers.length === 0) return 0;
-  const attacker = attackers[0];
+  const attacker = findBestAttacker(board, attackMap, attackerSide);
+  if (!attacker) { seeResult.value = 0; return seeResult; }
   const gain = targetVal;
   board[attacker.r][attacker.c] = null;
   const recapture = seeWithMap(board, toR, toC, seeValue(attacker.piece), opponent(attackerSide), attackMap);
   board[attacker.r][attacker.c] = attacker.piece;
-  return Math.max(0, gain - recapture);
+  const v = Math.max(0, gain - recapture.value);
+  seeResult.value = v;
+  return seeResult;
 }
 
 export function isSEEPositive(state, move, buildAttackMap) {
@@ -162,16 +278,24 @@ export function isSEEPositive(state, move, buildAttackMap) {
   if (piece && (piece.type === 'archer' || piece.type === 'cannon')) return true;
   if (state.palaceCurse?.[state.turn]?.active) return true;
   const targetVal = seeValue(target);
-  const boardCopy = state.board.map(row => [...row]);
+  // Use pooled board instead of creating new one
+  // ES: Usar tablero del pool en lugar de crear uno nuevo
+  const boardCopy = copyBoard(acquireBoard(), state.board);
   const attackerSide = opponent(state.turn);
   const attackMap = buildAttackMap(boardCopy, attackerSide);
   const recapture = seeWithMap(boardCopy, move.to.r, move.to.c, seeValue(state.board[move.from.r]?.[move.from.c]), attackerSide, attackMap);
-  return targetVal - recapture >= 0;
+  return targetVal - recapture.value >= 0;
 }
 
 function normalizeMove(move, promote) {
   if (!move) return null;
-  if (move.fromReserve) return { fromReserve: true, reserveIndex: move.reserveIndex, to: { ...move.to }, promotion: false };
+  if (move.fromReserve) {
+    // Clone to avoid reference corruption in state.lastMove
+    // ES: Clonar para evitar corrupción de referencia en state.lastMove
+    return { fromReserve: true, reserveIndex: move.reserveIndex, to: { r: move.to.r, c: move.to.c }, promotion: false };
+  }
   if (!move.from || !move.to) return null;
-  return { from: { ...move.from }, to: { ...move.to }, promotion: Boolean(promote) };
+  // Cloned objects so applyMove can't mutate shared references
+  // ES: Objetos clonados para que applyMove no pueda mutar referencias compartidas
+  return { from: { r: move.from.r, c: move.from.c }, to: { r: move.to.r, c: move.to.c }, promotion: Boolean(promote) };
 }

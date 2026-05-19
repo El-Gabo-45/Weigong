@@ -16,7 +16,7 @@
 // ES: • JSON export of profiling data
 //    • fn.assert(), perf.wrapAsync(), sparkline helper
 // ES: • fn.assert(), perf.wrapAsync(), sparkline helper
-// ══════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════
 
 const IS_NODE    = typeof process !== 'undefined' && process.versions?.node;
 const IS_BROWSER = typeof window  !== 'undefined';
@@ -52,6 +52,11 @@ const _perfCounts = {};
 const _perfTimes  = {};
 const _perfMin    = {};
 const _perfMax    = {};
+
+// ── Throttle: don't log perf individually when call count exceeds this ──
+// ES: Throttle: no registrar perf individualmente cuando el conteo excede esto
+const PERF_LOG_THROTTLE = 100;
+const _perfLogged = {};
 
 // ── Init: cargar desde env / URL / localStorage ───────
 function _loadFromEnv() {
@@ -104,7 +109,7 @@ function _matchesFilter(entry) {
 }
 
 function _escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return str.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
 }
 
 function _renderPanel() {
@@ -213,9 +218,15 @@ dbg.perf.end = ({ label, t }) => {
   _perfTimes[label]  = (_perfTimes[label]  ?? 0) + ms;
   _perfMin[label]    = _perfMin[label] === undefined ? ms : Math.min(_perfMin[label], ms);
   _perfMax[label]    = _perfMax[label] === undefined ? ms : Math.max(_perfMax[label], ms);
-  if (_active.has('perf') || _active.has('all')) {
-    const avg = (_perfTimes[label] / _perfCounts[label]).toFixed(2);
-    _log('perf', 'info', [`⏱ ${label}: ${ms.toFixed(2)}ms  (avg ${avg} × ${_perfCounts[label]})`]);
+  // Throttle: only log perf individually for first PERF_LOG_THROTTLE calls, then suppress
+  // ES: Throttle: solo registrar perf individualmente para las primeras PERF_LOG_THROTTLE llamadas, luego suprimir
+  if ((_active.has('perf') || _active.has('all')) && ms > 0.5) {
+    const count = _perfCounts[label];
+    if (!_perfLogged[label] || count < 10) {
+      _perfLogged[label] = true;
+      const avg = (_perfTimes[label] / _perfCounts[label]).toFixed(2);
+      _log('perf', 'info', [`⏱ ${label}: ${ms.toFixed(2)}ms  (avg ${avg} × ${_perfCounts[label]})`]);
+    }
   }
   return ms;
 };

@@ -149,6 +149,9 @@ export function getLegalReserveDrops(state, side) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (state.board[r][c]) continue;
         if (type !== 'crossbow' && !canDropOnSide(type, side, r)) continue;
+        // BUGFIX: Cannot drop on squares protected by enemy archer
+        // ES: No se puede soltar en casillas protegidas por arquero enemigo
+        if (isSquareProtectedByArcher(state, r, c, opponent(side))) continue;
         const tempPiece = { id: '_tmp', type, side, promoted: false, locked: false };
         state.board[r][c] = tempPiece;
         const removed = state.reserves[side].splice(i, 1)[0];

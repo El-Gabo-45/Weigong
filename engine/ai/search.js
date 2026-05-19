@@ -1,6 +1,6 @@
 import { dbg } from '../debug/debug.js';
 import { SIDE, opponent, isPalaceSquare, onBank, isPromotableType } from '../constants.js';
-import { getAllLegalMoves, isKingInCheck, isPromotionAvailableForMove } from '../rules/index.js';
+import { getAllLegalMoves, isKingInCheck, isPromotionAvailableForMove, isSquareAttacked } from '../rules/index.js';
 import { computeFullHash, TranspositionTable, ZobristTurn } from './hashing.js';
 import { evaluate, gamePhaseFactor, buildAttackMap } from './evaluation.js';
 import { makeMove, unmakeMove, isSEEPositive, pieceValue } from './moves.js';
@@ -209,13 +209,14 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   // ES: Poda de movimiento nulo
   if (!isNullMove && depth >= 3 && !inCheck && !hasDrops && !curseActive
       && countMaterial(state.board) > 4) {
-    const enemyAttackMap = buildAttackMap(state.board, opponent(state.turn)).attackMap;
+    // Use isSquareAttacked (from rules) instead of full buildAttackMap — much faster
+    // ES: Usar isSquareAttacked (de rules) en lugar de buildAttackMap completo — mucho más rápido
     let kingAttacked = false;
     for (let r = 0; r < 13 && !kingAttacked; r++)
       for (let c = 0; c < 13 && !kingAttacked; c++) {
         const p = state.board[r][c];
         if (p && p.side === state.turn && p.type === 'king')
-          kingAttacked = (enemyAttackMap.get(`${r},${c}`) ?? 0) > 0;
+          kingAttacked = isSquareAttacked(state.board, r, c, opponent(state.turn), state);
       }
     if (!kingAttacked) {
       const saved = state.turn;
@@ -231,15 +232,20 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
 
   let hashFlag = TT_ALPHA, bestMoveForTT = null;
   const ttMoveKey = cached?.bestMoveKey ?? null;
-  const moves = getAllLegalMoves(state, state.turn)
-    .filter(m => m && (m.fromReserve || m.from))
-    .map(m => {
-      let s = moveOrderScore(state, m, depth);
-      if (ttMoveKey && moveKey(m, m.promotion) === ttMoveKey) s += 1_000_000;
-      return { move: m, score: s };
-    })
-    .sort((a, b) => b.score - a.score)
-    .map(o => o.move);
+  const rawMoves = getAllLegalMoves(state, state.turn);
+  // Single-pass filter + score + sort to avoid 4 intermediate arrays
+  // ES: Un solo pase de filtro + puntuación + ordenamiento para evitar 4 arrays intermedios
+  const scoredMoves = [];
+  for (let mi = 0; mi < rawMoves.length; mi++) {
+    const m = rawMoves[mi];
+    if (!m) continue;
+    if (!m.fromReserve && !m.from) continue;
+    const s = moveOrderScore(state, m, depth);
+    scoredMoves.push({ move: m, score: ttMoveKey && moveKey(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
+  }
+  scoredMoves.sort((a, b) => b.score - a.score);
+  const moves = [];
+  for (let i = 0; i < scoredMoves.length; i++) moves.push(scoredMoves[i].move);
 
   // ProbCut
   // ES: ProbCut (poda probabilística)
@@ -333,15 +339,18 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     prevScore,
   });
 
-  const moves = getAllLegalMoves(state, state.turn)
-    .filter(m => m && (m.fromReserve || m.from))
-    .map(m => {
-      let s = moveOrderScore(state, m, depth);
-      if (ttMoveKey && moveKey(m, m.promotion) === ttMoveKey) s += 1_000_000;
-      return { move: m, score: s };
-    })
-    .sort((a, b) => b.score - a.score)
-    .map(o => o.move);
+  const rawMoves = getAllLegalMoves(state, state.turn);
+  const scoredMoves = [];
+  for (let mi = 0; mi < rawMoves.length; mi++) {
+    const m = rawMoves[mi];
+    if (!m) continue;
+    if (!m.fromReserve && !m.from) continue;
+    const s = moveOrderScore(state, m, depth);
+    scoredMoves.push({ move: m, score: ttMoveKey && moveKey(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
+  }
+  scoredMoves.sort((a, b) => b.score - a.score);
+  const moves = [];
+  for (let i = 0; i < scoredMoves.length; i++) moves.push(scoredMoves[i].move);
 
   if (!moves.length) {
     const term = terminalScore(state, depth);
@@ -460,11 +469,16 @@ function moveOrderScore(state, move, depth) {
   let score = 0;
   const PALACE_PRESSURE_BONUS = 350;
 
+  // MVV-LVA: Most Valuable Victim - Least Valuable Attacker
+  // Much faster than full SEE for move ordering; SEE is kept for quiescence search
+  // ES: MVV-LVA: Víctima más valiosa - Atacante menos valioso
+  // Mucho más rápido que SEE completo para ordenamiento; SEE se mantiene en quiescence search
   if (target) {
-    const seeScore = isSEEPositive(state, move, buildAttackMap)
-      ? pieceValue(target) * 12 - pieceValue(moving) * 2 + 2000
-      : pieceValue(target) * 12 - pieceValue(moving) * 2 - 500;
-    score += seeScore;
+    const victimVal = pieceValue(target);
+    const attackerVal = pieceValue(moving);
+    // MVV-LVA formula: victim*12 - attacker*2 + bonus for positive trade
+    const tradeBonus = victimVal > attackerVal ? 2000 : (victimVal === attackerVal ? 1000 : -500);
+    score += victimVal * 12 - attackerVal * 2 + tradeBonus;
   }
 
   if (!move.fromReserve && move.from && move.to

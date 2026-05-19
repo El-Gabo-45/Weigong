@@ -540,74 +540,26 @@ function getBotParams(level = 5) {
 app.post('/api/botMove', async (req, res) => {
   try {
     const { state: clientState, difficulty } = req.body;
-    // Reconstruye el estado del juego a partir del JSON enviado por el cliente
-    // ES: Reconstruye el estado del juego a partir del JSON enviado por el cliente
     const state = cloneStateForBot(clientState);
     const params = getBotParams(difficulty || 5);
 
-    // 1. Obtener todos los movimientos legales
-    // ES: 1. Obtener todos los movimientos legales
-    const legalMoves = getAllLegalMoves(state, state.turn);
-    if (legalMoves.length === 0) {
+    // Use the proper alpha-beta search with all optimizations
+    // instead of evaluating each move individually
+    // ES: Usar búsqueda alpha-beta con todas las optimizaciones
+    // en lugar de evaluar cada movimiento individualmente
+    const { move, score } = chooseBlackBotMove(state, params);
+
+    if (!move) {
       return res.json({ move: null });
     }
 
-    // 2. Evaluar cada movimiento legal con heurística + red
-    const evalResults = await Promise.all(legalMoves.map(async (move) => {
-      // Simular el movimiento en una copia
-      // ES: Simular el movimiento en una copia
-      const simState = cloneStateForBot(state);
-      const simMove = { ...move, promotion: move.promotion ?? false };
-
-      if (move.fromReserve) {
-        if (!executeDrop(simState, move.reserveIndex, move.to)) return null;
-      } else {
-        applyMove(simState, simMove);
-        // Resolver emboscada si aparece
-        // ES: Resolver emboscada si aparece
-        if (simState.archerAmbush) {
-          resolveAmbushAuto(simState.archerAmbush, state.turn, simState);
-        }
-      }
-      afterMoveEvaluation(simState);
-
-      // Score heurístico
-      const heurScore = evaluate(simState, computeFullHash(simState)).score;
-
-      // Score de la red neuronal
-      // ES: Score de la red neuronal
-      const nnInput = encodeBoardForNN(simState.board);
-      let nnScore = 0;
-      try {
-        const predicted = await predictScore(nnInput);
-        nnScore = predicted ?? 0;
-      } catch (e) {
-        // Si falla la GPU, usamos solo heurística
-        nnScore = 0;
-      }
-
-      return { move, heurScore, nnScore };
-    }));
-
-    // Filtrar movimientos válidos
-    const valid = evalResults.filter(e => e !== null);
-
-    // 3. Combinar heurística + red (ajusta los pesos a tu gusto)
-    const NN_WEIGHT = 0.3;   // peso de la red
-    let bestMove = null;
-    let bestCombined = -Infinity;
-    for (const ev of valid) {
-      const combined = ev.heurScore + NN_WEIGHT * ev.nnScore;
-      if (combined > bestCombined) {
-        bestCombined = combined;
-        bestMove = ev.move;
-      }
-    }
-
-    // Fallback: si no hay movimiento válido, usamos el primer legal
-    if (!bestMove) bestMove = legalMoves[0];
-
-    res.json({ move: bestMove });
+    // Return the move + the NN-predicted score for the response
+    // ES: Retornar el movimiento + score NN predicho para la respuesta
+    res.json({
+      move: move.fromReserve
+        ? { fromReserve: true, reserveIndex: move.reserveIndex, to: move.to, promotion: false }
+        : { from: move.from, to: move.to, promotion: move.promotion ?? false },
+    });
   } catch (err) {
     console.error('/api/botMove error:', err);
     res.status(500).json({ error: err.message });

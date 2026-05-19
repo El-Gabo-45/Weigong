@@ -617,10 +617,17 @@ async function cmdPerft(args) {
 // ── selfplay ─────────────────────────────────────────
 async function cmdSelfplay(args) {
   const n = Math.min(parseInt(args[0]) || 1, 5);
+  const depthOverride = args[1] ? parseInt(args[1]) : null;
+  const timeOverride  = args[2] ? parseInt(args[2]) : null;
   header(`Selfplay  games=${n}`);
 
   const { playSelfPlayGame } = await import('../server/selfplay.js');
-  const params = { maxDepth: 4, timeLimitMs: 500 };
+  const params = {
+    maxDepth: depthOverride ?? 4,
+    timeLimitMs: timeOverride ?? 500,
+  };
+
+  sep(`Settings: depth=${params.maxDepth}  time=${params.timeLimitMs}ms`);
 
   let wins = 0, losses = 0, draws = 0;
   const gameTimes = [];
