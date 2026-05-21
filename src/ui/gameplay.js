@@ -22,9 +22,8 @@ import {
   boardEl, turnLabel, phaseLabel, reserveWhite, reserveBlack,
   resetBtn, botToggleBtn, promotionModal, promotionTitle, promotionText, promotionChoices,
   ambushModal, ambushTitle, ambushText, ambushChoices,
-  difficultySelect, aiVsAiBtn, trainBtn, analysisModeBtn,
-  analysisPanel, analysisInfo, analysisBarFill, analysisBarLabel,
-  messageBar, rulesSummary, moveTimeline, loadGameBtn, loadGameInput, COLS,
+  difficultySelect, aiVsAiBtn, trainBtn, messageBar, rulesSummary, moveTimeline,
+  loadGameBtn, loadGameInput, COLS,
 } from "../../engine/state.js";
 import {
   recordTimelineSnapshot, renderTimeline, goToPly, markLastNotationForCurrentState,
@@ -228,89 +227,6 @@ function updateBotButton() {
   botToggleBtn.textContent = V.botEnabled ? "Black Bot: enabled" : "Black Bot: disabled";
   botToggleBtn.classList.toggle("active", V.botEnabled);
 }
-
-function formatAdvantage(score) {
-  if (score === null || score === undefined || Number.isNaN(score)) return 'n/a';
-  const pawns = score / 100;
-  return `${pawns >= 0 ? '+' : ''}${pawns.toFixed(2)} pawns ${pawns >= 0 ? '(black)' : '(white)'}`;
-}
-
-function clampAnalysisValue(score) {
-  const norm = Math.max(-1, Math.min(1, score / 400));
-  return Number.isFinite(norm) ? norm : 0;
-}
-
-function renderAnalysisPanel() {
-  if (!analysisPanel) return;
-  analysisPanel.classList.toggle('hidden', !V.analysisMode);
-  if (!V.analysisMode) return;
-
-  let infoText = 'Press the button to evaluate the current position.';
-  let fillValue = 0;
-
-  if (V.analysisRunning) {
-    infoText = 'Analyzing position...';
-    if (analysisBarLabel) analysisBarLabel.textContent = 'Analyzing…';
-  } else if (V.analysisResult) {
-    const engineText = V.analysisResult.engineScore != null ? `Engine: ${formatAdvantage(V.analysisResult.engineScore)}` : 'Engine: n/a';
-    const nnText = V.analysisResult.nnScore != null ? `NN: ${formatAdvantage(V.analysisResult.nnScore)}` : 'NN: unavailable';
-    const hybrid = V.analysisResult.nnScore != null ? V.analysisResult.nnScore : V.analysisResult.engineScore;
-    const normalized = clampAnalysisValue(hybrid ?? 0);
-    fillValue = -normalized; // white advantage -> up, black advantage -> down
-    if (analysisBarLabel) {
-      const side = hybrid >= 0 ? 'Black' : 'White';
-      analysisBarLabel.textContent = `${Math.abs((hybrid ?? 0) / 100).toFixed(2)} pawns ${side}`;
-    }
-    infoText = `${engineText} · ${nnText}`;
-  } else {
-    if (analysisBarLabel) analysisBarLabel.textContent = 'White ↔ Black';
-  }
-
-  if (analysisInfo) analysisInfo.textContent = infoText;
-  if (analysisBarFill) {
-    const amount = Math.max(0, Math.min(50, Math.abs(fillValue) * 50));
-    analysisBarFill.style.height = amount > 0 ? `${amount}%` : '0';
-    if (fillValue >= 0) {
-      analysisBarFill.style.bottom = '50%';
-      analysisBarFill.style.top = 'auto';
-    } else {
-      analysisBarFill.style.top = '50%';
-      analysisBarFill.style.bottom = 'auto';
-    }
-    analysisBarFill.classList.toggle('negative', fillValue < 0);
-  }
-}
-
-async function analyzeCurrentPosition() {
-  if (!V.analysisMode || V.analysisRunning) return;
-  const stateHash = computeFullHash(state);
-  const positionHash = stateHash.toString();
-  if (V.analysisPositionHash === positionHash) return;
-  V.analysisPositionHash = positionHash;
-  V.analysisRunning = true;
-  V.analysisResult = null;
-  renderAnalysisPanel();
-
-  const engineScore = evaluate(state, stateHash).score;
-  let nnScore = null;
-  try {
-    const requestBody = { input: Array.from(encodeBoardForNN(state.board)) };
-    const response = await fetch('/api/nn/predict', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody),
-    });
-    const data = await response.json();
-    if (response.ok && typeof data.score === 'number') {
-      nnScore = data.score;
-    }
-  } catch (e) {
-    console.warn('NN analysis failed:', e);
-  }
-
-  V.analysisResult = { engineScore, nnScore };
-  V.analysisRunning = false;
-  renderAnalysisPanel();
-}
-
 function scheduleBotMove() {
   if (!V.botEnabled || V.botThinking || state.status !== "playing" || state.turn !== SIDE.BLACK) return;
   if (V.botTimeout) return;
@@ -543,9 +459,7 @@ export function render() {
   renderReserve(reserveWhite, SIDE.WHITE); renderReserve(reserveBlack, SIDE.BLACK);
   if (rulesSummary) rulesSummary.innerHTML = `<div>River in row 7.</div><div>Palaces: columns 6 to 8, rows 1 to 3 and 11 to 13.</div><div>Optional promotion when entering the enemy's last three rows.</div><div>Reserve: tower, general, pawn and crossbow.</div>`;
   messageBar.textContent = state.message || ""; messageBar.classList.toggle("hidden", !state.message);
-  updateBotButton(); renderAnalysisPanel();
-  if (V.analysisMode) analyzeCurrentPosition();
-  scheduleBotMove();
+  updateBotButton(); scheduleBotMove();
   if (state.status !== "playing" && !V.aiVsAiRunning && !V.trainingRunning && !V.humanGameFinalized) {
     V.humanGameFinalized = true; finalizeHumanGame();
   }
@@ -910,24 +824,6 @@ if (botToggleBtn) botToggleBtn.addEventListener("click", () => {
   V.botEnabled = !V.botEnabled; cancelBotTimer();
   state.message = V.botEnabled ? "Black bot enabled." : "Black bot disabled."; render();
 });
-
-if (analysisModeBtn) {
-  analysisModeBtn.addEventListener("click", () => {
-    V.analysisMode = !V.analysisMode;
-    if (V.analysisMode) {
-      V.analysisPositionHash = null;
-      analysisModeBtn.textContent = "🧠 Analysis: ON";
-      analysisModeBtn.classList.add("active");
-      state.message = "Analysis mode activated. Use the timeline or reload a finished game to inspect positions.";
-      analyzeCurrentPosition();
-    } else {
-      analysisModeBtn.textContent = "🧠 Analysis mode";
-      analysisModeBtn.classList.remove("active");
-      state.message = "Analysis mode disabled.";
-    }
-    render();
-  });
-}
 
 if (aiVsAiBtn) {
   aiVsAiBtn.addEventListener("click", () => {

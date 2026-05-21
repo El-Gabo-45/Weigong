@@ -589,30 +589,6 @@ app.get('/api/nn/info', async (_req, res) => {
   }
 });
 
-const NN_INPUT_DIM = 13 * 13 * 24;
-
-app.post('/api/nn/predict', async (req, res) => {
-  console.log('[API] /api/nn/predict');
-  try {
-    const input = req.body?.input;
-    if (!Array.isArray(input) && !(input instanceof Float32Array)) {
-      return res.status(400).json({ ok: false, error: 'Missing or invalid input array' });
-    }
-    const nnEncoding = Array.isArray(input) ? Float32Array.from(input) : input;
-    if (nnEncoding.length !== NN_INPUT_DIM) {
-      return res.status(400).json({
-        ok: false,
-        error: `Invalid input length: ${nnEncoding.length}. Expected ${NN_INPUT_DIM} floats.`,
-      });
-    }
-    const score = await predictScore(nnEncoding);
-    res.json({ ok: true, score });
-  } catch (e) {
-    console.error('Error en /api/nn/predict:', e);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
 /* ─── Codificación para red neuronal ─── */
 const PIECE_CHANNEL = {
   king:0, queen:1, general:2, elephant:3, priest:4, horse:5,

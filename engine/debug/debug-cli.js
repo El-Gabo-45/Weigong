@@ -368,6 +368,58 @@ async function cmdTT(args) {
   console.log('');
 }
 
+// ── nn trainall ──────────────────────────────────────
+async function cmdNNTrainAll(args) {
+  header('Neural Network Training (ALL game files)');
+  const epochs = parseInt(args[0]) || 10;
+  const batchSize = parseInt(args[1]) || 64;
+  try {
+    const { trainFromGameFiles } = await import('../server/nn-bridge.js');
+    const gamesDir = path.join(__dirname, '..', '..', 'games');
+    const fs = await import('node:fs/promises');
+    let allFiles = [];
+    try {
+      allFiles = await fs.readdir(gamesDir);
+    } catch {
+      console.log(c('red', '  Games directory not found'));
+      console.log('');
+      return;
+    }
+    const gameFiles = allFiles.filter(f => f.endsWith('.json') || f.endsWith('.processed.json'));
+    if (gameFiles.length === 0) {
+      console.log(c('yellow', '  No game files found'));
+      console.log('');
+      return;
+    }
+    row('Game files', gameFiles.length, 'white');
+    row('Epochs', epochs, 'yellow');
+    row('Batch size', batchSize, 'yellow');
+    sep('Training');
+    const t0 = Date.now();
+    const result = await trainFromGameFiles({
+      gamesDir,
+      fileNames: gameFiles,
+      epochs,
+      batchSize,
+    });
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    if (result.trained) {
+      row('Trained', '✅', 'green');
+      row('Samples', result.samples, 'green');
+      row('Games loaded', result.gamesLoaded, 'white');
+      row('Games with NN data', result.gamesWithData, 'white');
+      if (result.final_mse) row('Final MSE', result.final_mse.toFixed(6), 'cyan');
+      row('Time', `${elapsed}s`, 'yellow');
+    } else {
+      row('Trained', '⚠️', 'yellow');
+      row('Message', result.message, 'yellow');
+    }
+  } catch (e) {
+    console.log(c('red', `  Error: ${e.message}`));
+  }
+  console.log('');
+}
+
 // ── nn info ──────────────────────────────────────────
 async function cmdNNInfo() {
   header('Neural Network Info');
@@ -706,6 +758,7 @@ function cmdHelp() {
     ['tt [depth]',            'TT hit rate + depth distribution'],
     ['nn info',               'Neural network model info'],
     ['nn predict',            'Run NN on start position (3× consistency)'],
+    ['nn trainall [ep] [bs]', 'Train NN from ALL game files (epochs/batchSize)'],
     ['memory stats',          'Adaptive memory stats + pattern weights'],
     ['memory top [N]',        'Top N moves by average learned score'],
     ['memory blunders [N]',   'Top N penalized blunder moves'],
@@ -739,7 +792,9 @@ const commandMap = {
   compare:  (a) => cmdCompare(a),
   watch:    (a) => cmdWatch(a),
   tt:       (a) => cmdTT(a),
-  nn:       (a) => a[0] === 'predict' ? cmdNNPredict() : cmdNNInfo(),
+  nn:       (a) => a[0] === 'predict'  ? cmdNNPredict()
+                 : a[0] === 'trainall' ? cmdNNTrainAll(a.slice(1))
+                 :                       cmdNNInfo(),
   memory:   (a) => a[0] === 'top'      ? cmdMemoryTop(a.slice(1))
                  : a[0] === 'blunders' ? cmdMemoryBlunders(a.slice(1))
                  :                       cmdMemoryStats(),

@@ -15,6 +15,16 @@ import {
 } from '../ai/index.js';
 import crypto from 'crypto';
 
+// ── NN prediction import opcional (solo server‑side) ──
+// ES: Import opcional de predicción NN (solo server-side)
+let nnPredictScore = null;
+try {
+  const nnModule = await import('./nn-bridge.js');
+  nnPredictScore = nnModule.predictScore;
+} catch {
+  // No NN available — that's fine, self-play works without it
+}
+
 /* ─── Codificación para NNUE ─── */
 const PIECE_CHANNEL = {
   king:0, queen:1, general:2, elephant:3, priest:4, horse:5,
