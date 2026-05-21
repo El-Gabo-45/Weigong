@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Worker } from 'worker_threads';
 import { SIDE } from '../constants.js';
-import { trainBinDirect, getModelInfo, predictScore } from './nn-bridge.js';
+import { trainBinDirect, getModelInfo, predictScore, trainFromGameFiles } from './nn-bridge.js';
 import pako from 'pako';
 
 import {
@@ -33,8 +33,6 @@ const PORT = process.env.PORT || 3000;
 
 const ROOT_DIR  = path.join(__dirname, '..', '..');
 const MEMORY_FILE = path.join(__dirname, '..', 'data', 'ai-memory.json');
-const GAMES_DIR   = path.join(ROOT_DIR, 'games');
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(ROOT_DIR));
 
@@ -42,6 +40,7 @@ app.use(express.static(ROOT_DIR));
 // en cada request al hot path de /api/memory.
 // ES: bandera para evitar fs.access redundante en cada request.
 let memoryFileReady = false;
+const GAMES_DIR = path.join(ROOT_DIR, 'games');
 async function ensureMemoryFile() {
   if (memoryFileReady) return;
   await fs.mkdir(path.dirname(MEMORY_FILE), { recursive: true });
@@ -423,6 +422,29 @@ app.post('/api/selfPlay', async (req, res) => {
     // FIX-2: llamar directamente en lugar de fetch() interno
     // ES: llamada directa — sin round-trip HTTP al mismo servidor
     await learnFromGamesDirect();
+
+    // 🧠 Auto-entrenar la red neuronal con TODAS las partidas disponibles
+    // (procesadas y no procesadas) después de cada sesión de self-play
+    // ES: Auto-trigger NN training from ALL game files after self-play
+    try {
+      const allFiles = await fs.readdir(GAMES_DIR);
+      const gameFiles = allFiles.filter(f => f.endsWith('.json') || f.endsWith('.processed.json'));
+      if (gameFiles.length >= 5) {
+        console.log(`🧠 Auto-training NN from ${gameFiles.length} game files...`);
+        const nnResult = await trainFromGameFiles({
+          gamesDir: GAMES_DIR,
+          fileNames: gameFiles,
+          epochs: 10,
+          batchSize: 64,
+        });
+        console.log(`🤖 NN training: ${nnResult.trained ? '✅' : '⚠️'} ${nnResult.samples} samples`);
+      } else {
+        console.log(`🧠 Skipping NN auto-train: only ${gameFiles.length} games (need >= 5)`);
+      }
+    } catch (nnErr) {
+      console.error('⚠️ NN auto-training error (non-fatal):', nnErr.message);
+    }
+
     console.log(`✔ Self‑play finished: ${completed}/${games} games.`);
   })().catch(console.error);
 });
@@ -580,6 +602,35 @@ app.post('/api/nn/train', async (req, res) => {
   }
 });
 
+// ── 🧠 trainAll: entrena desde TODOS los archivos de partida (procesados y no) ──
+// ES: trainAll: trains from ALL game files (processed and unprocessed)
+app.post('/api/nn/trainAll', async (req, res) => {
+  try {
+    const { epochs = 10, batchSize = 64 } = req.body ?? {};
+    let allFiles = [];
+    try {
+      allFiles = await fs.readdir(GAMES_DIR);
+    } catch {
+      return res.json({ ok: false, message: 'Games directory not found' });
+    }
+    const gameFiles = allFiles.filter(f => f.endsWith('.json') || f.endsWith('.processed.json'));
+    if (gameFiles.length === 0) {
+      return res.json({ ok: false, message: 'No game files found' });
+    }
+    console.log(`🧠 /api/nn/trainAll: ${gameFiles.length} files, ${epochs} epochs, batch ${batchSize}`);
+    const result = await trainFromGameFiles({
+      gamesDir: GAMES_DIR,
+      fileNames: gameFiles,
+      epochs,
+      batchSize,
+    });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    console.error('Error en /api/nn/trainAll:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.get('/api/nn/info', async (_req, res) => {
   try {
     const modelInfo = await getModelInfo();
@@ -589,17 +640,23 @@ app.get('/api/nn/info', async (_req, res) => {
   }
 });
 
+const NN_INPUT_DIM = 13 * 13 * 24;
+
 app.post('/api/nn/predict', async (req, res) => {
+  console.log('[API] /api/nn/predict');
   try {
     const input = req.body?.input;
     if (!Array.isArray(input) && !(input instanceof Float32Array)) {
       return res.status(400).json({ ok: false, error: 'Missing or invalid input array' });
     }
     const nnEncoding = Array.isArray(input) ? Float32Array.from(input) : input;
-    const score = await predictScore(nnEncoding);
-    if (score === null) {
-      return res.status(500).json({ ok: false, error: 'NN prediction failed' });
+    if (nnEncoding.length !== NN_INPUT_DIM) {
+      return res.status(400).json({
+        ok: false,
+        error: `Invalid input length: ${nnEncoding.length}. Expected ${NN_INPUT_DIM} floats.`,
+      });
     }
+    const score = await predictScore(nnEncoding);
     res.json({ ok: true, score });
   } catch (e) {
     console.error('Error en /api/nn/predict:', e);
@@ -796,6 +853,32 @@ app.listen(PORT, async () => {
       console.log(`📚 ${pending.length} pending games, learning...`);
       // FIX-2: llamada directa en lugar de fetch() interno al arrancar
       await learnFromGamesDirect();
+    }
+
+    // 🧠 Auto-entrenar la red neuronal con partidas existentes al arrancar
+    // (incluye .processed.json de sesiones anteriores)
+    // ES: Auto-trigger NN training from ALL existing game files on startup
+    try {
+      const allFiles = await fs.readdir(GAMES_DIR);
+      const gameFiles = allFiles.filter(f => f.endsWith('.json') || f.endsWith('.processed.json'));
+      if (gameFiles.length >= 5) {
+        console.log(`🧠 Auto-training NN from ${gameFiles.length} game files at startup...`);
+        const nnResult = await trainFromGameFiles({
+          gamesDir: GAMES_DIR,
+          fileNames: gameFiles,
+          epochs: 10,
+          batchSize: 64,
+        });
+        if (nnResult.trained) {
+          console.log(`🤖 NN trained ✅ — ${nnResult.samples} samples from ${nnResult.gamesWithData} games`);
+        } else {
+          console.log(`🤖 NN training skipped: ${nnResult.message}`);
+        }
+      } else {
+        console.log(`🧠 Skipping NN auto-train at startup: only ${gameFiles.length} games (need >= 5)`);
+      }
+    } catch (nnErr) {
+      console.error('⚠️ NN auto-training error at startup (non-fatal):', nnErr.message);
     }
   } catch {}
 });

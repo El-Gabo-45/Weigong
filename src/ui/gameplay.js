@@ -22,7 +22,8 @@ import {
   boardEl, turnLabel, phaseLabel, reserveWhite, reserveBlack,
   resetBtn, botToggleBtn, promotionModal, promotionTitle, promotionText, promotionChoices,
   ambushModal, ambushTitle, ambushText, ambushChoices,
-  difficultySelect, aiVsAiBtn, trainBtn,
+  difficultySelect, aiVsAiBtn, trainBtn, analysisModeBtn,
+  analysisPanel, analysisInfo, analysisBarFill, analysisBarLabel,
   messageBar, rulesSummary, moveTimeline, loadGameBtn, loadGameInput, COLS,
 } from "../../engine/state.js";
 import {
@@ -235,7 +236,7 @@ function formatAdvantage(score) {
 }
 
 function clampAnalysisValue(score) {
-  const norm = Math.max(-1, Math.min(1, score / 1200));
+  const norm = Math.max(-1, Math.min(1, score / 400));
   return Number.isFinite(norm) ? norm : 0;
 }
 
@@ -244,29 +245,39 @@ function renderAnalysisPanel() {
   analysisPanel.classList.toggle('hidden', !V.analysisMode);
   if (!V.analysisMode) return;
 
-  if (analysisBarLabel) analysisBarLabel.textContent = 'White ↔ Black';
   let infoText = 'Press the button to evaluate the current position.';
   let fillValue = 0;
-  let fillColor = '#aaa';
 
   if (V.analysisRunning) {
     infoText = 'Analyzing position...';
+    if (analysisBarLabel) analysisBarLabel.textContent = 'Analyzing…';
   } else if (V.analysisResult) {
     const engineText = V.analysisResult.engineScore != null ? `Engine: ${formatAdvantage(V.analysisResult.engineScore)}` : 'Engine: n/a';
     const nnText = V.analysisResult.nnScore != null ? `NN: ${formatAdvantage(V.analysisResult.nnScore)}` : 'NN: unavailable';
     const hybrid = V.analysisResult.nnScore != null ? V.analysisResult.nnScore : V.analysisResult.engineScore;
     const normalized = clampAnalysisValue(hybrid ?? 0);
-    fillValue = normalized;
-    fillColor = normalized >= 0 ? 'linear-gradient(90deg, rgba(14,135,255,0.9), rgba(0,128,72,0.9))' : 'linear-gradient(90deg, rgba(255,146,44,0.95), rgba(224,74,74,0.95))';
+    fillValue = -normalized; // white advantage -> up, black advantage -> down
+    if (analysisBarLabel) {
+      const side = hybrid >= 0 ? 'Black' : 'White';
+      analysisBarLabel.textContent = `${Math.abs((hybrid ?? 0) / 100).toFixed(2)} pawns ${side}`;
+    }
     infoText = `${engineText} · ${nnText}`;
+  } else {
+    if (analysisBarLabel) analysisBarLabel.textContent = 'White ↔ Black';
   }
 
   if (analysisInfo) analysisInfo.textContent = infoText;
   if (analysisBarFill) {
-    const amount = Math.abs(fillValue) * 50;
-    analysisBarFill.style.width = `${amount}%`;
-    analysisBarFill.style.left = fillValue >= 0 ? '50%' : `${50 - amount}%`;
-    analysisBarFill.style.background = fillColor;
+    const amount = Math.max(0, Math.min(50, Math.abs(fillValue) * 50));
+    analysisBarFill.style.height = amount > 0 ? `${amount}%` : '0';
+    if (fillValue >= 0) {
+      analysisBarFill.style.bottom = '50%';
+      analysisBarFill.style.top = 'auto';
+    } else {
+      analysisBarFill.style.top = '50%';
+      analysisBarFill.style.bottom = 'auto';
+    }
+    analysisBarFill.classList.toggle('negative', fillValue < 0);
   }
 }
 
