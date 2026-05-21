@@ -371,6 +371,49 @@ ul {
   box-shadow: 0 0 0 2px rgba(255,255,255,.08) inset;
 }
 
+.analysisPanel {
+  margin-top: 12px;
+}
+
+.analysisBar {
+  position: relative;
+  width: 100%;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+}
+
+.analysisBarFill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  left: 50%;
+  width: 0;
+  background: linear-gradient(90deg, rgba(14,135,255,0.9), rgba(0,128,72,0.9));
+  transition: width 0.24s ease, left 0.24s ease, background 0.24s ease;
+}
+
+.analysisBarLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.analysisInfo {
+  margin-top: 10px;
+  font-size: 0.88rem;
+  color: var(--text);
+  min-height: 44px;
+}
+
 select.button {
   font-size: 0.8rem;
   padding: 6px 8px;

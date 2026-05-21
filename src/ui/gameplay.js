@@ -22,8 +22,9 @@ import {
   boardEl, turnLabel, phaseLabel, reserveWhite, reserveBlack,
   resetBtn, botToggleBtn, promotionModal, promotionTitle, promotionText, promotionChoices,
   ambushModal, ambushTitle, ambushText, ambushChoices,
-  difficultySelect, aiVsAiBtn, trainBtn, messageBar, rulesSummary, moveTimeline,
-  loadGameBtn, loadGameInput, COLS,
+  difficultySelect, aiVsAiBtn, trainBtn, analysisModeBtn,
+  analysisPanel, analysisInfo, analysisBarFill, analysisBarLabel,
+  messageBar, rulesSummary, moveTimeline, loadGameBtn, loadGameInput, COLS,
 } from "../../engine/state.js";
 import {
   recordTimelineSnapshot, renderTimeline, goToPly, markLastNotationForCurrentState,
@@ -227,6 +228,79 @@ function updateBotButton() {
   botToggleBtn.textContent = V.botEnabled ? "Black Bot: enabled" : "Black Bot: disabled";
   botToggleBtn.classList.toggle("active", V.botEnabled);
 }
+
+function formatAdvantage(score) {
+  if (score === null || score === undefined || Number.isNaN(score)) return 'n/a';
+  const pawns = score / 100;
+  return `${pawns >= 0 ? '+' : ''}${pawns.toFixed(2)} pawns ${pawns >= 0 ? '(black)' : '(white)'}`;
+}
+
+function clampAnalysisValue(score) {
+  const norm = Math.max(-1, Math.min(1, score / 1200));
+  return Number.isFinite(norm) ? norm : 0;
+}
+
+function renderAnalysisPanel() {
+  if (!analysisPanel) return;
+  analysisPanel.classList.toggle('hidden', !V.analysisMode);
+  if (!V.analysisMode) return;
+
+  if (analysisBarLabel) analysisBarLabel.textContent = 'White ↔ Black';
+  let infoText = 'Press the button to evaluate the current position.';
+  let fillValue = 0;
+  let fillColor = '#aaa';
+
+  if (V.analysisRunning) {
+    infoText = 'Analyzing position...';
+  } else if (V.analysisResult) {
+    const engineText = V.analysisResult.engineScore != null ? `Engine: ${formatAdvantage(V.analysisResult.engineScore)}` : 'Engine: n/a';
+    const nnText = V.analysisResult.nnScore != null ? `NN: ${formatAdvantage(V.analysisResult.nnScore)}` : 'NN: unavailable';
+    const hybrid = V.analysisResult.nnScore != null ? V.analysisResult.nnScore : V.analysisResult.engineScore;
+    const normalized = clampAnalysisValue(hybrid ?? 0);
+    fillValue = normalized;
+    fillColor = normalized >= 0 ? 'linear-gradient(90deg, rgba(14,135,255,0.9), rgba(0,128,72,0.9))' : 'linear-gradient(90deg, rgba(255,146,44,0.95), rgba(224,74,74,0.95))';
+    infoText = `${engineText} · ${nnText}`;
+  }
+
+  if (analysisInfo) analysisInfo.textContent = infoText;
+  if (analysisBarFill) {
+    const amount = Math.abs(fillValue) * 50;
+    analysisBarFill.style.width = `${amount}%`;
+    analysisBarFill.style.left = fillValue >= 0 ? '50%' : `${50 - amount}%`;
+    analysisBarFill.style.background = fillColor;
+  }
+}
+
+async function analyzeCurrentPosition() {
+  if (!V.analysisMode || V.analysisRunning) return;
+  const stateHash = computeFullHash(state);
+  const positionHash = stateHash.toString();
+  if (V.analysisPositionHash === positionHash) return;
+  V.analysisPositionHash = positionHash;
+  V.analysisRunning = true;
+  V.analysisResult = null;
+  renderAnalysisPanel();
+
+  const engineScore = evaluate(state, stateHash).score;
+  let nnScore = null;
+  try {
+    const requestBody = { input: Array.from(encodeBoardForNN(state.board)) };
+    const response = await fetch('/api/nn/predict', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody),
+    });
+    const data = await response.json();
+    if (response.ok && typeof data.score === 'number') {
+      nnScore = data.score;
+    }
+  } catch (e) {
+    console.warn('NN analysis failed:', e);
+  }
+
+  V.analysisResult = { engineScore, nnScore };
+  V.analysisRunning = false;
+  renderAnalysisPanel();
+}
+
 function scheduleBotMove() {
   if (!V.botEnabled || V.botThinking || state.status !== "playing" || state.turn !== SIDE.BLACK) return;
   if (V.botTimeout) return;
@@ -459,7 +533,9 @@ export function render() {
   renderReserve(reserveWhite, SIDE.WHITE); renderReserve(reserveBlack, SIDE.BLACK);
   if (rulesSummary) rulesSummary.innerHTML = `<div>River in row 7.</div><div>Palaces: columns 6 to 8, rows 1 to 3 and 11 to 13.</div><div>Optional promotion when entering the enemy's last three rows.</div><div>Reserve: tower, general, pawn and crossbow.</div>`;
   messageBar.textContent = state.message || ""; messageBar.classList.toggle("hidden", !state.message);
-  updateBotButton(); scheduleBotMove();
+  updateBotButton(); renderAnalysisPanel();
+  if (V.analysisMode) analyzeCurrentPosition();
+  scheduleBotMove();
   if (state.status !== "playing" && !V.aiVsAiRunning && !V.trainingRunning && !V.humanGameFinalized) {
     V.humanGameFinalized = true; finalizeHumanGame();
   }
@@ -824,6 +900,24 @@ if (botToggleBtn) botToggleBtn.addEventListener("click", () => {
   V.botEnabled = !V.botEnabled; cancelBotTimer();
   state.message = V.botEnabled ? "Black bot enabled." : "Black bot disabled."; render();
 });
+
+if (analysisModeBtn) {
+  analysisModeBtn.addEventListener("click", () => {
+    V.analysisMode = !V.analysisMode;
+    if (V.analysisMode) {
+      V.analysisPositionHash = null;
+      analysisModeBtn.textContent = "🧠 Analysis: ON";
+      analysisModeBtn.classList.add("active");
+      state.message = "Analysis mode activated. Use the timeline or reload a finished game to inspect positions.";
+      analyzeCurrentPosition();
+    } else {
+      analysisModeBtn.textContent = "🧠 Analysis mode";
+      analysisModeBtn.classList.remove("active");
+      state.message = "Analysis mode disabled.";
+    }
+    render();
+  });
+}
 
 if (aiVsAiBtn) {
   aiVsAiBtn.addEventListener("click", () => {
