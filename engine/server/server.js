@@ -1,11 +1,13 @@
 // server.js
 import express from 'express';
 import fs from 'node:fs/promises';
+import fssync from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Worker } from 'worker_threads';
 import { SIDE } from '../constants.js';
-import { trainFromGames, getModelInfo } from './nn-bridge.js';
+import { trainBinDirect, getModelInfo, predictScore } from './nn-bridge.js';
 import pako from 'pako';
 
 import {
@@ -14,7 +16,6 @@ import {
   isPromotionAvailableForMove, getLegalMovesForSquare, isDropLegal,
 } from '../rules/index.js';
 import { chooseBlackBotMove, evaluate, computeFullHash } from '../ai/index.js';
-import { predictScore } from './nn-bridge.js';
 import { isPalaceSquare, opponent } from '../constants.js';
 
 const PIECE_VALUES = {
@@ -430,6 +431,112 @@ app.post('/api/selfPlay', async (req, res) => {
    🧠 Endpoints: Red Neuronal GPU (OpenCL)
    ════════════════════════════════════════ */
 
+function buildTargetsServer(game) {
+  const finalStatus = game.finalStatus ?? 'unknown';
+  const isDecisive  = finalStatus === 'checkmate' || finalStatus === 'palacemate';
+  const isDrawLimit = finalStatus === 'draw_move_limit';
+  const moves       = game.moves;
+  const total       = moves.length;
+
+  let resultSign = 0;
+  if (isDecisive) {
+    const last = moves[total - 1];
+    resultSign = last?.side === 'black' ? 1 : -1;
+  }
+
+  const rows = [];
+  for (let i = 0; i < total; i++) {
+    const move = moves[i];
+    if (!move._nnFloat32) continue;
+    const progress  = i / Math.max(total - 1, 1);
+    const heuristic = Math.tanh((move.evalAfter ?? 0) / 300);
+
+    let target;
+    if (isDecisive) {
+      const rw = 0.1 + 0.7 * progress;
+      target = (1 - rw) * heuristic + rw * resultSign;
+    } else if (isDrawLimit) {
+      if (progress > 0.5) continue;
+      target = heuristic * 0.25;
+    } else {
+      target = heuristic * 0.5;
+    }
+
+    const floats = Array.isArray(move._nnFloat32) ? move._nnFloat32 : Array.from(move._nnFloat32);
+    rows.push({ floats, score: Math.max(-1, Math.min(1, target)) });
+  }
+  return rows;
+}
+
+async function buildBinIncremental(fileNames, outPath) {
+  const fd = fssync.openSync(outPath, 'w');
+  try {
+    fssync.writeSync(fd, Buffer.alloc(8));
+
+    let nSamples = 0;
+    let inputDim = 0;
+    const scores = [];
+
+    const TRAIN_BATCH = 10;
+    for (let batchStart = 0; batchStart < fileNames.length; batchStart += TRAIN_BATCH) {
+      const batchEnd = Math.min(batchStart + TRAIN_BATCH, fileNames.length);
+      const batchNames = fileNames.slice(batchStart, batchEnd);
+
+      const batchContents = await Promise.all(
+        batchNames.map(async f => {
+          try {
+            const buf = await fs.readFile(path.join(GAMES_DIR, f));
+            return f.endsWith('.gz') ? pako.ungzip(buf, { to: 'string' }) : buf.toString('utf8');
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      for (const raw of batchContents) {
+        if (!raw) continue;
+        let game;
+        try {
+          game = JSON.parse(raw);
+        } catch {
+          continue;
+        }
+        if (!game.moves?.length) continue;
+
+        const rows = buildTargetsServer(game);
+        for (const { floats, score } of rows) {
+          if (inputDim === 0) inputDim = floats.length;
+          const xBuf = Buffer.allocUnsafe(floats.length * 4);
+          for (let j = 0; j < floats.length; j++) {
+            xBuf.writeFloatLE(floats[j], j * 4);
+          }
+          fssync.writeSync(fd, xBuf);
+          scores.push(score);
+          nSamples++;
+        }
+      }
+
+      batchContents.length = 0;
+      if (typeof global.gc === 'function') global.gc();
+    }
+
+    const yBuf = Buffer.allocUnsafe(nSamples * 4);
+    for (let i = 0; i < nSamples; i++) {
+      yBuf.writeFloatLE(scores[i], i * 4);
+    }
+    fssync.writeSync(fd, yBuf);
+
+    const header = Buffer.allocUnsafe(8);
+    header.writeInt32LE(nSamples, 0);
+    header.writeInt32LE(inputDim, 4);
+    fssync.writeSync(fd, header, 0, 8, 0);
+
+    return { nSamples, inputDim };
+  } finally {
+    fssync.closeSync(fd);
+  }
+}
+
 app.post('/api/nn/train', async (req, res) => {
   try {
     const { epochs = 10, batchSize = 64 } = req.body ?? {};
@@ -444,47 +551,29 @@ app.post('/api/nn/train', async (req, res) => {
       return res.json({ ok: false, message: 'There are no saved games' });
     }
 
-    // FIX-9: procesar archivos en lotes de 10 (misma lógica que learnFromGamesDirect)
-    // ES: procesamiento por lotes para evitar OOM con 17GB de partidas.
-    const TRAIN_BATCH = 10;
-    const games = [];
+    const tmpBin = path.join(os.tmpdir(), `nn_train_${Date.now()}.bin`);
+    console.log(`💾 Building binary dataset from ${fileNames.length} game files...`);
 
-    for (let batchStart = 0; batchStart < fileNames.length; batchStart += TRAIN_BATCH) {
-      const batchEnd = Math.min(batchStart + TRAIN_BATCH, fileNames.length);
-      const batchNames = fileNames.slice(batchStart, batchEnd);
-
-      const batchContents = await Promise.all(
-        batchNames.map(async f => {
-          try {
-            const buf = await fs.readFile(path.join(GAMES_DIR, f));
-            if (f.endsWith('.gz')) {
-              return pako.ungzip(buf, { to: 'string' });
-            }
-            return buf.toString('utf8');
-          } catch { return null; }
-        })
-      );
-
-      for (const raw of batchContents) {
-        if (!raw) continue;
-        try {
-          const game = JSON.parse(raw);
-          if (game.moves && game.moves.length > 0) games.push(game);
-        } catch {}
+    try {
+      const { nSamples, inputDim } = await buildBinIncremental(fileNames, tmpBin);
+      if (nSamples === 0) {
+        return res.json({ ok: false, message: 'No usable samples found' });
       }
 
-      // Liberar batch del heap
-      batchContents.length = 0;
-      if (typeof global.gc === 'function') {
-        global.gc();
+      const stats = await fs.stat(tmpBin);
+      console.log(`🧠 Training GPU: ${nSamples} samples, ${inputDim} dims, ${(stats.size / 1024 / 1024).toFixed(1)} MB, ${epochs} epochs...`);
+
+      const result = await trainBinDirect(tmpBin, epochs, batchSize);
+
+      console.log(`✅ GPU training done — MSE: ${result.final_mse?.toFixed(6) ?? '?'}`);
+      res.json({ ok: true, samples: nSamples, ...result });
+    } finally {
+      try {
+        if (fssync.existsSync(tmpBin)) fssync.unlinkSync(tmpBin);
+      } catch (_err) {
+        console.warn(`Unable to delete temporary bin file: ${tmpBin}`);
       }
     }
-
-    console.log(`🧠 Training GPU with ${games.length} games...`);
-    const result = await trainFromGames({ epochs, batchSize, games });
-
-    console.log(`✅ GPU training: ${result.samples} muestras, MSE: ${result.final_mse?.toFixed(6) ?? '?'}`);
-    res.json({ ok: true, ...result });
   } catch (e) {
     console.error('Error en /api/nn/train:', e);
     res.status(500).json({ ok: false, error: e.message });
@@ -497,6 +586,30 @@ app.get('/api/nn/info', async (_req, res) => {
     res.json(modelInfo);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+const NN_INPUT_DIM = 13 * 13 * 24;
+
+app.post('/api/nn/predict', async (req, res) => {
+  console.log('[API] /api/nn/predict');
+  try {
+    const input = req.body?.input;
+    if (!Array.isArray(input) && !(input instanceof Float32Array)) {
+      return res.status(400).json({ ok: false, error: 'Missing or invalid input array' });
+    }
+    const nnEncoding = Array.isArray(input) ? Float32Array.from(input) : input;
+    if (nnEncoding.length !== NN_INPUT_DIM) {
+      return res.status(400).json({
+        ok: false,
+        error: `Invalid input length: ${nnEncoding.length}. Expected ${NN_INPUT_DIM} floats.`,
+      });
+    }
+    const score = await predictScore(nnEncoding);
+    res.json({ ok: true, score });
+  } catch (e) {
+    console.error('Error en /api/nn/predict:', e);
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 

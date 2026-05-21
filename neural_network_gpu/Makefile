@@ -7,14 +7,17 @@ BUILD_DIR = build
 
 SRCS = $(SRC_DIR)/nn.cpp $(SRC_DIR)/main.cpp
 TRAIN_SRCS = $(SRC_DIR)/nn.cpp $(SRC_DIR)/train.cpp
+PREDICT_SRCS = $(SRC_DIR)/nn.cpp $(SRC_DIR)/predict.cpp
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 TRAIN_OBJS = $(TRAIN_SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
+PREDICT_OBJS = $(PREDICT_SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 TARGET = nn_gpu
 TRAIN_TARGET = nn_train
+PREDICT_TARGET = nn_predict
 
 .PHONY: all clean test run
 
-all: $(BUILD_DIR) $(TARGET)
+all: $(BUILD_DIR) $(TARGET) $(TRAIN_TARGET) $(PREDICT_TARGET)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -26,6 +29,9 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(TRAIN_TARGET): $(TRAIN_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(PREDICT_TARGET): $(PREDICT_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 run: $(TARGET)

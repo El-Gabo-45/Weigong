@@ -1,9 +1,10 @@
 /*
  * train.cpp - Entrenamiento de red neuronal GPU invocado desde Node.js
- * 
- * Uso: ./nn_train <model_path> <epochs> <batch_size>
- * 
- * Entrada (stdin): JSON con arrays de inputs (4056 floats) y outputs (score float)
+ *
+ * Uso: ./nn_train <model_path> <epochs> <batch_size> <data_bin>
+ *
+ * Entrada: archivo binario con formato:
+ *   [int32 n_samples][int32 input_dim][float32 x n_samples*input_dim][float32 x n_samples]
  * Salida (stdout): JSON con métricas de entrenamiento
  */
 
@@ -13,123 +14,55 @@
 #include <cstring>
 #include <vector>
 #include <chrono>
-#include <sstream>
 
-// Leer JSON de stdin con formato: {"inputs": [[f1,f2,...],[...]], "scores": [s1, s2, ...]}
-static bool read_training_data(std::vector<float*> &inputs, std::vector<float> &scores,
-                                int &input_dim, int &output_dim, int &n_samples) {
-    // Leer todo stdin como string
-    std::stringstream ss;
-    std::string line;
-    while (std::getline(std::cin, line)) {
-        ss << line;
-    }
-    std::string json = ss.str();
-    if (json.empty()) return false;
-
-    // Find "inputs": and "scores":
-    size_t inputs_key = json.find("\"inputs\"");
-    size_t scores_key = json.find("\"scores\"");
-    if (inputs_key == std::string::npos || scores_key == std::string::npos) return false;
-
-    // Find the opening '[' of the inputs array (after the colon)
-    size_t inputs_start = json.find('[', inputs_key);
-    if (inputs_start == std::string::npos) return false;
-
-    // Find inputs array end using bracket counting
-    int depth = 1;
-    size_t inputs_end = inputs_start + 1;
-    while (depth > 0 && inputs_end < json.size()) {
-        if (json[inputs_end] == '[') depth++;
-        else if (json[inputs_end] == ']') depth--;
-        inputs_end++;
-    }
-    if (depth != 0) return false;
-
-    // Now parse sub-arrays between inputs_start and inputs_end
-    // Each sub-array is [f1,f2,f3,...]
-    size_t p = inputs_start + 1;
-    while (p < inputs_end) {
-        // Skip to next '['
-        p = json.find('[', p);
-        if (p == std::string::npos || p >= inputs_end) break;
-
-        // Find matching ']'
-        size_t sub_start = p + 1;
-        depth = 1;
-        p++;
-        while (depth > 0 && p < inputs_end) {
-            if (json[p] == '[') depth++;
-            else if (json[p] == ']') depth--;
-            if (depth > 0) p++;
-        }
-        if (depth != 0) break;
-
-        std::string arr_str = json.substr(sub_start, p - sub_start);
-
-        // Parse floats separated by commas
-        std::vector<float> vals;
-        size_t num_start = 0;
-        while (num_start < arr_str.size()) {
-            // Skip non-digit/non-minus characters (commas, spaces)
-            while (num_start < arr_str.size() && !(isdigit(arr_str[num_start]) || arr_str[num_start] == '-' || arr_str[num_start] == '.'))
-                num_start++;
-            if (num_start >= arr_str.size()) break;
-
-            size_t num_end = num_start;
-            while (num_end < arr_str.size() && (isdigit(arr_str[num_end]) || arr_str[num_end] == '-' || arr_str[num_end] == '.' || arr_str[num_end] == 'e' || arr_str[num_end] == 'E' || arr_str[num_end] == '+'))
-                num_end++;
-
-            float val = (float)atof(arr_str.substr(num_start, num_end - num_start).c_str());
-            vals.push_back(val);
-            num_start = num_end;
-        }
-
-        if (!vals.empty()) {
-            float *in = new float[vals.size()];
-            for (size_t j = 0; j < vals.size(); j++) in[j] = vals[j];
-            inputs.push_back(in);
-            if (input_dim == 0) input_dim = (int)vals.size();
-        }
-        p++;
+static bool read_training_data_bin(const char *path,
+                                    float *&X_flat, float *&Y_flat,
+                                    int &input_dim, int &n_samples) {
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        fprintf(stderr, "Cannot open data file: %s\n", path);
+        return false;
     }
 
-    // Parse scores array
-    size_t scores_start = json.find('[', scores_key);
-    if (scores_start == std::string::npos) return false;
-    size_t s = scores_start + 1;
-    while (s < json.size() && json[s] != ']') {
-        // Skip whitespace/commas
-        while (s < json.size() && (json[s] == ',' || json[s] == ' ' || json[s] == '\n' || json[s] == '\t'))
-            s++;
-        if (s >= json.size() || json[s] == ']') break;
+    if (fread(&n_samples, sizeof(int), 1, f) != 1) { fclose(f); return false; }
+    if (fread(&input_dim,  sizeof(int), 1, f) != 1) { fclose(f); return false; }
 
-        // Read number
-        size_t num_start = s;
-        while (s < json.size() && (isdigit(json[s]) || json[s] == '-' || json[s] == '.' || json[s] == 'e' || json[s] == 'E' || json[s] == '+'))
-            s++;
-
-        float val = (float)atof(json.substr(num_start, s - num_start).c_str());
-        scores.push_back(val);
+    if (n_samples <= 0 || input_dim <= 0) {
+        fprintf(stderr, "Invalid header: n_samples=%d input_dim=%d\n", n_samples, input_dim);
+        fclose(f);
+        return false;
     }
 
-    n_samples = (int)inputs.size();
-    output_dim = 1;
+    X_flat = new float[(size_t)n_samples * input_dim];
+    Y_flat = new float[n_samples];
 
-    return n_samples > 0 && (int)scores.size() == n_samples;
+    size_t rx = fread(X_flat, sizeof(float), (size_t)n_samples * input_dim, f);
+    size_t ry = fread(Y_flat, sizeof(float), n_samples, f);
+    fclose(f);
+
+    if (rx != (size_t)n_samples * input_dim || ry != (size_t)n_samples) {
+        fprintf(stderr, "Read error: expected %zu+%d floats, got %zu+%zu\n",
+                (size_t)n_samples * input_dim, n_samples, rx, ry);
+        delete[] X_flat;
+        delete[] Y_flat;
+        return false;
+    }
+
+    return true;
 }
 
 int main(int argc, char **argv) {
-    if (argc < 4) {
-        fprintf(stderr, "Uso: %s <model_path> <epochs> <batch_size>\n", argv[0]);
-        fprintf(stderr, "Lee datos JSON de stdin\n");
+    if (argc < 5) {
+        fprintf(stderr, "Uso: %s <model_path> <epochs> <batch_size> <data_bin>\n", argv[0]);
         return 1;
     }
 
     const char *model_path = argv[1];
-    int epochs = atoi(argv[2]);
+    int epochs     = atoi(argv[2]);
     int batch_size = atoi(argv[3]);
-    if (epochs < 1) epochs = 10;
+    const char *data_bin = argv[4];
+
+    if (epochs < 1)     epochs = 10;
     if (batch_size < 1) batch_size = 64;
 
     // Inicializar OpenCL
@@ -155,44 +88,40 @@ int main(int argc, char **argv) {
         }
     }
 
+    // Print device info so Node can see what's being used
+    char dev_name[256] = {};
+    clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(dev_name), dev_name, nullptr);
+    fprintf(stderr, "Device: %s\n", dev_name);
+
     cl_context context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &cl_err);
     if (cl_err != CL_SUCCESS) { fprintf(stderr, "Context failed\n"); return 1; }
 
     cl_command_queue queue = clCreateCommandQueueWithProperties(context, device, nullptr, &cl_err);
     if (cl_err != CL_SUCCESS) { fprintf(stderr, "Queue failed\n"); return 1; }
 
-    // Leer datos
-    std::vector<float*> inputs;
-    std::vector<float> scores;
-    int input_dim = 0, output_dim = 1, n_samples = 0;
+    // Leer datos binarios
+    float *X_flat = nullptr, *Y_flat = nullptr;
+    int input_dim = 0, n_samples = 0;
 
-    if (!read_training_data(inputs, scores, input_dim, output_dim, n_samples)) {
-        fprintf(stderr, "Failed to parse training data from stdin\n");
+    if (!read_training_data_bin(data_bin, X_flat, Y_flat, input_dim, n_samples)) {
+        fprintf(stderr, "Failed to read binary data from %s\n", data_bin);
         return 1;
     }
 
     fprintf(stderr, "Loaded %d samples (input_dim=%d)\n", n_samples, input_dim);
 
-    // Build deep network: 4 hidden layers with LeakyReLU + BatchNorm + Dropout
-    //  Red profunda: 4 capas ocultas con LeakyReLU + BatchNorm + Dropout
-    // Architecture: input_dim -> 512 -> 256 -> 128 -> 64 -> output_dim
-    //  Arquitectura: input_dim -> 512 -> 256 -> 128 -> 64 -> output_dim
-    float drop_prob = 0.8f; // keep probability 80% (dropout 20%) /  probabilidad de mantener 80%
-    
+    // Arquitectura: input_dim -> 512 -> 256 -> 128 -> 64 -> 1
+    float drop_prob = 0.8f;
     NeuralNetwork nn(device, context, queue);
-    
-    nn.add_layer(input_dim, 512, Activation::LEAKY_RELU, drop_prob);  // Layer 1: input -> 512
-    nn.add_layer(512, 256, Activation::LEAKY_RELU, drop_prob);        // Layer 2: 512 -> 256
-    nn.add_layer(256, 128, Activation::LEAKY_RELU, drop_prob);        // Layer 3: 256 -> 128
-    nn.add_layer(128, 64, Activation::LEAKY_RELU);                    // Layer 4: 128 -> 64 (no dropout)
-    nn.add_layer(64, output_dim, Activation::TANH);                   // Output: 64 -> 1 (Tanh [-1, 1])
-    
-    // Huber loss is more robust than MSE for outliers
-    //  Huber es más robusto que MSE para valores atípicos
+    nn.add_layer(input_dim, 512, Activation::LEAKY_RELU, drop_prob);
+    nn.add_layer(512, 256, Activation::LEAKY_RELU, drop_prob);
+    nn.add_layer(256, 128, Activation::LEAKY_RELU, drop_prob);
+    nn.add_layer(128, 64,  Activation::LEAKY_RELU);
+    nn.add_layer(64,  1,   Activation::TANH);
     nn.set_loss(LossType::HUBER);
     nn.set_optimizer(OptimizerType::ADAMW, 0.001f, 0.9f, 0.999f, 1e-8f);
     nn.build();
-    nn.print_summary(); // Debug: print architecture /  imprime arquitectura
+    nn.print_summary();
 
     // Intentar cargar modelo existente
     FILE *f = fopen(model_path, "rb");
@@ -206,26 +135,17 @@ int main(int argc, char **argv) {
         }
     }
 
-    // Aplanar datos para entrenamiento
-    float *X_flat = new float[n_samples * input_dim];
-    float *Y_flat = new float[n_samples * output_dim];
-    for (int i = 0; i < n_samples; i++) {
-        memcpy(X_flat + i * input_dim, inputs[i], input_dim * sizeof(float));
-        Y_flat[i] = scores[i];
-    }
-
     // Entrenar
     auto start = std::chrono::high_resolution_clock::now();
-    
-    // Output JSON header
-    printf("{\"epochs\": %d, \"samples\": %d, \"input_dim\": %d, \"results\": [\n", epochs, n_samples, input_dim);
+
+    printf("{\"epochs\": %d, \"samples\": %d, \"input_dim\": %d, \"results\": [\n",
+           epochs, n_samples, input_dim);
 
     float prev_mse = 0;
     for (int epoch = 1; epoch <= epochs; epoch++) {
         nn.train_epoch(X_flat, Y_flat, n_samples, batch_size, true);
 
-        if (epoch % std::max(1, epochs/10) == 0 || epoch == 1 || epoch == epochs) {
-            // Evaluar
+        if (epoch % std::max(1, epochs / 10) == 0 || epoch == 1 || epoch == epochs) {
             float *preds = new float[n_samples];
             nn.predict(X_flat, preds, n_samples);
 
@@ -237,16 +157,15 @@ int main(int argc, char **argv) {
             }
             mse /= n_samples;
 
-            printf("  {\"epoch\": %d, \"mse\": %.6f, \"rmse\": %.6f, \"max_err\": %.4f}", 
+            printf("  {\"epoch\": %d, \"mse\": %.6f, \"rmse\": %.6f, \"max_err\": %.4f}",
                    epoch, mse, sqrt(mse), max_err);
             if (epoch < epochs) printf(",\n");
 
             delete[] preds;
 
-            // Early stopping
             if (epoch > 10 && fabs(prev_mse - mse) < 1e-8 && mse < 0.01) {
                 printf("\n], \"early_stop\": %d}\n", epoch);
-                break;
+                goto done;
             }
             prev_mse = mse;
         }
@@ -254,11 +173,11 @@ int main(int argc, char **argv) {
 
     printf("\n], \"final_mse\": %.6f}\n", prev_mse);
 
+done:
     auto end = std::chrono::high_resolution_clock::now();
     float ms = std::chrono::duration<float, std::milli>(end - start).count();
     fprintf(stderr, "Training time: %.2f ms\n", ms);
 
-    // Guardar modelo Model saving
     try {
         nn.save(model_path);
         fprintf(stderr, "Model saved: %s\n", model_path);
@@ -266,8 +185,6 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Save error: %s\n", e.what());
     }
 
-    // Limpiar Clean up
-    for (auto p : inputs) delete[] p;
     delete[] X_flat;
     delete[] Y_flat;
 

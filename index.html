@@ -44,6 +44,17 @@
     <main class="layout">
       <section class="boardWrap">
         <div id="board" class="board" aria-label="13 by 13 board"></div>
+        <aside class="analysisSidebar">
+          <button id="analysisModeBtn" class="button">🧠 Analysis mode</button>
+          <div id="analysisPanel" class="analysisPanel hidden">
+            <div class="analysisBar" id="analysisBar">
+              <div class="analysisBarFill" id="analysisBarFill"></div>
+              <div class="analysisBarCenter"></div>
+            </div>
+            <div class="analysisBarLabel" id="analysisBarLabel">White ↔ Black</div>
+            <div id="analysisInfo" class="analysisInfo">Press the button to evaluate the current position.</div>
+          </div>
+        </aside>
       </section>
 
       <aside class="sidePanel">

@@ -71,6 +71,10 @@ export const V = {
   // Board editor mode: set by editor.js, checked by gameplay.js
   // ES: Modo editor del tablero: establecido por editor.js, verificado por gameplay.js
   editorActive: false,
+  analysisMode: false,
+  analysisPositionHash: null,
+  analysisResult: null,
+  analysisRunning: false,
 };
 
 // Simple utilities that only modify V
@@ -90,6 +94,11 @@ export const reserveWhite     = document.getElementById("reserveWhite");
 export const reserveBlack     = document.getElementById("reserveBlack");
 export const resetBtn         = document.getElementById("resetBtn");
 export const botToggleBtn     = document.getElementById("botToggleBtn");
+export const analysisModeBtn  = document.getElementById("analysisModeBtn");
+export const analysisPanel    = document.getElementById("analysisPanel");
+export const analysisInfo     = document.getElementById("analysisInfo");
+export const analysisBarFill  = document.getElementById("analysisBarFill");
+export const analysisBarLabel = document.getElementById("analysisBarLabel");
 export const promotionModal   = document.getElementById("promotionModal");
 export const promotionTitle   = document.getElementById("promotionTitle");
 export const promotionText    = document.getElementById("promotionText");
