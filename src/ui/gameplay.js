@@ -22,8 +22,7 @@ import {
   boardEl, turnLabel, phaseLabel, reserveWhite, reserveBlack,
   resetBtn, botToggleBtn, promotionModal, promotionTitle, promotionText, promotionChoices,
   ambushModal, ambushTitle, ambushText, ambushChoices,
-  difficultySelect, aiVsAiBtn, trainBtn, analysisModeBtn,
-  analysisPanel, analysisInfo, analysisBarFill, analysisBarLabel,
+  difficultySelect, aiVsAiBtn, trainBtn,
   messageBar, rulesSummary, moveTimeline, loadGameBtn, loadGameInput, COLS,
 } from "../../engine/state.js";
 import {
