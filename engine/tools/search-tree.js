@@ -6,7 +6,6 @@
 // ES: to display: PV, depth reached, score, branching factor,
 //  TT hits, pruning efficiency, and killer move summary.
 // ES: TT hits, pruning efficiency, and killer move summary.
-//
 //  Works by wrapping searchRoot and injecting trace collection.
 // ES: Works by wrapping searchRoot and injecting trace collection.
 //  Does NOT slow down production: trace only runs when panel open.

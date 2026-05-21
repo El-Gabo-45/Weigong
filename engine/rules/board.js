@@ -137,30 +137,24 @@ export function isEnemy(pieceA, pieceB) {
 }
 
 // ─── boardSignature optimizations ────────────────────────────────────────────
-//
 // Problem 1 (bug fix): type[0] caused hash collisions:
 //   "c" → cannon | carriage | crossbow
 //   "p" → pawn   | priest
 // Solution: unique 2-char codes per type.
-//
 // Problem 2 (perf): template literal + `str +=` inside a 169-cell loop
 //   creates ~169 intermediate string allocations per call.
-//
 // Solution A — Pre-built 3-level token table (_T):
 //   _T[type][sideKey][promoIndex] → pre-computed 4-char string.
 //   In the loop: 3 property reads + 1 ternary, ZERO string allocations.
 //   ES: tabla de tokens preconstruida: 0 alocaciones en el bucle.
-//
 // Solution B — Module-level cell array (_sigCells):
 //   Reused across every call; single Array.join('') at the end instead
 //   of 169 string concatenations. Eliminates GC pressure on the hot path.
 //   ES: array reutilizable a nivel de módulo; un solo join al final.
-//
 // Solution C — Reserve counting (fixed-order key, no runtime sort):
 //   Reserves hold at most ~10 pieces of 4 known types. Counting over a
 //   fixed type list is O(n) and allocation-free vs .map().sort().join().
 //   ES: conteo con orden fijo, sin sort en tiempo de ejecución.
-// ─────────────────────────────────────────────────────────────────────────────
 
 // Build _T at module load (48 entries: 12 types × 2 sides × 2 promo states)
 // ES: Construir _T al cargar el módulo (48 entradas)

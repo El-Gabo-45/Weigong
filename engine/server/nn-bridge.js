@@ -70,14 +70,11 @@ export function diagnoseGames(games) {
 }
 
 // ── Construcción de targets ───────────────────────────────────────────────────
-//
 // El C++ usa Huber loss y salida tanh → targets deben estar en [-1, 1].
 // ES: El C++ usa Huber loss y salida tanh → targets deben estar en [-1, 1].
-//
 // Problema original: Math.tanh(score/1000) con scores típicos ±300-600
 // da targets en ±0.29–0.54. Con 70% empates, la red aprende a predecir ~0.
 // ES: da targets en ±0.29–0.54. Con 70% empates, la red aprende a predecir ~0.
-//
 // Solución:
 //   1. Escala más agresiva: tanh(score/300) → ±300 ya da ±0.70, ±600 da ±0.92
 // 2. Partidas decisivas: mezcla heurística + señal del resultado,
@@ -145,7 +142,7 @@ function buildTargets(game) {
   return { inputs, scores };
 }
 
-// ── Entrenamiento ─────────────────────────────────────────────────────────────
+// Training
 export async function trainFromGames(options = {}) {
   if (isTraining) throw new Error('Training already in progress');
   isTraining = true;
@@ -203,8 +200,6 @@ export async function trainFromGames(options = {}) {
 
     // The binary only accepts "inputs" and "scores" — no "weights"
     // ES: El binario solo acepta "inputs" y "scores" — no "weights"
-    const jsonData = JSON.stringify({ inputs: allInputs, scores: allScores });
-
     console.log(`🧠 Training GPU: ${allInputs.length} samples, ${epochs} epochs, batch ${batchSize}...`);
     const result = await runTrainBinary(modelPath, epochs, batchSize, jsonData);
     console.log(`✅ Done — MSE: ${result.final_mse?.toFixed(6) ?? '?'}`);
@@ -216,8 +211,8 @@ export async function trainFromGames(options = {}) {
   }
 }
 
-// ── Ejecutar binario con escritura en chunks ──────────────────────────────────
-function runTrainBinary(modelPath, epochs, batchSize, jsonData) {
+// Execute binary with chunk structure
+function runTrainBinary(modelPath, epochs, batchSize, allInputs, allScores) {
   return new Promise((resolve, reject) => {
     const proc = spawn(TRAIN_BIN, [modelPath, String(epochs), String(batchSize)], {
       cwd: NN_DIR,
@@ -228,8 +223,6 @@ function runTrainBinary(modelPath, epochs, batchSize, jsonData) {
     proc.stdout.on('data', d => { stdout += d.toString(); });
     proc.stderr.on('data', d => {
       stderr += d.toString();
-      // Pass C++ stderr to Node console in real time
-      // ES: Pasar stderr del C++ a la consola de Node en tiempo real
       process.stderr.write(d);
     });
 
@@ -241,25 +234,33 @@ function runTrainBinary(modelPath, epochs, batchSize, jsonData) {
       try   { resolve(JSON.parse(stdout)); }
       catch { resolve({ raw_stdout: stdout }); }
     });
-
     proc.on('error', reject);
 
-    // Write in chunks to avoid blocking with large datasets
-    // ES: Escribir en chunks para evitar bloqueo con datasets grandes
-    const CHUNK = 64 * 1024;
-    let offset = 0;
-    function writeChunk() {
-      if (offset >= jsonData.length) { proc.stdin.end(); return; }
-      const chunk = jsonData.slice(offset, offset + CHUNK);
-      offset += CHUNK;
-      if (!proc.stdin.write(chunk)) proc.stdin.once('drain', writeChunk);
-      else setImmediate(writeChunk);
+    async function writeStreaming() {
+      const write = (str) => new Promise(res => {
+        if (!proc.stdin.write(str)) proc.stdin.once('drain', res);
+        else setImmediate(res);
+      });
+
+      await write('{"inputs":[');
+      for (let i = 0; i < allInputs.length; i++) {
+        if (i > 0) await write(',');
+        await write(JSON.stringify(allInputs[i]));  // un sub-array a la vez
+      }
+      await write('],"scores":[');
+      for (let i = 0; i < allScores.length; i++) {
+        if (i > 0) await write(',');
+        await write(allScores[i].toString());
+      }
+      await write(']}');
+      proc.stdin.end();
     }
-    writeChunk();
+
+    writeStreaming().catch(reject);
   });
 }
 
-// ── Predicción ────────────────────────────────────────────────────────────────
+// Prediction
 export async function predictScore(nnEncoding, modelPath = DEFAULT_MODEL) {
   return new Promise(resolve => {
     const proc = spawn(path.join(NN_DIR, 'nn_gpu'), ['--predict', modelPath], {
@@ -284,7 +285,7 @@ export async function predictScore(nnEncoding, modelPath = DEFAULT_MODEL) {
   });
 }
 
-// ── Info del modelo ───────────────────────────────────────────────────────────
+// Model info
 export async function getModelInfo(modelPath = DEFAULT_MODEL) {
   try {
     const stat = await fs.promises.stat(modelPath);

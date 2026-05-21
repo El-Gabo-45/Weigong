@@ -1,6 +1,7 @@
 import { dbg } from '../debug/debug.js';
 import { SIDE } from '../constants.js';
 import { getAllLegalMoves } from '../rules/index.js';
+import { cloneState } from '../rules/board.js';
 import { search, searchRoot, allocateTime, moveKey, decayHistoryTable } from './search.js';
 import { computeFullHash, TranspositionTable } from './hashing.js';
 import { evaluate } from './evaluation.js';
@@ -14,16 +15,17 @@ function now() {
 
 export function chooseBlackBotMove(state, options = {}) {
   const maxDepth = options.maxDepth ?? 8, timeLimitMs = options.timeLimitMs ?? 500, aspirationWindow = options.aspirationWindow ?? 45;
+  const searchState = cloneState(state);
   let best = null, prevScore = 0;
   try {
-    const fallbackMoves = getAllLegalMoves(state, state.turn);
+    const fallbackMoves = getAllLegalMoves(searchState, searchState.turn);
     if (fallbackMoves.length > 0) {
       const fm = fallbackMoves[0];
       best = fm.fromReserve ? { fromReserve: true, reserveIndex: fm.reserveIndex, to: { ...fm.to }, promotion: false } : { from: { ...fm.from }, to: { ...fm.to }, promotion: false };
     }
   } catch (e) {}
-  const startTime = now(), deadline = startTime + timeLimitMs, tt = new TranspositionTable(500_000), rootHash = computeFullHash(state);
-  try { prevScore = evaluate(state, rootHash).score; } catch (e) { prevScore = 0; }
+  const startTime = now(), deadline = startTime + timeLimitMs, tt = new TranspositionTable(500_000), rootHash = computeFullHash(searchState);
+  try { prevScore = evaluate(searchState, rootHash).score; } catch (e) { prevScore = 0; }
   let remainingDepth = maxDepth;
   for (let depth = 1; depth <= remainingDepth; depth++) {
     if (now() > deadline) break;
@@ -41,7 +43,7 @@ export function chooseBlackBotMove(state, options = {}) {
     while (true) {
       if (now() > deadline) break;
       try {
-        const result = searchRoot(state, depth, alpha, beta, localDeadline, tt, rootHash, prevScore);
+        const result = searchRoot(searchState, depth, alpha, beta, localDeadline, tt, rootHash, prevScore);
         if (result.bestMove) { best = result.bestMove; prevScore = result.score; }
         if (Math.abs(result.score) > MATE_SCORE - 50) remainingDepth = depth;
         if (result.score <= alpha) {
@@ -75,7 +77,7 @@ export function chooseBlackBotMove(state, options = {}) {
   }
   if (!best) {
     try {
-      const fallbackMoves = getAllLegalMoves(state, state.turn);
+      const fallbackMoves = getAllLegalMoves(searchState, searchState.turn);
       if (fallbackMoves.length > 0) {
         const fm = fallbackMoves[0];
         best = fm.fromReserve ? { fromReserve: true, reserveIndex: fm.reserveIndex, to: { ...fm.to }, promotion: false } : { from: { ...fm.from }, to: { ...fm.to }, promotion: false };

@@ -3,7 +3,6 @@
 // ══════════════════════════════════════════════════════
 //  CLI de debug — IA y red neuronal
 // ES: CLI de debug — IA y red neuronal
-//
 //  node src/debug-cli.js help
 // ES: node src/debug-cli.js help
 //  node src/debug-cli.js eval

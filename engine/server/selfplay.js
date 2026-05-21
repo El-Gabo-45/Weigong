@@ -193,7 +193,7 @@ function resolveAmbush(ambush, side, state) {
   }
 }
 
-// FIX-6: cloneStateForBot unificado — misma implementación que server.js.
+// ── FIX-6: cloneStateForBot unificado — misma implementación que server.js.
 // Incluye todos los campos que el motor necesita (promotionRequest, archerAmbush,
 // history, positionHistory). La versión anterior en selfplay.js omitía algunos.
 // ES: versión canónica que incluye todos los campos requeridos por el motor.
@@ -272,7 +272,7 @@ function appendCurseNotation(state) {
   return suffix || '';
 }
 
-// FIX-8: boardSnapshot compacto — en lugar de 169 objetos {t, promoted} por turno,
+// ── FIX-8: boardSnapshot compacto — en lugar de 169 objetos {t, promoted} por turno,
 // usa un string de 169 × 3 chars (tipo+side+promo) que es mucho más liviano en memoria
 // y serialización. El receptor puede parsearlo si necesita hacer diff.
 // ES: snapshot compacto en string plano — mucho menos overhead de GC que 169 objetos.

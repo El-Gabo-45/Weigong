@@ -15,11 +15,11 @@ const FUTILITY_MARGIN = [0, 150, 300, 500];
 // Si el bot está ganando por más de esto, rechaza repetir.
 const DRAW_CONTEMPT = 150;
 
-// OPT-4: Quiescence depth limit — prevents search explosion on long capture chains.
+// ── OPT-4: Quiescence depth limit — prevents search explosion on long capture chains.
 // ES: Límite de profundidad en quiescence — previene explosión en cadenas largas de capturas.
 const QSEARCH_MAX_DEPTH = 6;
 
-// OPT-4: Delta pruning margin in quiescence — if even capturing the best possible
+// ── OPT-4: Delta pruning margin in quiescence — if even capturing the best possible
 // piece won't bring us within alpha, cut off immediately.
 // ES: Margen de delta pruning en quiescence — si ni capturando la mejor pieza alcanzamos alpha, cortar.
 const QDELTA_MARGIN = 600;
@@ -63,7 +63,7 @@ function storeHistory(side, move, depth) {
   historyTable[side].set(key, (historyTable[side].get(key) ?? 0) + depth * depth);
 }
 
-// OPT-6: Age history table between IDS iterations to prevent stale scores
+// ── OPT-6: Age history table between IDS iterations to prevent stale scores
 // from shallow depths dominating ordering at deeper iterations.
 // Call this at the start of each new IDS depth iteration in chooseBlackBotMove.
 // ES: Decay de la tabla de historia entre iteraciones IDS para que los scores de
@@ -77,7 +77,7 @@ function isQuiet(state, move, promote) {
   return !move || move.fromReserve || promote ? false : !state.board?.[move.to?.r]?.[move.to?.c];
 }
 
-// OPT-2: terminalScore now accepts a pre-computed legalMoves array to avoid
+// ── OPT-2: terminalScore now accepts a pre-computed legalMoves array to avoid
 // calling getAllLegalMoves() a second time when search() already computed them.
 // Pass null to fall back to computing internally (used in searchRoot edge case).
 // ES: terminalScore acepta moves pre-computados para evitar doble llamada a getAllLegalMoves().
@@ -119,7 +119,7 @@ function countRepetitions(history, hash) {
   return seen;
 }
 
-// OPT-1: quiescence now has a depth limit (qdepth) and delta pruning.
+// ── OPT-1: quiescence now has a depth limit (qdepth) and delta pruning.
 // qdepth: counts down from QSEARCH_MAX_DEPTH; when it reaches 0, return static eval.
 // delta pruning: if even the best possible capture won't reach alpha, cut immediately.
 // ES: quiescence con límite de profundidad y delta pruning.
@@ -161,17 +161,20 @@ function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdept
     for (const promote of getBranches(state, move)) {
       const md = makeMove(state, move, promote, hash, best);
       if (!md.action || !md.undo) continue;
-      const score = -quiescence(state, -beta, -alpha, deadline, md.hash,
-        md.evalDiff ? -best - md.evalDiff : null, qdepth - 1);
-      unmakeMove(state, md);
-      if (maximizing) {
-        if (score > best) best = score;
-        alpha = Math.max(alpha, best);
-        if (alpha >= beta) return best;
-      } else {
-        if (score < best) best = score;
-        beta = Math.min(beta, best);
-        if (alpha >= beta) return best;
+      try {
+        const score = -quiescence(state, -beta, -alpha, deadline, md.hash,
+          md.evalDiff ? -best - md.evalDiff : null, qdepth - 1);
+        if (maximizing) {
+          if (score > best) best = score;
+          alpha = Math.max(alpha, best);
+          if (alpha >= beta) return best;
+        } else {
+          if (score < best) best = score;
+          beta = Math.min(beta, best);
+          if (alpha >= beta) return best;
+        }
+      } finally {
+        unmakeMove(state, md);
       }
     }
   }
@@ -326,13 +329,16 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       }
       const md = makeMove(state, move, false, hash, staticEval);
       if (!md.action) continue;
-      const probScore = -search(state, probDepth, -beta - probMargin, -beta + probMargin,
-        deadline, tt, md.hash, null, false);
-      unmakeMove(state, md);
-      if (probScore >= beta) {
-        tt.set(hash, { depth, score: probScore, flag: TT_BETA,
-          bestMoveKey: moveKey(move, move.promotion) });
-        return probScore;
+      try {
+        const probScore = -search(state, probDepth, -beta - probMargin, -beta + probMargin,
+          deadline, tt, md.hash, null, false);
+        if (probScore >= beta) {
+          tt.set(hash, { depth, score: probScore, flag: TT_BETA,
+            bestMoveKey: moveKey(move, move.promotion) });
+          return probScore;
+        }
+      } finally {
+        unmakeMove(state, md);
       }
     }
   }
@@ -353,41 +359,44 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       const tactical  = isTactical(state, move) || promote;
       const md        = makeMove(state, move, promote, hash, staticEval);
       if (!md.action || !md.undo) continue;
-      let score;
-      const childEval = md.evalDiff ? staticEval + md.evalDiff : null;
-      if (moveCount === 1) {
-        score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
-      } else {
-        let reduction = 0;
-        if (effectiveDepth >= 3 && moveCount >= 3 && !tactical && !inCheck) {
-          reduction = Math.floor(Math.log(effectiveDepth) * Math.log(moveCount) / 2);
-          reduction = Math.max(1, Math.min(reduction, effectiveDepth - 2));
-        }
-        score = -search(state, effectiveDepth - 1 - reduction, -alpha - 1, -alpha, deadline, tt,
-          md.hash, childEval, false);
-        if (score > alpha && reduction > 0)
-          score = -search(state, effectiveDepth - 1, -alpha - 1, -alpha, deadline, tt,
+      try {
+        let score;
+        const childEval = md.evalDiff ? staticEval + md.evalDiff : null;
+        if (moveCount === 1) {
+          score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+        } else {
+          let reduction = 0;
+          if (effectiveDepth >= 3 && moveCount >= 3 && !tactical && !inCheck) {
+            reduction = Math.floor(Math.log(effectiveDepth) * Math.log(moveCount) / 2);
+            reduction = Math.max(1, Math.min(reduction, effectiveDepth - 2));
+          }
+          score = -search(state, effectiveDepth - 1 - reduction, -alpha - 1, -alpha, deadline, tt,
             md.hash, childEval, false);
-        if (score > alpha && score < beta)
-          score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt,
-            md.hash, childEval, false);
-      }
-      unmakeMove(state, md);
-      if (maximizing) {
-        if (score > best) { best = score; bestMoveForTT = move; }
-        if (best > alpha) { alpha = best; hashFlag = TT_EXACT; }
-      } else {
-        if (score < best) { best = score; bestMoveForTT = move; }
-        if (best < beta)  { beta  = best; hashFlag = TT_EXACT; }
-      }
-      if (alpha >= beta) {
-        if (isQuiet(state, move, promote)) {
-          storeKiller(depth, move);
-          storeHistory(state.turn, move, depth);
+          if (score > alpha && reduction > 0)
+            score = -search(state, effectiveDepth - 1, -alpha - 1, -alpha, deadline, tt,
+              md.hash, childEval, false);
+          if (score > alpha && score < beta)
+            score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt,
+              md.hash, childEval, false);
         }
-        tt.set(hash, { depth, score: best, flag: TT_BETA,
-          bestMoveKey: moveKey(bestMoveForTT || move, (bestMoveForTT || move).promotion) });
-        return best;
+        if (maximizing) {
+          if (score > best) { best = score; bestMoveForTT = move; }
+          if (best > alpha) { alpha = best; hashFlag = TT_EXACT; }
+        } else {
+          if (score < best) { best = score; bestMoveForTT = move; }
+          if (best < beta)  { beta  = best; hashFlag = TT_EXACT; }
+        }
+        if (alpha >= beta) {
+          if (isQuiet(state, move, promote)) {
+            storeKiller(depth, move);
+            storeHistory(state.turn, move, depth);
+          }
+          tt.set(hash, { depth, score: best, flag: TT_BETA,
+            bestMoveKey: moveKey(bestMoveForTT || move, (bestMoveForTT || move).promotion) });
+          return best;
+        }
+      } finally {
+        unmakeMove(state, md);
       }
     }
   }
@@ -437,43 +446,46 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
       moveCount++;
       const md        = makeMove(state, move, promote, hash, prevScore);
       if (!md.action || !md.undo) continue;
-      let score;
-      const childEval = md.evalDiff ? prevScore + md.evalDiff : null;
-      if (moveCount === 1) {
-        score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
-      } else {
-        score = -search(state, depth - 1, -alpha - 1, -alpha, deadline, tt, md.hash, childEval, false);
-        if (score > alpha && score < beta)
+      try {
+        let score;
+        const childEval = md.evalDiff ? prevScore + md.evalDiff : null;
+        if (moveCount === 1) {
           score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
-      }
-      const cand = md.action ? { from: { ...md.action.from }, to: { ...md.action.to }, promotion: Boolean(md.action.promotion) } : null;
-      unmakeMove(state, md);
-      if (!cand) continue;
-      if (maximizing) {
-        if (score > bestScore) { bestScore = score; bestMove = cand; }
-        if (bestScore > alpha) alpha = bestScore;
-      } else {
-        if (score < bestScore) { bestScore = score; bestMove = cand; }
-        if (bestScore < beta)  beta = bestScore;
-      }
-      if (score > (maximizing ? bestScore - 100 : bestScore + 100) || moveCount <= 2) {
-        dbg.search(`  move #${moveCount}`, {
-          move: moveKey(move, promote), score,
-          best: moveKey(bestMove, false), alpha, beta,
-        });
-      }
-      if (alpha >= beta) {
-        dbg.search(`  beta cutoff`, {
-          move: moveKey(move, promote), score,
-          best: moveKey(bestMove, false),
-        });
-        if (isQuiet(state, move, promote)) {
-          storeKiller(depth, move);
-          storeHistory(state.turn, move, depth);
+        } else {
+          score = -search(state, depth - 1, -alpha - 1, -alpha, deadline, tt, md.hash, childEval, false);
+          if (score > alpha && score < beta)
+            score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
         }
-        tt.set(hash, { depth, score: bestScore, flag: TT_BETA,
-          bestMoveKey: moveKey(bestMove || cand, (bestMove || cand).promotion) });
-        return { bestMove, score: bestScore };
+        const cand = md.action;
+        if (!cand) continue;
+        if (maximizing) {
+          if (score > bestScore) { bestScore = score; bestMove = cand; }
+          if (bestScore > alpha) alpha = bestScore;
+        } else {
+          if (score < bestScore) { bestScore = score; bestMove = cand; }
+          if (bestScore < beta)  beta = bestScore;
+        }
+        if (score > (maximizing ? bestScore - 100 : bestScore + 100) || moveCount <= 2) {
+          dbg.search(`  move #${moveCount}`, {
+            move: moveKey(move, promote), score,
+            best: moveKey(bestMove, false), alpha, beta,
+          });
+        }
+        if (alpha >= beta) {
+          dbg.search(`  beta cutoff`, {
+            move: moveKey(move, promote), score,
+            best: moveKey(bestMove, false),
+          });
+          if (isQuiet(state, move, promote)) {
+            storeKiller(depth, move);
+            storeHistory(state.turn, move, depth);
+          }
+          tt.set(hash, { depth, score: bestScore, flag: TT_BETA,
+            bestMoveKey: moveKey(bestMove || cand, (bestMove || cand).promotion) });
+          return { bestMove, score: bestScore };
+        }
+      } finally {
+        unmakeMove(state, md);
       }
     }
   }
@@ -531,7 +543,7 @@ function kingShufflePen(state, move) {
     ? KING_SHUFFLE_PENALTY : 0;
 }
 
-// OPT-3: countMaterial hoisted to module level — was re-declared as an inner
+// ── OPT-3: countMaterial hoisted to module level — was re-declared as an inner
 // function on every search() call, causing per-node function allocation overhead.
 // ES: countMaterial movido a nivel de módulo para evitar re-declaración por nodo.
 function countMaterial(board) {

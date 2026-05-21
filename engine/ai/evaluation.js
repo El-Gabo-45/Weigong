@@ -17,6 +17,8 @@ export function gamePhaseFactor(board) {
 
 function centerBonus(r, c) { return (12 - Math.abs(r-6) - Math.abs(c-6)) * 3; }
 
+function squareKey(r, c) { return `${r},${c}`; }
+
 export function pieceSquareBonus(piece, r, c) {
   const prog = piece.side === SIDE.WHITE ? r : 12 - r;
   let bonus = centerBonus(r, c);
@@ -162,12 +164,19 @@ function reserveValue(state, side) {
   }, 0);
 }
 
-// OPT-12: evaluate() ahora acepta skipMemory = true para omitir adaptiveMemory
-// en nodos internos del árbol de búsqueda. Solo la raíz necesita la penalización
-// por memoria adaptativa — en los nodos internos añade ruido y ralentiza ~30%.
-// ES: evaluate() now accepts skipMemory=true to skip adaptiveMemory in internal
-// search nodes. Only the root needs the adaptive memory penalty — internal nodes
-// get noise and ~30% slowdown from extractFeatures().
+// OPT-12: skipMemory=true omits extractFeatures()+getFeatureScore() in internal
+// search nodes. Those build ~450 chars of strings per call — the real bottleneck.
+// applyWeights() is NOT skipped: it is O(1) arithmetic (5 muls + 5 adds) and its
+// contribution (up to ±88 pts with learned weights) is part of the eval function's
+// core output. Skipping it would create a systematic gap of up to 88 pts between
+// the root eval (which includes it) and every internal node eval (which wouldn't),
+// causing the bot to misjudge lines that the adaptive weights care about.
+//
+// ES: skipMemory=true omite extractFeatures()+getFeatureScore() en nodos internos.
+// Esas funciones construyen ~450 chars de strings por llamada — el verdadero cuello
+// de botella. applyWeights() NO se omite: es aritmética O(1) y su aporte (hasta
+// ±88 pts con pesos aprendidos) es parte core del eval. Omitirla crearía una
+// inconsistencia sistemática de hasta 88 pts entre la raíz y los nodos internos.
 export function evaluate(state, hash, precomputedMaps = null, skipMemory = false) {
   const t = dbg.perf.start('evaluate');
   const board = state.board;
@@ -367,6 +376,28 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
   score += kingRecentMovePenalty(state);
   score -= repetitionPenalty(hash, Array.isArray(state.history) ? state.history : []);
 
+  // ── OPT-12: Adaptive memory with proper granularity ──────────────────────────
+  //
+  // Bug in the naive skipMemory approach: skipping ALL of adaptiveMemory would
+  // also skip applyWeights(), which contributes up to ±88 pts (with weights up
+  // to 2.0 × 44 pts) and is O(1) arithmetic — no string allocation.
+  // Only extractFeatures() + getFeatureScore() are expensive: they allocate
+  // ~450 chars of strings and do Map lookups. Those are skipped in internal nodes.
+  //
+  // Split:
+  //   ALWAYS: applyWeights(metrics)   — O(1), consistent eval across all nodes
+  //   SKIP when skipMemory=true:
+  //     extractFeatures()              — ~225 chars × 2 sides = ~450 chars allocated
+  //     getFeatureScore()              — Map<string,…> lookup on that string
+  //
+  // ES: Bug del enfoque naive: omitir TODO adaptiveMemory también omite
+  // applyWeights() (hasta ±88 pts, O(1) sin strings). Solo extractFeatures()
+  // y getFeatureScore() son caros (strings + Map lookup). Esos se omiten en
+  // nodos internos. applyWeights() SIEMPRE se aplica para consistencia del eval.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // metrics is needed for applyWeights() regardless of skipMemory
+  // ES: metrics se necesita para applyWeights() sin importar skipMemory
   const metrics = {
     palacePressure:  safeRatio(blackPalacePressure, whitePalacePressure),
     pieceActivity:   safeRatio(blackMap.mobilityCount.total, whiteMap.mobilityCount.total),
@@ -377,18 +408,19 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
     riverControl:    safeRatio(blackRiver + 1, whiteRiver + 1),
   };
 
-  // OPT-12: Solo aplicar adaptiveMemory si skipMemory es false.
-  // En nodos del árbol de búsqueda (skipMemory=true) se omite extractFeatures()
-  // que construye strings de ~600 chars. Ahorra ~30% de tiempo en evaluate().
-  // ES: Only apply adaptiveMemory if skipMemory is false.
-  // In search tree nodes (skipMemory=true), extractFeatures() building ~600-char
-  // strings is skipped. Saves ~30% time in evaluate().
-  if (!precomputedMaps && !skipMemory) {
-    const blackFk = extractFeatures(state, SIDE.BLACK);
-    const whiteFk = extractFeatures(state, SIDE.WHITE);
-    score += adaptiveMemory.getFeatureScore(blackFk, phaseFactor);
-    score -= adaptiveMemory.getFeatureScore(whiteFk, phaseFactor);
+  if (!precomputedMaps) {
+    // applyWeights: O(1) arithmetic — always run, keeps eval consistent across nodes
+    // ES: applyWeights: aritmética O(1) — siempre se ejecuta, mantiene eval consistente
     score += adaptiveMemory.applyWeights(metrics);
+
+    // extractFeatures + getFeatureScore: expensive strings — skip in internal nodes
+    // ES: extractFeatures + getFeatureScore: strings caros — omitir en nodos internos
+    if (!skipMemory) {
+      const blackFk = extractFeatures(state, SIDE.BLACK);
+      const whiteFk = extractFeatures(state, SIDE.WHITE);
+      score += adaptiveMemory.getFeatureScore(blackFk, phaseFactor);
+      score -= adaptiveMemory.getFeatureScore(whiteFk, phaseFactor);
+    }
   }
   dbg.perf.end(t);
   return { score, metrics };

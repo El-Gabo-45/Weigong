@@ -130,7 +130,7 @@ app.post('/api/learnFromGames', async (_req, res) => {
 
 // ── FIX-2 + FIX-3: learnFromGamesDirect — lógica extraída para llamarla
 // directamente desde selfPlay sin un fetch() interno.
-// FIX-3: lectura de archivos en paralelo con Promise.all() en lugar de for+await.
+// ── FIX-3: lectura de archivos en paralelo con Promise.all() en lugar de for+await.
 // ES: lógica de aprendizaje directa (sin fetch interno) + lectura paralela.
 async function learnFromGamesDirect() {
   await ensureMemoryFile();
@@ -521,7 +521,7 @@ function encodeBoardForNN(board) {
   return enc;
 }
 
-// FIX-6: cloneStateForBot unificado — versión canónica usada tanto por server.js
+// ── FIX-6: cloneStateForBot unificado — versión canónica usada tanto por server.js
 // como referencia para selfplay.js. Incluye todos los campos requeridos por el motor.
 // ES: versión única de cloneStateForBot — evita divergencia entre archivos.
 function cloneStateForBot(state) {
@@ -567,7 +567,7 @@ function cloneStateForBot(state) {
   };
 }
 
-// FIX-1: resolveAmbushAuto ahora sí captura piezas a reserva cuando corresponde.
+// ── FIX-1: resolveAmbushAuto ahora sí captura piezas a reserva cuando corresponde.
 // El bug original dejaba las piezas capturadas por el arquero sin ir a la reserva
 // del bot, lo que rompía la paridad de material entre servidor y cliente.
 // ES: ambush resolution correcta — las capturas del arquero van a la reserva.
@@ -643,6 +643,7 @@ app.post('/api/botMove', async (req, res) => {
   try {
     const { state: clientState, difficulty } = req.body;
     const state = cloneStateForBot(clientState);
+    const originalState = cloneStateForBot(clientState);
     const params = getBotParams(difficulty || 5);
 
     const { move, score } = chooseBlackBotMove(state, params);
@@ -653,9 +654,9 @@ app.post('/api/botMove', async (req, res) => {
     // devolver el movimiento. Si el bot devuelve coordenadas inválidas (por
     // ejemplo por timeout en searchRoot con referencia corrupta), se rechaza.
     // ES: validate source square has own piece before returning move.
-    if (!isValidBotMove(state, move)) {
+    if (!isValidBotMove(originalState, move)) {
       console.warn(`[botMove] Invalid move returned by AI — using fallback:`, move);
-      const fallbackMoves = getAllLegalMoves(state, state.turn);
+      const fallbackMoves = getAllLegalMoves(originalState, originalState.turn);
       if (fallbackMoves.length > 0) {
         const fm = fallbackMoves[0];
         const fallback = fm.fromReserve

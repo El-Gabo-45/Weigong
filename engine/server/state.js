@@ -1,4 +1,4 @@
-// FIX-10: Ruta corregida — era '../src/constants.js', que no existe en el codebase.
+// ── FIX-10: Ruta corregida — era '../src/constants.js', que no existe en el codebase.
 // ES: ruta corregida a '../constants.js' para consistencia con el resto del proyecto.
 import { BOARD_SIZE, SIDE } from '../constants.js';
 import { createGame } from '../rules/index.js';
@@ -89,7 +89,7 @@ export function clearSelection() {
   V.pendingAmbush = null;
 }
 
-// FIX-9: Los console.log con document.getElementById se mueven dentro de una
+// ── FIX-9: Los console.log con document.getElementById se mueven dentro de una
 // función init() para que state.js sea importable en Node.js sin crashear.
 // Llama a initDOMRefs() desde tu punto de entrada del frontend después del DOMContentLoaded.
 // ES: DOM refs movidas a función lazy — evita crash en Node donde document no existe.

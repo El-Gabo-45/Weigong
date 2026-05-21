@@ -85,10 +85,8 @@ export function computeFullHash(state) {
 }
 
 // ── TranspositionTable with two-bucket aging ──────────────────────────────────
-//
-// OPT-TT: Replaced the previous sort-based eviction (O(n log n), blocking) with
+// ── OPT-TT: Replaced the previous sort-based eviction (O(n log n), blocking) with
 // a two-bucket (generation) scheme inspired by Stockfish's TT design.
-//
 // How it works:
 //   - The table is divided into two equal halves: buckets[0] and buckets[1].
 //   - currentBucket alternates each time the table fills (every maxSize/2 inserts).
@@ -99,14 +97,10 @@ export function computeFullHash(state) {
 //   - Lookups check both buckets so recently-flipped entries are still found.
 //   - Depth-preferred replacement: on collision within the same bucket, keep the
 //     entry with the higher depth (more valuable search result).
-//
 // Compared to the old design:
-//   OLD: [...map.entries()].sort() on every overflow → O(n log n), ~1ms stall
-//   NEW: bucket.clear() on flip → O(n/2), amortized O(1) per insert, no sort
-//
+// OLD: [...map.entries()].sort() on every overflow → O(n log n), ~1ms stall
+// NEW: bucket.clear() on flip → O(n/2), amortized O(1) per insert, no sort
 // ES: Two-bucket aging para la tabla de transposición.
-// Evita el sort O(n log n) del diseño anterior usando dos mitades alternadas.
-// ─────────────────────────────────────────────────────────────────────────────
 export class TranspositionTable {
   constructor(maxSize = 500_000) {
     this.maxSize       = maxSize;

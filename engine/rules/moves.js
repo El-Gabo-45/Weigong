@@ -3,25 +3,9 @@ import { isPalaceCursedFor } from './state.js';
 import { isKingInCheck } from './check.js';
 
 // ── OPT-ARCHER: Pre-computed archer-protection set ───────────────────────────
-//
-// OLD: getLegalMovesForSquare called isSquareProtectedByArcher() once per
-//      candidate move. That function scans the full 13×13 board looking for
-//      archers — O(169) per call. With N candidates per piece and P pieces:
-//      O(P × N × 169) cell reads per ply just for archer filtering.
-//      Typical: 30 pieces × 20 candidates × 169 = ~100 k reads/ply.
-//
-// NEW: _buildArcherProtected() scans once and stores attacked squares as
-//      numeric keys (r*BOARD_SIZE+c) in a module-level Set (no allocation).
-//      Lookups are O(1).  Total cost per getLegalMovesForSquare call:
-//      O(169) build  +  O(N) lookups  →  ~20× fewer cell reads.
-//
-// The Set is module-level; it is cleared at the start of each build and only
-// read in the initial filter pass, before the king-check loop mutates the board.
-//
-// ES: Precomputa el conjunto de casillas protegidas por arqueros enemigos una
-// vez por llamada en lugar de escanear O(169) veces por movimiento candidato.
-// El Set es reutilizable (nivel de módulo) — cero alocaciones por llamada.
-// ─────────────────────────────────────────────────────────────────────────────
+// OLD: getLegalMovesForSquare called isSquareProtectedByArcher() once per candidate move.
+// NEW: _buildArcherProtected() scans once and stores attacked squares in a module-level Set.
+// ES: Precomputa la protección de arqueros una vez por llamada en lugar de O(169) veces por movimiento.
 const _archerProtected = new Set();
 
 function _buildArcherProtected(board, side) {

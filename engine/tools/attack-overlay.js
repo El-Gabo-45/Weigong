@@ -4,7 +4,6 @@
 // ES: ATTACK OVERLAY — Visualize attacked squares, control heat,
 //  piece influence lines, and tactical threats on the live board.
 // ES: piece influence lines, and tactical threats on the live board.
-//
 //  How it works: injects a transparent SVG layer over #board.
 // ES: How it works: injects a transparent SVG layer over #board.
 //  Reads the live game state from state.js and ai/evaluation.js.

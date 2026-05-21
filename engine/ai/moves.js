@@ -41,7 +41,10 @@ for (let i = 0; i < UNDO_POOL_SIZE; i++) {
     turn: null, lastMove: null,
     reservesW: null, reservesB: null,
     palaceTaken: null, palaceTimers: null, palaceCurse: null,
-    history: null, hash: null, eval: null,
+    history: null, positionHistory: null, lastRepeatedMoveKey: null, repeatMoveCount: 0,
+    archerAmbush: null, selected: null, legalMoves: null, promotionRequest: null,
+    message: null, status: null,
+    hash: null, eval: null,
   });
 }
 
@@ -52,7 +55,10 @@ function acquireUndo() {
   u.turn = null; u.lastMove = null;
   u.reservesW = null; u.reservesB = null;
   u.palaceTaken = null; u.palaceTimers = null; u.palaceCurse = null;
-  u.history = null; u.hash = null; u.eval = null;
+  u.history = null; u.positionHistory = null; u.lastRepeatedMoveKey = null; u.repeatMoveCount = 0;
+  u.archerAmbush = null; u.selected = null; u.legalMoves = null; u.promotionRequest = null;
+  u.message = null; u.status = null;
+  u.hash = null; u.eval = null;
   return u;
 }
 
@@ -93,6 +99,15 @@ export function makeMove(state, move, promote, currentHash, currentEval = null) 
   undo.palaceTimers = state.palaceTimers ? { white: { ...state.palaceTimers.white }, black: { ...state.palaceTimers.black } } : null;
   undo.palaceCurse = state.palaceCurse ? { white: { ...state.palaceCurse.white }, black: { ...state.palaceCurse.black } } : null;
   undo.history = state.history ? [...state.history] : [];
+  undo.positionHistory = state.positionHistory instanceof Map ? new Map(state.positionHistory) : state.positionHistory;
+  undo.lastRepeatedMoveKey = state.lastRepeatedMoveKey ?? null;
+  undo.repeatMoveCount = state.repeatMoveCount ?? 0;
+  undo.archerAmbush = state.archerAmbush ?? null;
+  undo.selected = state.selected ?? null;
+  undo.legalMoves = state.legalMoves ? [...state.legalMoves] : [];
+  undo.promotionRequest = state.promotionRequest ?? null;
+  undo.message = state.message ?? null;
+  undo.status = state.status ?? null;
   undo.cellCount = 0;
 
   if (!move.fromReserve && from && state.board[from.r]?.[from.c]) {
@@ -165,8 +180,20 @@ export function unmakeMove(state, { undo }) {
     const cell = undo.cells[i];
     state.board[cell.r][cell.c] = cell.p;
   }
-  state.turn = undo.turn; state.lastMove = undo.lastMove; state.history = undo.history;
-  state.palaceTaken = undo.palaceTaken; state.palaceTimers = undo.palaceTimers;
+  state.turn = undo.turn;
+  state.lastMove = undo.lastMove;
+  state.history = undo.history;
+  state.positionHistory = undo.positionHistory;
+  state.lastRepeatedMoveKey = undo.lastRepeatedMoveKey;
+  state.repeatMoveCount = undo.repeatMoveCount;
+  state.archerAmbush = undo.archerAmbush;
+  state.selected = undo.selected;
+  state.legalMoves = undo.legalMoves;
+  state.promotionRequest = undo.promotionRequest;
+  state.message = undo.message;
+  state.status = undo.status;
+  state.palaceTaken = undo.palaceTaken;
+  state.palaceTimers = undo.palaceTimers;
   if (undo.reservesW !== null) state.reserves.white = undo.reservesW;
   if (undo.reservesB !== null) state.reserves.black = undo.reservesB;
   if (undo.palaceCurse) state.palaceCurse = undo.palaceCurse;
@@ -215,13 +242,9 @@ export function seeValue(piece) {
 }
 
 // ── OPT-SEE: findBestAttacker now iterates Uint8Array directly ───────────────
-// Old: iterated the Map-compatible wrapper emitting "r,c" string keys,
-//      then parsed each key with indexOf(',') + slice + unary plus.
-//      Cost: one string allocation + 3 string ops per occupied cell.
-// New: iterate byPiece._arr (Uint8Array, 169 entries) with integer arithmetic.
-//      Cost: 1 integer divide + 1 modulo per non-zero cell. Zero allocations.
+// OLD: iterated the Map-compatible wrapper emitting "r,c" string keys and parsing them.
+// NEW: iterate byPiece._arr (Uint8Array) with integer arithmetic.
 // ES: Iteración directa de Uint8Array — sin strings intermedios ni parsing.
-// ─────────────────────────────────────────────────────────────────────────────
 function findBestAttacker(board, attackMap, side) {
   let bestVal = Infinity, bestR = -1, bestC = -1, bestPiece = null;
   const arr = attackMap.byPiece._arr;   // Uint8Array(169)

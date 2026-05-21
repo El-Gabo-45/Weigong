@@ -151,11 +151,9 @@ export function getLegalReserveDrops(state, side) {
   if (reserve.length === 0) return out;
 
   // ── OPT-ARCHER: Build archer protection set once for the entire drop loop ──
-  // OLD: called isSquareProtectedByArcher(state, r, c, enemy) for every empty
-  //      square × every reserve piece — up to reserve.length × 169² cell reads.
+  // OLD: called isSquareProtectedByArcher(state, r, c, enemy) for every empty square and every reserve piece.
   // NEW: one O(169) scan, then O(1) Set lookup per square.
   // ES: Una sola pasada O(169) para construir el Set; luego O(1) por casilla.
-  // ──────────────────────────────────────────────────────────────────────────
   const enemy = opponent(side);
   const ef = forwardDir(enemy);
   const _archerSet = new Set();
