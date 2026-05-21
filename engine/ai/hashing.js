@@ -84,23 +84,68 @@ export function computeFullHash(state) {
   return h;
 }
 
+// ── TranspositionTable with two-bucket aging ──────────────────────────────────
+//
+// OPT-TT: Replaced the previous sort-based eviction (O(n log n), blocking) with
+// a two-bucket (generation) scheme inspired by Stockfish's TT design.
+//
+// How it works:
+//   - The table is divided into two equal halves: buckets[0] and buckets[1].
+//   - currentBucket alternates each time the table fills (every maxSize/2 inserts).
+//   - New entries always go into currentBucket.
+//   - When currentBucket is full, it is cleared entirely and currentBucket flips.
+//     This amortizes eviction cost to O(1) per insert (occasional full-bucket clear
+//     is O(maxSize/2) but that's the same total work spread differently).
+//   - Lookups check both buckets so recently-flipped entries are still found.
+//   - Depth-preferred replacement: on collision within the same bucket, keep the
+//     entry with the higher depth (more valuable search result).
+//
+// Compared to the old design:
+//   OLD: [...map.entries()].sort() on every overflow → O(n log n), ~1ms stall
+//   NEW: bucket.clear() on flip → O(n/2), amortized O(1) per insert, no sort
+//
+// ES: Two-bucket aging para la tabla de transposición.
+// Evita el sort O(n log n) del diseño anterior usando dos mitades alternadas.
+// ─────────────────────────────────────────────────────────────────────────────
 export class TranspositionTable {
   constructor(maxSize = 500_000) {
-    this.map     = new Map();
-    this.maxSize = maxSize;
-    this.age     = 0;
+    this.maxSize       = maxSize;
+    this.halfSize      = (maxSize / 2) | 0;
+    this.buckets       = [new Map(), new Map()];
+    this.currentBucket = 0;
+    // Legacy .map accessor for size logging in bot.js
+    // ES: Acceso legacy .map para logging en bot.js
+    this.map = {
+      get size() { return this._tt.buckets[0].size + this._tt.buckets[1].size; },
+      _tt: this,
+    };
   }
+
   get(key) {
-    const e = this.map.get(key);
-    if (e) e.age = this.age++;
-    return e;
+    // Check current bucket first (most recent), then the other
+    // ES: Buscar primero en el bucket actual (más reciente), luego en el otro
+    return this.buckets[this.currentBucket].get(key)
+        ?? this.buckets[this.currentBucket ^ 1].get(key)
+        ?? undefined;
   }
+
   set(key, value) {
-    if (this.map.size >= this.maxSize) {
-      const toRemove = Math.floor(this.maxSize * 0.1);
-      const entries  = [...this.map.entries()].sort((a,b) => a[1].age - b[1].age);
-      for (let i = 0; i < toRemove; i++) this.map.delete(entries[i][0]);
+    const bucket = this.buckets[this.currentBucket];
+
+    // Depth-preferred replacement: if the key already exists in the current bucket,
+    // only overwrite if the new entry has equal or greater depth.
+    // ES: Reemplazo preferente por profundidad: solo sobreescribir si la nueva
+    // entrada tiene profundidad igual o mayor.
+    const existing = bucket.get(key);
+    if (existing && existing.depth > value.depth) return;
+
+    bucket.set(key, value);
+
+    // When current bucket is full, rotate to the other one
+    // ES: Cuando el bucket actual está lleno, rotar al otro
+    if (bucket.size >= this.halfSize) {
+      this.currentBucket ^= 1;
+      this.buckets[this.currentBucket].clear();
     }
-    this.map.set(key, { ...value, age: this.age++ });
   }
 }

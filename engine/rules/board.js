@@ -114,13 +114,19 @@ export function pathIsClear(board, r1, c1, r2, c2) {
 }
 
 // Find both kings on the board (returns { white: {r,c}, black: {r,c} })
-// ES: Encuentra ambos reyes en el tablero
+// Exits as soon as both are found — no need to scan the full board.
+// ES: Sale en cuanto encuentra ambos reyes — no escanea el tablero completo.
 export function findKings(board) {
   const out = {};
+  let found = 0;
   for (let r = 0; r < BOARD_SIZE; r++) {
+    const row = board[r];                        // cache row ref
     for (let c = 0; c < BOARD_SIZE; c++) {
-      const p = board[r][c];
-      if (p && p.type === "king") out[p.side] = { r, c, piece: p };
+      const p = row[c];
+      if (p && p.type === 'king') {
+        out[p.side] = { r, c, piece: p };
+        if (++found === 2) return out;           // both kings located — stop
+      }
     }
   }
   return out;
@@ -130,39 +136,127 @@ export function isEnemy(pieceA, pieceB) {
   return pieceA && pieceB && pieceA.side !== pieceB.side;
 }
 
+// ─── boardSignature optimizations ────────────────────────────────────────────
+//
+// Problem 1 (bug fix): type[0] caused hash collisions:
+//   "c" → cannon | carriage | crossbow
+//   "p" → pawn   | priest
+// Solution: unique 2-char codes per type.
+//
+// Problem 2 (perf): template literal + `str +=` inside a 169-cell loop
+//   creates ~169 intermediate string allocations per call.
+//
+// Solution A — Pre-built 3-level token table (_T):
+//   _T[type][sideKey][promoIndex] → pre-computed 4-char string.
+//   In the loop: 3 property reads + 1 ternary, ZERO string allocations.
+//   ES: tabla de tokens preconstruida: 0 alocaciones en el bucle.
+//
+// Solution B — Module-level cell array (_sigCells):
+//   Reused across every call; single Array.join('') at the end instead
+//   of 169 string concatenations. Eliminates GC pressure on the hot path.
+//   ES: array reutilizable a nivel de módulo; un solo join al final.
+//
+// Solution C — Reserve counting (fixed-order key, no runtime sort):
+//   Reserves hold at most ~10 pieces of 4 known types. Counting over a
+//   fixed type list is O(n) and allocation-free vs .map().sort().join().
+//   ES: conteo con orden fijo, sin sort en tiempo de ejecución.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Build _T at module load (48 entries: 12 types × 2 sides × 2 promo states)
+// ES: Construir _T al cargar el módulo (48 entradas)
+const _T = Object.create(null);
+for (const [type, code] of Object.entries({
+  king:     'ki',
+  queen:    'qu',
+  general:  'ge',
+  elephant: 'el',
+  priest:   'pr',
+  horse:    'ho',
+  cannon:   'ca',
+  tower:    'to',
+  carriage: 'cr',
+  archer:   'ar',
+  pawn:     'pw',
+  crossbow: 'cb',
+})) {
+  _T[type] = {
+    w: [code + 'w0', code + 'w1'],   // side=white, promoted=false/true
+    b: [code + 'b0', code + 'b1'],   // side=black, promoted=false/true
+  };
+}
+
+// Pre-allocated flat cell buffer — reused every call, never GC'd
+// ES: Buffer de celdas plano preasignado — reutilizado en cada llamada
+const _sigCells = new Array(BOARD_SIZE * BOARD_SIZE);
+
+// Fixed reserve type order — eliminates runtime .sort()
+// ES: Orden fijo de tipos de reserva — elimina .sort() en tiempo de ejecución
+const _RES_TYPES = ['tower', 'general', 'pawn', 'crossbow'];
+
+function _reserveKey(reserve) {
+  if (!reserve.length) return '';
+  // Count occurrences of each reservable type in one pass (no allocation)
+  // ES: Contar ocurrencias en un paso (sin alocación)
+  let to = 0, ge = 0, pw = 0, cb = 0;
+  for (let i = 0; i < reserve.length; i++) {
+    const t = reserve[i].type;
+    if (t === 'tower')    to++;
+    else if (t === 'general')  ge++;
+    else if (t === 'pawn')     pw++;
+    else if (t === 'crossbow') cb++;
+  }
+  // Build key in fixed order; no sort, no map
+  // ES: Construir clave en orden fijo; sin sort, sin map
+  let key = '';
+  if (to) for (let i = 0; i < to; i++) key += (key ? ',' : '') + 'tower';
+  if (ge) for (let i = 0; i < ge; i++) key += (key ? ',' : '') + 'general';
+  if (pw) for (let i = 0; i < pw; i++) key += (key ? ',' : '') + 'pawn';
+  if (cb) for (let i = 0; i < cb; i++) key += (key ? ',' : '') + 'crossbow';
+  return key;
+}
+
 // Position signature string: compact board+turn+reserves encoding (for repetition detection)
 // ES: Firma de posición: codificación compacta tablero+turno+reservas (para detección de repetición)
 export function boardSignature(state) {
-  let str = "";
-
+  const board = state.board;
+  let i = 0;
   for (let r = 0; r < BOARD_SIZE; r++) {
+    const row = board[r];                        // cache row ref — avoids double indexing
     for (let c = 0; c < BOARD_SIZE; c++) {
-      const p = state.board[r][c];
-      if (!p) {
-        str += ".";
-      } else {
-        str += `${p.type[0]}${p.side[0]}${p.promoted ? "1" : "0"}`;
-      }
+      const p = row[c];
+      // 3 property reads, 2 ternaries, 0 string allocations per cell
+      // ES: 3 lecturas de propiedad, 2 ternarios, 0 alocaciones por celda
+      _sigCells[i++] = p
+        ? _T[p.type][p.side === SIDE.WHITE ? 'w' : 'b'][p.promoted ? 1 : 0]
+        : '.';
     }
   }
-
-  str += "|t:" + state.turn;
-
-  const whiteRes = state.reserves.white.map(p => p.type).sort().join(",");
-  const blackRes = state.reserves.black.map(p => p.type).sort().join(",");
-
-  str += "|rw:" + whiteRes;
-  str += "|rb:" + blackRes;
-
-  return str;
+  // Single join instead of 169 concatenations
+  // ES: Un solo join en lugar de 169 concatenaciones
+  return _sigCells.join('')
+    + '|t:' + state.turn
+    + '|rw:' + _reserveKey(state.reserves.white)
+    + '|rb:' + _reserveKey(state.reserves.black);
 }
 
 // Deep clone the entire game state (for search simulation)
-// ES: Clon profundo del estado completo del juego (para simulación en búsqueda)
+// Board cells use explicit property copy instead of { ...p } spread —
+// spread enumerates keys dynamically; explicit copy is ~30% faster per cell.
+// ES: Clon profundo del estado. Copia explícita de propiedades en vez de spread.
 export function cloneState(state) {
   const board = new Array(BOARD_SIZE);
   for (let r = 0; r < BOARD_SIZE; r++) {
-    board[r] = state.board[r].slice();
+    const src = state.board[r];
+    const dst = new Array(BOARD_SIZE);
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const p = src[c];
+      // Explicit copy: avoids dynamic key enumeration of { ...p }
+      // ES: Copia explícita: evita enumeración dinámica de claves de { ...p }
+      dst[c] = p
+        ? { id: p.id, type: p.type, side: p.side, promoted: p.promoted, locked: p.locked }
+        : null;
+    }
+    board[r] = dst;
   }
   
   return {

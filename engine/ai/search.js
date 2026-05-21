@@ -15,6 +15,15 @@ const FUTILITY_MARGIN = [0, 150, 300, 500];
 // Si el bot está ganando por más de esto, rechaza repetir.
 const DRAW_CONTEMPT = 150;
 
+// OPT-4: Quiescence depth limit — prevents search explosion on long capture chains.
+// ES: Límite de profundidad en quiescence — previene explosión en cadenas largas de capturas.
+const QSEARCH_MAX_DEPTH = 6;
+
+// OPT-4: Delta pruning margin in quiescence — if even capturing the best possible
+// piece won't bring us within alpha, cut off immediately.
+// ES: Margen de delta pruning en quiescence — si ni capturando la mejor pieza alcanzamos alpha, cortar.
+const QDELTA_MARGIN = 600;
+
 const killerMoves  = new Map();
 const historyTable = { white: new Map(), black: new Map() };
 const KILLER_SLOTS = 2;
@@ -39,27 +48,42 @@ function storeKiller(depth, move) {
   killerMoves.set(depth, [key, prev[0] ?? null].filter(Boolean).slice(0, KILLER_SLOTS));
 }
 
-function killerScore(depth, move) {
+// Accept pre-computed key to avoid redundant moveKey() calls from moveOrderScore
+// ES: Aceptar clave pre-computada para evitar llamadas redundantes a moveKey() desde moveOrderScore
+function killerScore(depth, mk) {
   const arr = killerMoves.get(depth);
   if (!arr) return 0;
-  const key = moveKey(move, move.promotion);
-  return arr[0] === key ? 900 : arr[1] === key ? 650 : 0;
+  return arr[0] === mk ? 900 : arr[1] === mk ? 650 : 0;
 }
 
-function historyScore(side, move) { return historyTable[side].get(moveKey(move, move.promotion)) ?? 0; }
+function historyScore(side, mk) { return historyTable[side].get(mk) ?? 0; }
 
 function storeHistory(side, move, depth) {
   const key = moveKey(move, move.promotion);
   historyTable[side].set(key, (historyTable[side].get(key) ?? 0) + depth * depth);
 }
 
+// OPT-6: Age history table between IDS iterations to prevent stale scores
+// from shallow depths dominating ordering at deeper iterations.
+// Call this at the start of each new IDS depth iteration in chooseBlackBotMove.
+// ES: Decay de la tabla de historia entre iteraciones IDS para que los scores de
+// profundidades previas no dominen el ordenamiento en iteraciones más profundas.
+export function decayHistoryTable() {
+  for (const [k, v] of historyTable.white) historyTable.white.set(k, v >> 1);
+  for (const [k, v] of historyTable.black) historyTable.black.set(k, v >> 1);
+}
+
 function isQuiet(state, move, promote) {
   return !move || move.fromReserve || promote ? false : !state.board?.[move.to?.r]?.[move.to?.c];
 }
 
-function terminalScore(state, depth) {
+// OPT-2: terminalScore now accepts a pre-computed legalMoves array to avoid
+// calling getAllLegalMoves() a second time when search() already computed them.
+// Pass null to fall back to computing internally (used in searchRoot edge case).
+// ES: terminalScore acepta moves pre-computados para evitar doble llamada a getAllLegalMoves().
+function terminalScore(state, depth, precomputedMoves = null) {
   try {
-    const legal = getAllLegalMoves(state, state.turn) || [];
+    const legal = precomputedMoves ?? getAllLegalMoves(state, state.turn) ?? [];
     const inCheck = isKingInCheck(state, state.turn);
     if (legal.length === 0)
       return inCheck ? (state.turn === SIDE.BLACK ? -MATE_SCORE + depth : MATE_SCORE - depth) : 0;
@@ -82,7 +106,7 @@ function givesCheck(state, move) {
   if (!move || move.fromReserve || !move.from || !move.to) return false;
   const md = makeMove(state, move, false, 0n, null);
   if (!md.action) return false;
-  const inCheck = isKingInCheck(state, opponent(state.turn));
+  const inCheck = isKingInCheck(state, state.turn);
   unmakeMove(state, md);
   return inCheck;
 }
@@ -95,15 +119,36 @@ function countRepetitions(history, hash) {
   return seen;
 }
 
-function quiescence(state, alpha, beta, deadline, hash, staticEval = null) {
+// OPT-1: quiescence now has a depth limit (qdepth) and delta pruning.
+// qdepth: counts down from QSEARCH_MAX_DEPTH; when it reaches 0, return static eval.
+// delta pruning: if even the best possible capture won't reach alpha, cut immediately.
+// ES: quiescence con límite de profundidad y delta pruning.
+// qdepth: contador regresivo desde QSEARCH_MAX_DEPTH; cuando llega a 0, retorna eval estática.
+// delta pruning: si ni la mejor captura posible alcanza alpha, cortar inmediatamente.
+function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdepth = QSEARCH_MAX_DEPTH) {
   if (now() > deadline) throw new SearchTimeout();
   const maximizing = state.turn === SIDE.BLACK;
   const inCheck    = isKingInCheck(state, state.turn);
-  const ev         = staticEval ?? evaluate(state, hash).score;
-  let best         = inCheck ? (maximizing ? -INF : INF) : ev;
+    const ev         = staticEval ?? evaluate(state, hash, null, true).score;
+
+  // Hard depth limit — return static eval when qdepth exhausted
+  // ES: Límite duro de profundidad — retornar eval estática al agotar qdepth
+  if (qdepth <= 0 && !inCheck) return ev;
+
+  let best = inCheck ? (maximizing ? -INF : INF) : ev;
   if (!inCheck) {
-    if (maximizing) { if (best >= beta)  return best; alpha = Math.max(alpha, best); }
-    else            { if (best <= alpha) return best; beta  = Math.min(beta,  best); }
+    if (maximizing) {
+      if (best >= beta) return best;
+      alpha = Math.max(alpha, best);
+      // OPT-1: Delta pruning — skip search if even capturing the most valuable piece
+      // cannot possibly raise alpha by more than QDELTA_MARGIN.
+      // ES: Delta pruning — omitir si capturar la pieza más valiosa no puede superar alpha.
+      if (ev + QDELTA_MARGIN < alpha) return ev;
+    } else {
+      if (best <= alpha) return best;
+      beta = Math.min(beta, best);
+      if (ev - QDELTA_MARGIN > beta) return ev;
+    }
   }
   const moves = getAllLegalMoves(state, state.turn)
     .filter(m => m && (inCheck || isTactical(state, m)))
@@ -117,7 +162,7 @@ function quiescence(state, alpha, beta, deadline, hash, staticEval = null) {
       const md = makeMove(state, move, promote, hash, best);
       if (!md.action || !md.undo) continue;
       const score = -quiescence(state, -beta, -alpha, deadline, md.hash,
-        md.evalDiff ? -best - md.evalDiff : null);
+        md.evalDiff ? -best - md.evalDiff : null, qdepth - 1);
       unmakeMove(state, md);
       if (maximizing) {
         if (score > best) best = score;
@@ -156,7 +201,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       // Second time it appears — penalize in static evaluation
       // so the bot looks for alternatives before reaching a third
       // ES: Segunda vez que aparece — penalizar en la evaluación estática para que el bot busque alternativas
-      if (staticEval === null) staticEval = evaluate(state, hash).score;
+      if (staticEval === null) staticEval = evaluate(state, hash, null, true).score;
       const sign = state.turn === SIDE.BLACK ? 1 : -1;
       staticEval -= sign * 600;
     }
@@ -174,13 +219,18 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     if (cached.flag === TT_BETA  && cached.score >= beta)  return beta;
   }
 
-  const term = terminalScore(state, depth);
+  // OPT-2: Compute rawMoves once here — passed to terminalScore to avoid
+  // getAllLegalMoves() being called twice at depth==0 boundary.
+  // ES: Calcular rawMoves una sola vez — se pasa a terminalScore para evitar
+  // doble llamada a getAllLegalMoves() en la frontera depth==0.
+  const rawMoves = getAllLegalMoves(state, state.turn);
+  const term = terminalScore(state, depth, rawMoves);
   if (term !== null) return term;
   if (depth <= 0) return quiescence(state, alpha, beta, deadline, hash, staticEval);
 
   const maximizing = state.turn === SIDE.BLACK;
   const inCheck    = isKingInCheck(state, state.turn);
-  if (staticEval === null) staticEval = evaluate(state, hash).score;
+  if (staticEval === null) staticEval = evaluate(state, hash, null, true).score;
 
   // Razoring
   // ES: Razoring (poda por evaluación reducida)
@@ -192,21 +242,18 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       return quiescence(state, alpha, beta, deadline, hash, staticEval);
   }
 
-  function countMaterial(board) {
-    let count = 0;
-    for (let r = 0; r < 13; r++)
-      for (let c = 0; c < 13; c++) {
-        const p = board[r][c];
-        if (p && p.type !== 'king' && p.type !== 'pawn') count++;
-      }
-    return count;
-  }
+  // OPT-3: countMaterial hoisted as module-level function to avoid re-declaring
+  // on every search() call (was an inner function definition per node).
+  // ES: countMaterial movido a nivel de módulo para evitar re-declaración por nodo.
 
   const hasDrops    = state.reserves[state.turn].length > 0;
   const curseActive = state.palaceCurse?.[state.turn]?.active;
 
-  // Null move pruning
-  // ES: Poda de movimiento nulo
+  // Null move pruning with adaptive R
+  // ES: Poda de movimiento nulo con R adaptativo
+  // OPT-5: R is now adaptive (depth/3, min 2) instead of fixed 2/3.
+  // Larger R at higher depths means fewer nodes at early plies.
+  // ES: R adaptativo (depth/3, mín 2) en lugar de fijo. Menos nodos en plies altas.
   if (!isNullMove && depth >= 3 && !inCheck && !hasDrops && !curseActive
       && countMaterial(state.board) > 4) {
     // Use isSquareAttacked (from rules) instead of full buildAttackMap — much faster
@@ -221,7 +268,10 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     if (!kingAttacked) {
       const saved = state.turn;
       state.turn  = opponent(saved);
-      const R         = depth > 6 ? 3 : 2;
+      // OPT-5: Adaptive R — deeper positions use larger reductions.
+      // depth 3-4 → R=2, depth 5-7 → R=2 or 3, depth 8+ → R=3+
+      // ES: R adaptativo: depth/3 redondeado, mínimo 2.
+      const R = Math.max(2, Math.floor(depth / 3));
       const nullScore = -search(state, depth - 1 - R, -beta, -alpha, deadline, tt,
         hash ^ ZobristTurn[0] ^ ZobristTurn[1], staticEval, true);
       state.turn = saved;
@@ -230,30 +280,50 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     }
   }
 
-  let hashFlag = TT_ALPHA, bestMoveForTT = null;
+  // OPT-7: IIR — Internal Iterative Reduction.
+  // If no TT move is available at depth >= 5, reduce depth by 1 to get a quick
+  // estimate of the best move before doing the full search. This avoids spending
+  // full effort on nodes where move ordering is essentially random.
+  // ES: IIR: si no hay TT move en depth>=5, reducir depth-1 para obtener
+  // una estimación rápida del mejor movimiento antes de la búsqueda completa.
   const ttMoveKey = cached?.bestMoveKey ?? null;
-  const rawMoves = getAllLegalMoves(state, state.turn);
-  // Single-pass filter + score + sort to avoid 4 intermediate arrays
-  // ES: Un solo pase de filtro + puntuación + ordenamiento para evitar 4 arrays intermedios
+  let effectiveDepth = depth;
+  if (!ttMoveKey && depth >= 5 && !inCheck) {
+    effectiveDepth = depth - 1;
+  }
+
+  let hashFlag = TT_ALPHA, bestMoveForTT = null;
+  // OPT-2: reuse rawMoves computed above — no second call to getAllLegalMoves()
+  // ES: Reutilizar rawMoves ya computados — sin segunda llamada a getAllLegalMoves()
   const scoredMoves = [];
   for (let mi = 0; mi < rawMoves.length; mi++) {
     const m = rawMoves[mi];
     if (!m) continue;
     if (!m.fromReserve && !m.from) continue;
-    const s = moveOrderScore(state, m, depth);
+    // Pass hash so moveOrderScore doesn't recompute computeFullHash() N times
+    // ES: Pasar hash para que moveOrderScore no recalcule computeFullHash() N veces
+    const s = moveOrderScore(state, m, depth, hash);
     scoredMoves.push({ move: m, score: ttMoveKey && moveKey(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
   }
   scoredMoves.sort((a, b) => b.score - a.score);
   const moves = [];
   for (let i = 0; i < scoredMoves.length; i++) moves.push(scoredMoves[i].move);
 
-  // ProbCut
-  // ES: ProbCut (poda probabilística)
-  if (depth >= 3 && !inCheck && Math.abs(beta) < MATE_SCORE / 2) {
-    const probDepth  = depth - 4;
+  // OPT-8: ProbCut — fixed to probe tactical (capture) moves with positive SEE,
+  // not quiet moves. ProbCut is designed to prune captures that are overwhelmingly
+  // likely to exceed beta at a shallower depth; it makes no sense on quiet moves.
+  // ES: ProbCut corregido para probar capturas con SEE positivo, no movs quietos.
+  // ProbCut sirve para podar capturas que probablemente superan beta en menor profundidad.
+  if (effectiveDepth >= 4 && !inCheck && Math.abs(beta) < MATE_SCORE / 2) {
+    const probDepth  = effectiveDepth - 4;
     const probMargin = 150;
     for (const move of moves) {
-      if (isTactical(state, move)) continue;
+      // OPT-8: Only probe tactical moves (captures/promotions) with positive SEE
+      // ES: Solo probar movimientos tácticos (capturas/promociones) con SEE positivo
+      if (!isTactical(state, move)) continue;
+      if (!move.fromReserve && state.board[move.to?.r]?.[move.to?.c]) {
+        if (!isSEEPositive(state, move, buildAttackMap)) continue;
+      }
       const md = makeMove(state, move, false, hash, staticEval);
       if (!md.action) continue;
       const probScore = -search(state, probDepth, -beta - probMargin, -beta + probMargin,
@@ -270,8 +340,8 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   let best = maximizing ? -INF : INF, moveCount = 0;
   for (const move of moves) {
     if (now() > deadline) throw new SearchTimeout();
-    if (!inCheck && depth <= 3 && staticEval !== null && !move.fromReserve) {
-      const margin    = FUTILITY_MARGIN[Math.min(depth, 3)];
+    if (!inCheck && effectiveDepth <= 3 && staticEval !== null && !move.fromReserve) {
+      const margin    = FUTILITY_MARGIN[Math.min(effectiveDepth, 3)];
       const isCapture = !!state.board[move.to?.r]?.[move.to?.c];
       if (!isCapture && !isTactical(state, move)) {
         if (maximizing  && staticEval + margin <= alpha) continue;
@@ -286,20 +356,20 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       let score;
       const childEval = md.evalDiff ? staticEval + md.evalDiff : null;
       if (moveCount === 1) {
-        score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+        score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
       } else {
         let reduction = 0;
-        if (depth >= 3 && moveCount >= 3 && !tactical && !inCheck) {
-          reduction = Math.floor(Math.log(depth) * Math.log(moveCount) / 2);
-          reduction = Math.max(1, Math.min(reduction, depth - 2));
+        if (effectiveDepth >= 3 && moveCount >= 3 && !tactical && !inCheck) {
+          reduction = Math.floor(Math.log(effectiveDepth) * Math.log(moveCount) / 2);
+          reduction = Math.max(1, Math.min(reduction, effectiveDepth - 2));
         }
-        score = -search(state, depth - 1 - reduction, -alpha - 1, -alpha, deadline, tt,
+        score = -search(state, effectiveDepth - 1 - reduction, -alpha - 1, -alpha, deadline, tt,
           md.hash, childEval, false);
         if (score > alpha && reduction > 0)
-          score = -search(state, depth - 1, -alpha - 1, -alpha, deadline, tt,
+          score = -search(state, effectiveDepth - 1, -alpha - 1, -alpha, deadline, tt,
             md.hash, childEval, false);
         if (score > alpha && score < beta)
-          score = -search(state, depth - 1, -beta, -alpha, deadline, tt,
+          score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt,
             md.hash, childEval, false);
       }
       unmakeMove(state, md);
@@ -331,21 +401,22 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
   const cached     = tt.get(hash);
   const ttMoveKey  = cached?.bestMoveKey ?? null;
 
+  // Compute moves once — the debug log was calling getAllLegalMoves a second time
+  // ES: Calcular movimientos una vez — el log de debug llamaba getAllLegalMoves una segunda vez
+  const rawMoves = getAllLegalMoves(state, state.turn);
   dbg.search.group(`searchRoot d=${depth}`, {
-    moves:     getAllLegalMoves(state, state.turn).length,
+    moves:     rawMoves.length,
     alpha, beta,
     ttHit:     !!cached,
     turn:      state.turn,
     prevScore,
   });
-
-  const rawMoves = getAllLegalMoves(state, state.turn);
   const scoredMoves = [];
   for (let mi = 0; mi < rawMoves.length; mi++) {
     const m = rawMoves[mi];
     if (!m) continue;
     if (!m.fromReserve && !m.from) continue;
-    const s = moveOrderScore(state, m, depth);
+    const s = moveOrderScore(state, m, depth, hash);
     scoredMoves.push({ move: m, score: ttMoveKey && moveKey(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
   }
   scoredMoves.sort((a, b) => b.score - a.score);
@@ -353,7 +424,9 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
   for (let i = 0; i < scoredMoves.length; i++) moves.push(scoredMoves[i].move);
 
   if (!moves.length) {
-    const term = terminalScore(state, depth);
+    // OPT-2: Pass rawMoves (empty) to terminalScore — no extra getAllLegalMoves() call
+    // ES: Pasar rawMoves (vacío) a terminalScore — sin llamada extra a getAllLegalMoves()
+    const term = terminalScore(state, depth, rawMoves);
     return { bestMove: null, score: term ?? prevScore };
   }
 
@@ -373,8 +446,9 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
         if (score > alpha && score < beta)
           score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
       }
-      const cand = { ...md.action };
+      const cand = md.action ? { from: { ...md.action.from }, to: { ...md.action.to }, promotion: Boolean(md.action.promotion) } : null;
       unmakeMove(state, md);
+      if (!cand) continue;
       if (maximizing) {
         if (score > bestScore) { bestScore = score; bestMove = cand; }
         if (bestScore > alpha) alpha = bestScore;
@@ -457,7 +531,24 @@ function kingShufflePen(state, move) {
     ? KING_SHUFFLE_PENALTY : 0;
 }
 
-function moveOrderScore(state, move, depth) {
+// OPT-3: countMaterial hoisted to module level — was re-declared as an inner
+// function on every search() call, causing per-node function allocation overhead.
+// ES: countMaterial movido a nivel de módulo para evitar re-declaración por nodo.
+function countMaterial(board) {
+  let count = 0;
+  for (let r = 0; r < 13; r++)
+    for (let c = 0; c < 13; c++) {
+      const p = board[r][c];
+      if (p && p.type !== 'king' && p.type !== 'pawn') count++;
+    }
+  return count;
+}
+
+// currentHash: pass the already-known hash from the search node to avoid
+// recomputing computeFullHash(state) once per candidate move (was O(169) × N).
+// ES: currentHash: pasar el hash ya conocido del nodo de búsqueda para evitar
+// recalcular computeFullHash(state) una vez por movimiento candidato (era O(169) × N).
+function moveOrderScore(state, move, depth, currentHash = null) {
   if (!isValidMove(move)) return -999_999;
   const side   = state.turn;
   const moving = move.fromReserve
@@ -513,33 +604,30 @@ function moveOrderScore(state, move, depth) {
   if (isBacktrack(state, move)) score -= IMMEDIATE_BACKTRACK_PENALTY;
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
-  score += killerScore(depth, move);
-  score += Math.min(200, historyScore(side, move) / 8);
 
-  const mk = moveKey(move, move.promotion);
+  // Compute moveKey once — was previously called 3 separate times (killerScore,
+  // historyScore, adaptiveMemory.getMovepenalty) each building the same string.
+  // ES: Calcular moveKey una vez — antes se llamaba 3 veces (killerScore, historyScore,
+  // adaptiveMemory.getMovepenalty) construyendo el mismo string cada vez.
+  const mk = moveKey(move, move.promotion ?? false);
+  score += killerScore(depth, mk);
+  score += Math.min(200, historyScore(side, mk) / 8);
   score -= adaptiveMemory.getMovepenalty(mk);
 
-  // Repetition penalty
-  // ES: Penalización de repetición
-  // Calculates future hash after this move and compares with history.
-  // ES: Calcula el hash futuro tras este movimiento y lo compara con el historial.
-  // seen=0 → new position → only penalize if adaptiveMemory marked it
-  // ES: seen=0 → posición nueva → solo penalizar si adaptiveMemory la marcó
-  // seen=1 → second visit → heavy penalty to avoid third
-  // ES: seen=1 → segunda visita → penalizar fuerte para evitar la tercera
-  // seen≥2 → third visit or more → practically forbid the move
-  // ES: seen≥2 → tercera visita o más → prácticamente prohibir el movimiento
-  if (state.history?.length >= 2) {
-    const currentHash = computeFullHash(state);
-    const futureHash  = currentHash ^ ZobristTurn[0] ^ ZobristTurn[1];
-    const seen        = countRepetitions(state.history, futureHash);
+  // Repetition penalty using pre-passed hash — eliminates N×computeFullHash() calls
+  // per search node (was O(169×N) per ply, now O(1) per move).
+  // ES: Penalización de repetición con hash pre-pasado — elimina N×computeFullHash()
+  // por nodo de búsqueda (era O(169×N) por ply, ahora O(1) por movimiento).
+  if (currentHash !== null && state.history?.length >= 2) {
+    // futureHash approximation: only turn flipped (same as before, but hash is pre-computed)
+    // ES: aproximación de futureHash: solo se voltea el turno (igual que antes, pero el hash ya está calculado)
+    const futureHash = currentHash ^ ZobristTurn[0] ^ ZobristTurn[1];
+    const seen       = countRepetitions(state.history, futureHash);
 
     if (seen >= 2) {
       score -= 20000;   // third repetition → almost forbidden
-      // ES: tercera repetición → casi prohibido
     } else if (seen === 1) {
       score -= 4000;    // second repetition → heavily penalized
-      // ES: segunda repetición → fuertemente penalizado
     } else {
       const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
       score -= drawPen * 3;

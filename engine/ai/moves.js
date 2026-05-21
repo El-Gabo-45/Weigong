@@ -7,7 +7,6 @@ import {
 } from './hashing.js';
 
 // ── Reusable board pool for SEE ──
-// ES: Pool de tableros reutilizables para SEE
 const BOARD_POOL_SIZE = 64;
 let boardPoolIdx = 0;
 const boardPool = [];
@@ -27,15 +26,11 @@ function copyBoard(dst, src) {
   for (let r = 0; r < 13; r++) {
     const rowDst = dst[r];
     const rowSrc = src[r];
-    for (let c = 0; c < 13; c++) {
-      rowDst[c] = rowSrc[c];
-    }
+    for (let c = 0; c < 13; c++) rowDst[c] = rowSrc[c];
   }
   return dst;
 }
 
-// ── Undo pool ──
-// ES: Pool de objetos undo reutilizables
 const UNDO_POOL_SIZE = 4096;
 let undoPoolIdx = 0;
 const undoPool = [];
@@ -80,14 +75,10 @@ export function makeMove(state, move, promote, currentHash, currentEval = null) 
   const from = move.from ?? null, to = move.to ?? null;
   const undo = acquireUndo();
   undo.turn = state.turn;
-  // BUGFIX: clone lastMove to avoid mutation by applyMove
-  // ES: clonar lastMove para evitar mutación por applyMove
   undo.lastMove = state.lastMove ? { from: state.lastMove.from ? { ...state.lastMove.from } : null, to: state.lastMove.to ? { ...state.lastMove.to } : null } : null;
   undo.hash = currentHash;
   undo.eval = currentEval;
 
-  // Clonar reservas solo si hay piezas
-  // ES: Clonar reservas solo si hay piezas
   const rw = state.reserves.white;
   const rb = state.reserves.black;
   if (rw.length > 0 || rb.length > 0) {
@@ -101,8 +92,6 @@ export function makeMove(state, move, promote, currentHash, currentEval = null) 
   undo.palaceTaken = state.palaceTaken ? { white: state.palaceTaken.white, black: state.palaceTaken.black } : null;
   undo.palaceTimers = state.palaceTimers ? { white: { ...state.palaceTimers.white }, black: { ...state.palaceTimers.black } } : null;
   undo.palaceCurse = state.palaceCurse ? { white: { ...state.palaceCurse.white }, black: { ...state.palaceCurse.black } } : null;
-  // BUGFIX: Clone history array to preserve snapshot
-  // ES: Clonar el array de historial para preservar el snapshot
   undo.history = state.history ? [...state.history] : [];
   undo.cellCount = 0;
 
@@ -225,31 +214,26 @@ export function seeValue(piece) {
   return PIECE_VALUES[piece.type] ?? 0;
 }
 
-// Stack of reusable attacker arrays to avoid GC + recursion corruption
-// ES: Stack de arrays de atacantes reutilizables para evitar GC + corrupción por recursión
-const ATTACKER_STACK_DEPTH = 32;
-let attackerStackIdx = 0;
-const attackerStack = [];
-for (let i = 0; i < ATTACKER_STACK_DEPTH; i++) {
-  const arr = [];
-  for (let j = 0; j < 64; j++) arr.push({ r: 0, c: 0, val: 0, piece: null });
-  attackerStack.push(arr);
-}
-
+// ── OPT-SEE: findBestAttacker now iterates Uint8Array directly ───────────────
+// Old: iterated the Map-compatible wrapper emitting "r,c" string keys,
+//      then parsed each key with indexOf(',') + slice + unary plus.
+//      Cost: one string allocation + 3 string ops per occupied cell.
+// New: iterate byPiece._arr (Uint8Array, 169 entries) with integer arithmetic.
+//      Cost: 1 integer divide + 1 modulo per non-zero cell. Zero allocations.
+// ES: Iteración directa de Uint8Array — sin strings intermedios ni parsing.
+// ─────────────────────────────────────────────────────────────────────────────
 function findBestAttacker(board, attackMap, side) {
-  // Single pass: find the lowest-value attacker (no sort needed)
-  // ES: Un solo pase: encontrar el atacante de menor valor (sin ordenar)
   let bestVal = Infinity, bestR = -1, bestC = -1, bestPiece = null;
-  for (const [pos, val] of attackMap.byPiece) {
-    if (val <= 0) continue;
-    const comma = pos.indexOf(',');
-    const pr = +pos.slice(0, comma);
-    const pc = +pos.slice(comma + 1);
-    if (board[pr]?.[pc]?.side === side) {
-      const v = seeValue(board[pr][pc]);
-      if (v < bestVal) {
-        bestVal = v; bestR = pr; bestC = pc; bestPiece = board[pr][pc];
-      }
+  const arr = attackMap.byPiece._arr;   // Uint8Array(169)
+  for (let _i = 0; _i < 169; _i++) {
+    if (!arr[_i]) continue;
+    const pr = (_i / 13) | 0;
+    const pc = _i % 13;
+    const p = board[pr]?.[pc];
+    if (!p || p.side !== side) continue;
+    const v = seeValue(p);
+    if (v < bestVal) {
+      bestVal = v; bestR = pr; bestC = pc; bestPiece = p;
     }
   }
   if (bestR < 0) return null;
@@ -278,8 +262,6 @@ export function isSEEPositive(state, move, buildAttackMap) {
   if (piece && (piece.type === 'archer' || piece.type === 'cannon')) return true;
   if (state.palaceCurse?.[state.turn]?.active) return true;
   const targetVal = seeValue(target);
-  // Use pooled board instead of creating new one
-  // ES: Usar tablero del pool en lugar de crear uno nuevo
   const boardCopy = copyBoard(acquireBoard(), state.board);
   const attackerSide = opponent(state.turn);
   const attackMap = buildAttackMap(boardCopy, attackerSide);
@@ -290,12 +272,8 @@ export function isSEEPositive(state, move, buildAttackMap) {
 function normalizeMove(move, promote) {
   if (!move) return null;
   if (move.fromReserve) {
-    // Clone to avoid reference corruption in state.lastMove
-    // ES: Clonar para evitar corrupción de referencia en state.lastMove
     return { fromReserve: true, reserveIndex: move.reserveIndex, to: { r: move.to.r, c: move.to.c }, promotion: false };
   }
   if (!move.from || !move.to) return null;
-  // Cloned objects so applyMove can't mutate shared references
-  // ES: Objetos clonados para que applyMove no pueda mutar referencias compartidas
   return { from: { r: move.from.r, c: move.from.c }, to: { r: move.to.r, c: move.to.c }, promotion: Boolean(promote) };
 }

@@ -1,7 +1,46 @@
 import { BOARD_SIZE, SIDE, forwardDir, onBank, isOwnSide, inBounds, isRiverSquare, opponent } from '../constants.js';
 import { isPalaceCursedFor } from './state.js';
-import { isSquareProtectedByArcher } from './archer.js';
 import { isKingInCheck } from './check.js';
+
+// ── OPT-ARCHER: Pre-computed archer-protection set ───────────────────────────
+//
+// OLD: getLegalMovesForSquare called isSquareProtectedByArcher() once per
+//      candidate move. That function scans the full 13×13 board looking for
+//      archers — O(169) per call. With N candidates per piece and P pieces:
+//      O(P × N × 169) cell reads per ply just for archer filtering.
+//      Typical: 30 pieces × 20 candidates × 169 = ~100 k reads/ply.
+//
+// NEW: _buildArcherProtected() scans once and stores attacked squares as
+//      numeric keys (r*BOARD_SIZE+c) in a module-level Set (no allocation).
+//      Lookups are O(1).  Total cost per getLegalMovesForSquare call:
+//      O(169) build  +  O(N) lookups  →  ~20× fewer cell reads.
+//
+// The Set is module-level; it is cleared at the start of each build and only
+// read in the initial filter pass, before the king-check loop mutates the board.
+//
+// ES: Precomputa el conjunto de casillas protegidas por arqueros enemigos una
+// vez por llamada en lugar de escanear O(169) veces por movimiento candidato.
+// El Set es reutilizable (nivel de módulo) — cero alocaciones por llamada.
+// ─────────────────────────────────────────────────────────────────────────────
+const _archerProtected = new Set();
+
+function _buildArcherProtected(board, side) {
+  _archerProtected.clear();
+  const f = forwardDir(side);
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    const row = board[r];
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const p = row[c];
+      if (!p || p.type !== 'archer' || p.side !== side || !onBank(side, r)) continue;
+      const blockRow = r + 2 * f;
+      if (blockRow < 0 || blockRow >= BOARD_SIZE) continue;
+      for (let dc = -1; dc <= 1; dc++) {
+        const bc = c + dc;
+        if (bc >= 0 && bc < BOARD_SIZE) _archerProtected.add(blockRow * BOARD_SIZE + bc);
+      }
+    }
+  }
+}
 
 export function addIfValid(moves, board, piece, fromR, fromC, toR, toC, opts = {}) {
   if (!inBounds(toR, toC)) return;
@@ -314,29 +353,42 @@ export function getLegalMovesForSquare(state, r, c, opts = {}) {
 
   let moves = pseudoMovesForPiece(board, piece, r, c, state);
 
-  if (['archer', 'carriage'].includes(piece.type)) {
-    moves = moves.filter(m => isOwnSide(piece.side, m.r));
-  }
+  // ── OPT: all three initial filters rewritten as in-place write-index loops ──
+  // .filter() always allocates a new array.  Write-index compacts in-place and
+  // avoids that allocation (the moves array is already a fresh array from
+  // pseudoMovesForPiece, so mutation here is safe).
+  // ES: Los tres filtros iniciales ahora compactan el array in-place (sin .filter()).
 
-  moves = moves.filter(m => !isRiverSquare(m.r));
+  // Filter 1: own-side constraint for archer and carriage
+  const restrictToOwnSide = piece.type === 'archer' || piece.type === 'carriage';
+  // Filter 2: no landing on river
+  // Filter 3: no landing on own pieces
+  // Filter 4: no landing on archer-protected squares (OPT-ARCHER: pre-built set)
+  _buildArcherProtected(board, opponent(piece.side));
 
-  moves = moves.filter(m => {
+  let wi = 0;
+  const len = moves.length;
+  for (let i = 0; i < len; i++) {
+    const m = moves[i];
+    if (restrictToOwnSide && !isOwnSide(piece.side, m.r)) continue;
+    if (isRiverSquare(m.r)) continue;
     const target = board[m.r][m.c];
-    if (target && target.side === piece.side) return false;
-    return true;
-  });
-  moves = moves.filter(m => {
-    if (isSquareProtectedByArcher(board, m.r, m.c, opponent(piece.side))) return false;
-    return true;
-  });
-
-  if (opts.skipKingCheck) {
-    return moves;
+    if (target && target.side === piece.side) continue;
+    // O(1) Set lookup replaces O(169) board scan per move
+    if (_archerProtected.has(m.r * BOARD_SIZE + m.c)) continue;
+    moves[wi++] = m;
   }
+  moves.length = wi;
 
+  if (opts.skipKingCheck) return moves;
+
+  // ── King-check filter: in-place board mutation (no clone) ──────────────────
+  // Uses write-index into a separate `legal` array since we can't reuse
+  // `moves` here (isKingInCheck reads the board while we mutate it).
   const legal = [];
   const origFrom = board[r][c];
-  for (const move of moves) {
+  for (let i = 0; i < moves.length; i++) {
+    const move = moves[i];
     const origTo = board[move.r][move.c];
     board[r][c] = null;
     board[move.r][move.c] = piece;

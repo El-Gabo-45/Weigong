@@ -77,7 +77,6 @@ function notation(state, move, promote = false, ambushInfo = null, originalPiece
 
   const sym = p.promoted ? (PROMO_SYMBOLS[p.type] ?? SYMS[p.type]) : SYMS[p.type];
 
-  // ── Caso arquero con emboscada ──
   if (p.type === 'archer' && ambushInfo) {
     const options = ambushInfo.options || [];
     if (options.length === 0) return `A${toStr}`;
@@ -107,7 +106,6 @@ function notation(state, move, promote = false, ambushInfo = null, originalPiece
     return nota;
   }
 
-  // ── Notación normal ──
   const target = capturedPiece;
   let n = sym;
   if (target && target.side !== p.side) {
@@ -195,7 +193,10 @@ function resolveAmbush(ambush, side, state) {
   }
 }
 
-/* ─── Clonar estado para el bot ─── */
+// FIX-6: cloneStateForBot unificado — misma implementación que server.js.
+// Incluye todos los campos que el motor necesita (promotionRequest, archerAmbush,
+// history, positionHistory). La versión anterior en selfplay.js omitía algunos.
+// ES: versión canónica que incluye todos los campos requeridos por el motor.
 function cloneStateForBot(state) {
   const board = new Array(13);
   for (let r = 0; r < 13; r++) {
@@ -207,15 +208,18 @@ function cloneStateForBot(state) {
   }
   return {
     board,
-    turn:        state.turn,
+    turn: state.turn,
+    selected: null,
+    legalMoves: [],
     reserves: {
       white: state.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
       black: state.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
     },
-    palaceTaken:  { white: state.palaceTaken.white,  black: state.palaceTaken.black  },
+    promotionRequest: null,
+    palaceTaken:  { white: state.palaceTaken?.white ?? false, black: state.palaceTaken?.black ?? false },
     palaceTimers: {
-      white: { ...state.palaceTimers.white },
-      black: { ...state.palaceTimers.black },
+      white: { ...state.palaceTimers?.white ?? { pressure: 0, invaded: false, attackerSide: null } },
+      black: { ...state.palaceTimers?.black ?? { pressure: 0, invaded: false, attackerSide: null } },
     },
     palaceCurse: state.palaceCurse ? {
       white: { active: state.palaceCurse.white.active, turnsInPalace: state.palaceCurse.white.turnsInPalace },
@@ -226,12 +230,10 @@ function cloneStateForBot(state) {
     repeatMoveCount:     state.repeatMoveCount ?? 0,
     history:             state.history ? [...state.history] : [],
     positionHistory:     state.positionHistory instanceof Map
-                           ? new Map(state.positionHistory)
-                           : new Map(),
-    status:     state.status,
-    selected:   null,
-    legalMoves: [],
-    message:    '',
+                           ? new Map(state.positionHistory) : new Map(),
+    status:      state.status,
+    message:     '',
+    archerAmbush: null,
   };
 }
 
@@ -264,23 +266,27 @@ function appendCurseNotation(state) {
         const loc = `${COLS[act.c]}${13 - act.r}`;
         parts.push(`${sym}${loc}`);
       }
-      if (parts.length > 0) {
-        suffix += '&' + parts.join('&') + '-';
-      }
+      if (parts.length > 0) suffix += '&' + parts.join('&') + '-';
     }
   }
   return suffix || '';
 }
 
+// FIX-8: boardSnapshot compacto — en lugar de 169 objetos {t, promoted} por turno,
+// usa un string de 169 × 3 chars (tipo+side+promo) que es mucho más liviano en memoria
+// y serialización. El receptor puede parsearlo si necesita hacer diff.
+// ES: snapshot compacto en string plano — mucho menos overhead de GC que 169 objetos.
 function boardSnapshot(board) {
-  const snap = new Array(169);
+  let s = '';
   for (let r = 0; r < 13; r++) {
     for (let c = 0; c < 13; c++) {
       const p = board[r][c];
-      snap[r * 13 + c] = p ? { t: p.type[0] + p.side[0], promoted: p.promoted ? 1 : 0 } : null;
+      if (!p) { s += '...'; continue; }
+      // tipo[0] + side[0] + promoted(0/1) — 3 chars por celda, 507 total
+      s += p.type[0] + p.side[0] + (p.promoted ? '1' : '0');
     }
   }
-  return snap;
+  return s;
 }
 
 /* ─── Captura el estado mínimo para el timeline ─── */
@@ -310,9 +316,7 @@ export async function playSelfPlayGame(botParams) {
     const currentHash = computeFullHash(state);
 
     const legalMoves = getAllLegalMoves(state, side);
-    if (legalMoves.length === 0) {
-      break;
-    }
+    if (legalMoves.length === 0) break;
 
     const stateCopy = cloneStateForBot(state);
     const { move: botMove } = chooseBotMove(stateCopy, botParams);
@@ -330,7 +334,9 @@ export async function playSelfPlayGame(botParams) {
       }) ?? null;
     }
 
-    const exploreChance = moves.length < 8  ? 0.5 : moves.length < 30 ? 0.15 : moves.length < 80 ? 0.05 : 0;
+    const exploreChance = moves.length < 8  ? 0.5
+                        : moves.length < 30 ? 0.15
+                        : moves.length < 80 ? 0.05 : 0;
 
     if (!move || Math.random() < exploreChance) {
       move = pickOpeningMove(legalMoves, state);
@@ -374,7 +380,6 @@ export async function playSelfPlayGame(botParams) {
     const evalResult = evaluate(state, newHash);
     const nnEncoding = encodeBoardForNN(state.board);
 
-    // ── Capturar stateAfter AQUÍ, después de afterMoveEvaluation ──
     const stateAfter = captureStateAfter(state);
 
     moves.push({
@@ -400,8 +405,6 @@ export async function playSelfPlayGame(botParams) {
     state.status  = 'draw_move_limit';
     state.message = 'Draw by movement limit (1000 moves).';
     markLastMoveNotation(moves, state);
-
-    // Actualizar el stateAfter del último move con el status final
     if (moves.length > 0) {
       moves[moves.length - 1].stateAfter = captureStateAfter(state);
     }
@@ -413,6 +416,9 @@ export async function playSelfPlayGame(botParams) {
     adaptiveMemory.recordDrawGame(moves, state.status);
   }
 
+  // FIX-11: boardSnapshot (~500 bytes) y stateAfter (~40KB) solo se usan en UI,
+  // nunca en aprendizaje o entrenamiento. Evitar serializarlos al worker.
+  // ES: omitir datos de UI en serialización para ahorrar ~40MB por partida.
   const serializedMoves = moves.map(m => ({
     side:          m.side,
     moveKeyStr:    m.moveKeyStr,
@@ -422,8 +428,6 @@ export async function playSelfPlayGame(botParams) {
     metrics:       m.metrics,
     notation:      m.notation,
     positionHash:  m.positionHash,
-    boardSnapshot: m.boardSnapshot,
-    stateAfter:    m.stateAfter,
     _nnFloat32:    m._nnFloat32 ? Array.from(m._nnFloat32) : undefined,
   }));
 

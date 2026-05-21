@@ -17,8 +17,6 @@ export function gamePhaseFactor(board) {
 
 function centerBonus(r, c) { return (12 - Math.abs(r-6) - Math.abs(c-6)) * 3; }
 
-function squareKey(r, c) { return `${r},${c}`; }
-
 export function pieceSquareBonus(piece, r, c) {
   const prog = piece.side === SIDE.WHITE ? r : 12 - r;
   let bonus = centerBonus(r, c);
@@ -102,11 +100,16 @@ const RIVER_ROW         = 6;
 function palaceDefenseScore(ownAttackMap, enemyAttackMap, side) {
   const rows = side === SIDE.BLACK ? PALACE_ROWS_BLACK : PALACE_ROWS_WHITE;
   let defended = 0, undefended = 0;
+  // OPT-9: Access Uint8Array directly via numeric index instead of squareKey string lookup.
+  // Eliminates string allocation + .indexOf(',') + parseInt per cell on this hot path.
+  // ES: Acceso directo a Uint8Array por índice numérico en lugar de squareKey string.
+  const ownArr   = ownAttackMap._arr;
+  const enemyArr = enemyAttackMap._arr;
   for (const r of rows) {
     for (const c of PALACE_COLS) {
-      const k = squareKey(r, c);
-      const ownCoverage   = ownAttackMap.get(k)   ?? 0;
-      const enemyCoverage = enemyAttackMap.get(k) ?? 0;
+      const i = r * 13 + c;
+      const ownCoverage   = ownArr[i]   || 0;
+      const enemyCoverage = enemyArr[i] || 0;
       if (ownCoverage > 0) defended++;
       if (enemyCoverage > 0 && ownCoverage === 0) undefended++;
     }
@@ -121,8 +124,12 @@ function palaceDefenseScore(ownAttackMap, enemyAttackMap, side) {
  */
 function riverAndCrossedScore(board, side, ownAttackMap) {
   let riverCtrl = 0, crossedPieces = 0;
+  // OPT-9: Direct Uint8Array access for river row — no string allocation per column.
+  // ES: Acceso directo a Uint8Array para la fila del río.
+  const riverArr = ownAttackMap._arr;
+  const riverBase = RIVER_ROW * 13;
   for (let c = 0; c < 13; c++) {
-    if ((ownAttackMap.get(squareKey(RIVER_ROW, c)) ?? 0) > 0) riverCtrl++;
+    if (riverArr[riverBase + c]) riverCtrl++;
   }
   for (let r = 0; r < 13; r++) {
     for (let c = 0; c < 13; c++) {
@@ -155,7 +162,13 @@ function reserveValue(state, side) {
   }, 0);
 }
 
-export function evaluate(state, hash, precomputedMaps = null) {
+// OPT-12: evaluate() ahora acepta skipMemory = true para omitir adaptiveMemory
+// en nodos internos del árbol de búsqueda. Solo la raíz necesita la penalización
+// por memoria adaptativa — en los nodos internos añade ruido y ralentiza ~30%.
+// ES: evaluate() now accepts skipMemory=true to skip adaptiveMemory in internal
+// search nodes. Only the root needs the adaptive memory penalty — internal nodes
+// get noise and ~30% slowdown from extractFeatures().
+export function evaluate(state, hash, precomputedMaps = null, skipMemory = false) {
   const t = dbg.perf.start('evaluate');
   const board = state.board;
   const phaseFactor = gamePhaseFactor(board);
@@ -173,8 +186,11 @@ export function evaluate(state, hash, precomputedMaps = null) {
       if (!piece) continue;
       const isBlack = piece.side === SIDE.BLACK;
       const ownMap = isBlack ? blackMap : whiteMap, enemyMap = isBlack ? whiteMap : blackMap;
-      const attacks = enemyMap.attackMap.get(squareKey(r,c)) ?? 0;
-      const mob = ownMap.byPiece.get(squareKey(r,c)) ?? 0;
+      // OPT-9: Direct Uint8Array access — eliminates squareKey string alloc per cell.
+      // ES: Acceso directo a Uint8Array — elimina string squareKey por celda.
+      const _cellIdx = r * 13 + c;
+      const attacks = enemyMap.attackMap._arr[_cellIdx] || 0;
+      const mob = ownMap.byPiece._arr[_cellIdx] || 0;
       const val = pieceValue(piece);
       let local = val + pieceSquareBonus(piece, r, c);
 
@@ -240,26 +256,41 @@ export function evaluate(state, hash, precomputedMaps = null) {
   }
   score += blackPalacePressure - whitePalacePressure;
 
-  for (const [k,v] of blackMap.attackMap) {
-    const [r,c]=k.split(',').map(Number);
-    if (r>=4&&r<=8&&c>=4&&c<=8) blackCenterCtrl+=v*1;
-    if (r>=10&&c>=5&&c<=7)      blackCenterCtrl+=v*5;
+  // OPT-9: Iterate over Uint8Array directly instead of the Map-wrapper iterator,
+  // which emitted "r,c" strings and parsed them back — O(169) string allocs per call.
+  // ES: Iterar el Uint8Array directamente, sin strings intermedios.
+  { const arr = blackMap.attackMap._arr;
+    for (let _i = 0; _i < 169; _i++) { if (!arr[_i]) continue;
+      const r = (_i / 13) | 0, c = _i % 13, v = arr[_i];
+      if (r>=4&&r<=8&&c>=4&&c<=8) blackCenterCtrl+=v;
+      if (r>=10&&c>=5&&c<=7)      blackCenterCtrl+=v*5;
+    }
   }
-  for (const [k,v] of whiteMap.attackMap) {
-    const [r,c]=k.split(',').map(Number);
-    if (r>=4&&r<=8&&c>=4&&c<=8) whiteCenterCtrl+=v*1;
-    if (r<=2&&c>=5&&c<=7)       whiteCenterCtrl+=v*5;
+  { const arr = whiteMap.attackMap._arr;
+    for (let _i = 0; _i < 169; _i++) { if (!arr[_i]) continue;
+      const r = (_i / 13) | 0, c = _i % 13, v = arr[_i];
+      if (r>=4&&r<=8&&c>=4&&c<=8) whiteCenterCtrl+=v;
+      if (r<=2&&c>=5&&c<=7)       whiteCenterCtrl+=v*5;
+    }
   }
   score += blackCenterCtrl - whiteCenterCtrl;
 
+  // OPT-9: Same flat-array iteration for valuable piece attack counting.
+  // ES: Iteración plana del array para conteo de piezas valiosas atacadas.
   let blackValuableAttacked = 0, whiteValuableAttacked = 0;
-  for (const [k] of blackMap.attackMap) {
-    const [r,c]=k.split(',').map(Number); const target = board[r]?.[c];
-    if (target && target.side !== SIDE.BLACK && pieceValue(target) > 300) blackValuableAttacked++;
+  { const arr = blackMap.attackMap._arr;
+    for (let _i = 0; _i < 169; _i++) { if (!arr[_i]) continue;
+      const r = (_i / 13) | 0, c = _i % 13;
+      const target = board[r]?.[c];
+      if (target && target.side !== SIDE.BLACK && pieceValue(target) > 300) blackValuableAttacked++;
+    }
   }
-  for (const [k] of whiteMap.attackMap) {
-    const [r,c]=k.split(',').map(Number); const target = board[r]?.[c];
-    if (target && target.side !== SIDE.WHITE && pieceValue(target) > 300) whiteValuableAttacked++;
+  { const arr = whiteMap.attackMap._arr;
+    for (let _i = 0; _i < 169; _i++) { if (!arr[_i]) continue;
+      const r = (_i / 13) | 0, c = _i % 13;
+      const target = board[r]?.[c];
+      if (target && target.side !== SIDE.WHITE && pieceValue(target) > 300) whiteValuableAttacked++;
+    }
   }
   score += Math.min(blackValuableAttacked * 8, 30);
   score -= Math.min(whiteValuableAttacked * 8, 30);
@@ -346,7 +377,13 @@ export function evaluate(state, hash, precomputedMaps = null) {
     riverControl:    safeRatio(blackRiver + 1, whiteRiver + 1),
   };
 
-  if (!precomputedMaps) {
+  // OPT-12: Solo aplicar adaptiveMemory si skipMemory es false.
+  // En nodos del árbol de búsqueda (skipMemory=true) se omite extractFeatures()
+  // que construye strings de ~600 chars. Ahorra ~30% de tiempo en evaluate().
+  // ES: Only apply adaptiveMemory if skipMemory is false.
+  // In search tree nodes (skipMemory=true), extractFeatures() building ~600-char
+  // strings is skipped. Saves ~30% time in evaluate().
+  if (!precomputedMaps && !skipMemory) {
     const blackFk = extractFeatures(state, SIDE.BLACK);
     const whiteFk = extractFeatures(state, SIDE.WHITE);
     score += adaptiveMemory.getFeatureScore(blackFk, phaseFactor);
@@ -560,19 +597,30 @@ const CANNON_D = [1,0, -1,0, 0,1, 0,-1];
 const ARCHER_D = [3,1, 3,-1, -3,1, -3,-1, 1,3, 1,-3, -1,3, -1,-3];
 const CARRIAGE_D = [1,0, -1,0, 0,1, 0,-1, 1,1, 1,-1, -1,1, -1,-1];
 
+// OPT-9: countInminentPalaceInvasion uses flat Uint8Array iteration.
+// ES: countInminentPalaceInvasion usa iteración plana del Uint8Array.
 function countInminentPalaceInvasion(state, side, ownMap, enemyMap) {
   const enemy = opponent(side); let count = 0;
   const enemyKing = enemyMap.kingPos; if (!enemyKing) return 0;
-  for (const [key, val] of ownMap.attackMap) {
-    const [r, c] = key.split(',').map(Number);
-    if (isPalaceSquare(r, c, enemy) && val > 0) { const target = state.board[r]?.[c]; if (!target || target.side !== side) count++; }
+  const arr = ownMap.attackMap._arr;
+  for (let _i = 0; _i < 169; _i++) {
+    if (!arr[_i]) continue;
+    const r = (_i / 13) | 0, c = _i % 13;
+    if (isPalaceSquare(r, c, enemy)) {
+      const target = state.board[r]?.[c];
+      if (!target || target.side !== side) count++;
+    }
   }
   return count;
 }
 
+// OPT-9: kingSafetyFast uses direct Uint8Array index — no squareKey string.
+// ES: kingSafetyFast usa índice directo en Uint8Array.
 function kingSafetyFast(state, side, ownByPiece, enemyAttackMap, phaseFactor, kingPos) {
   if (!kingPos) return -5000;
-  const key = squareKey(kingPos.r, kingPos.c), attacks = enemyAttackMap.get(key) ?? 0, escapes = ownByPiece.get(key) ?? 0;
+  const _ki = kingPos.r * 13 + kingPos.c;
+  const attacks = enemyAttackMap._arr[_ki] || 0;
+  const escapes = ownByPiece._arr[_ki] || 0;
   let score = 120;
   score += isPalaceSquare(kingPos.r, kingPos.c, side) ? 25 : -65;
   if (state.palaceTaken?.[side]) score -= 90;

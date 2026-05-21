@@ -22,15 +22,23 @@ let isTraining = false;
 async function ensureBinaries() {
   try {
     await fs.promises.access(TRAIN_BIN);
+    await fs.promises.access(path.join(NN_DIR, 'nn_gpu'));
   } catch {
-    console.log('⚙️  Compilando nn_train...');
+    console.log('⚙️ Compiling nn_train and nn_gpu...');
     const { execSync } = await import('node:child_process');
-    execSync('make nn_train nn_gpu', { cwd: NN_DIR, stdio: 'inherit' });
+
+    execSync('make nn_train nn_gpu', {
+      cwd: NN_DIR,
+      stdio: 'inherit',
+    });
   }
+
   try {
-    await fs.promises.access(path.join(NN_DIR, 'nn_kernel.cl'));
+    await fs.promises.access(KERNEL_FILE);
   } catch {
-    await fs.promises.copyFile(KERNEL_FILE, path.join(NN_DIR, 'nn_kernel.cl'));
+    throw new Error(
+      `Missing OpenCL kernel file: ${KERNEL_FILE}`
+    );
   }
 }
 
@@ -126,7 +134,11 @@ function buildTargets(game) {
       target = heuristic * 0.5;
     }
 
-    inputs.push(Array.from(move._nnFloat32));
+    // FIX-10: Garantizar que _nnFloat32 sea un Array plano, no Float32Array.
+    // Si es Float32Array, JSON.stringify lo serializa como objeto {"0":...,"1":...}
+    // en vez de [...,...], lo que rompe el parseo del binario C++.
+    // ES: convertir a Array si es necesario para serialización correcta.
+    inputs.push(Array.isArray(move._nnFloat32) ? move._nnFloat32 : Array.from(move._nnFloat32));
     scores.push(Math.max(-1, Math.min(1, target)));
   }
 

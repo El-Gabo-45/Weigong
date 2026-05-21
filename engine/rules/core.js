@@ -1,4 +1,3 @@
-
 // ═════════════════════════════════════════════════════
 //  Core Game Engine (EN/ES)
 // ES: Core Game Engine (EN/ES)
@@ -70,7 +69,13 @@ export function applyMove(state, action) {
     state.lastMove = { drop: true, piece: movingPiece.type, to };
   } else {
     movingPiece = board[from.r][from.c];
+    if (!movingPiece) {
+      throw new Error(`applyMove: invalid source square (${from?.r},${from?.c})`);
+    }
     const target = board[to.r][to.c];
+    if (target && target.side === movingPiece.side) {
+      throw new Error(`applyMove: attempted same-side capture from ${from.r},${from.c} to ${to.r},${to.c}`);
+    }
     if (target && target.side !== movingPiece.side) captureToReserve(state, target, movingPiece.side);
     board[to.r][to.c] = movingPiece;
     board[from.r][from.c] = null;
@@ -143,15 +148,37 @@ export function getAllLegalMoves(state, side) {
 export function getLegalReserveDrops(state, side) {
   const out = [];
   const reserve = state.reserves[side];
+  if (reserve.length === 0) return out;
+
+  // ── OPT-ARCHER: Build archer protection set once for the entire drop loop ──
+  // OLD: called isSquareProtectedByArcher(state, r, c, enemy) for every empty
+  //      square × every reserve piece — up to reserve.length × 169² cell reads.
+  // NEW: one O(169) scan, then O(1) Set lookup per square.
+  // ES: Una sola pasada O(169) para construir el Set; luego O(1) por casilla.
+  // ──────────────────────────────────────────────────────────────────────────
+  const enemy = opponent(side);
+  const ef = forwardDir(enemy);
+  const _archerSet = new Set();
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const p = state.board[r][c];
+      if (!p || p.type !== 'archer' || p.side !== enemy || !onBank(enemy, r)) continue;
+      const blockRow = r + 2 * ef;
+      if (blockRow < 0 || blockRow >= BOARD_SIZE) continue;
+      for (let dc = -1; dc <= 1; dc++) {
+        const bc = c + dc;
+        if (bc >= 0 && bc < BOARD_SIZE) _archerSet.add(blockRow * BOARD_SIZE + bc);
+      }
+    }
+  }
+
   for (let i = 0; i < reserve.length; i++) {
     const type = reserve[i].type;
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (state.board[r][c]) continue;
         if (type !== 'crossbow' && !canDropOnSide(type, side, r)) continue;
-        // BUGFIX: Cannot drop on squares protected by enemy archer
-        // ES: No se puede soltar en casillas protegidas por arquero enemigo
-        if (isSquareProtectedByArcher(state, r, c, opponent(side))) continue;
+        if (_archerSet.has(r * BOARD_SIZE + c)) continue;
         const tempPiece = { id: '_tmp', type, side, promoted: false, locked: false };
         state.board[r][c] = tempPiece;
         const removed = state.reserves[side].splice(i, 1)[0];

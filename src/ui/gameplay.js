@@ -8,6 +8,7 @@ import {
   applyMove, executeDrop, isPromotionAvailableForMove, afterMoveEvaluation,
   getBoardMeta, getPieceText, executeArcherAmbush, isKingInCheck,
   isPalaceCursedFor, getPalaceInvaders, getLegalReserveDrops,
+  getLegalMovesForSquare, isDropLegal,
 } from "../../engine/rules/index.js";
 import {
   chooseBlackBotMove, adaptiveMemory, loadAdaptiveMemory,
@@ -154,11 +155,11 @@ function boardSnapshot(board) {
 
 function serializeState(state) {
   return {
-    board: state.board.map(row => row.map(p => p ? { type: p.type, side: p.side, promoted: p.promoted } : null)),
+    board: state.board.map(row => row.map(p => p ? { type: p.type, side: p.side, promoted: p.promoted, locked: p.locked ?? false, id: p.id } : null)),
     turn: state.turn,
     reserves: {
-      white: state.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
-      black: state.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
+      white: state.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, locked: p.locked ?? false, id: p.id })),
+      black: state.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, locked: p.locked ?? false, id: p.id })),
     },
     palaceTaken: { white: state.palaceTaken.white, black: state.palaceTaken.black },
     palaceTimers: { white: { ...state.palaceTimers.white }, black: { ...state.palaceTimers.black } },
@@ -169,6 +170,8 @@ function serializeState(state) {
     lastMove: state.lastMove ? { ...state.lastMove } : null,
     history: state.history ? [...state.history] : [],
     positionHistory: [...(state.positionHistory?.entries() ?? [])],
+    lastRepeatedMoveKey: state.lastRepeatedMoveKey ?? null,
+    repeatMoveCount: state.repeatMoveCount ?? 0,
     status: state.status,
   };
 }
@@ -251,6 +254,19 @@ function captureToReserveAuto(st, captured, captorSide) {
   if (!isReserveType(type)) return;
   st.reserves[captorSide].push({ id: crypto.randomUUID(), type, side: captorSide });
 }
+function isSameMove(move, legalMove) {
+  if (!move || !legalMove) return false;
+  if (Boolean(move.fromReserve) !== Boolean(legalMove.fromReserve)) return false;
+  if (move.fromReserve) {
+    return move.reserveIndex === legalMove.reserveIndex && move.to.r === legalMove.to.r && move.to.c === legalMove.to.c;
+  }
+  return move.from?.r === legalMove.from?.r && move.from?.c === legalMove.from?.c && move.to?.r === legalMove.to?.r && move.to?.c === legalMove.to?.c;
+}
+function isBotMoveValid(state, move) {
+  if (!move) return false;
+  const legalMoves = getAllLegalMoves(state, state.turn);
+  return legalMoves.some(m => isSameMove(move, m));
+}
 function resolveAmbushAuto(ambush, side) {
   if (!ambush) return;
   if (ambush.type === 'autoCaptureAll') { for (const v of ambush.victims) { const p = state.board[v.r]?.[v.c]; if (p) { captureToReserveAuto(state, p, side); state.board[v.r][v.c] = null; } } }
@@ -290,18 +306,38 @@ async function runBotTurn() {
       return;
     }
 
-    const chosen = data.move;
+    let chosen = data.move;
+    if (!isBotMoveValid(state, chosen)) {
+      const legalMoves = getAllLegalMoves(state, state.turn);
+      console.warn('Bot returned invalid move, using fallback. received:', chosen, 'legalMoves:', legalMoves.length);
+      if (legalMoves.length > 0) {
+        const fm = legalMoves[0];
+        chosen = fm.fromReserve
+          ? { fromReserve: true, reserveIndex: fm.reserveIndex, to: { r: fm.to.r, c: fm.to.c }, promotion: fm.promotion ?? false }
+          : { from: { r: fm.from.r, c: fm.from.c }, to: { r: fm.to.r, c: fm.to.c }, promotion: fm.promotion ?? false };
+      } else {
+        console.error('Bot error: no legal fallback moves available.');
+        state.message = "Bot error: no hay movimientos legales.";
+        V.botThinking = false;
+        render();
+        return;
+      }
+    }
     const evalBefore = evaluate(state, computeFullHash(state)).score;
     let notation;
     if (chosen.fromReserve) {
       notation = generateMoveNotation(state, chosen);
-      if (!executeDrop(state, chosen.reserveIndex, chosen.to)) return;
+      if (!executeDrop(state, chosen.reserveIndex, chosen.to)) {
+        state.message = "Bot error: caída inválida.";
+        V.botThinking = false;
+        render();
+        return;
+      }
       afterMoveEvaluation(state);
       notation += appendCurseNotation(state);
       V.currentGameNotation.push(notation);
       markLastNotationForCurrentState();
     } else {
-      const piece = state.board[chosen.from.r][chosen.from.c];
       const botMove = { from: chosen.from, to: chosen.to, promotion: chosen.promotion ?? false };
       const capturedPiece = state.board[chosen.to.r][chosen.to.c];
       applyMove(state, botMove);

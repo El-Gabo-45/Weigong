@@ -7,28 +7,22 @@ const { botParams } = workerData;
   try {
     const result = await playSelfPlayGame(botParams);
 
-    // Serialize moves including _nnFloat32 for GPU training
-    // ES: Serializar moves incluyendo _nnFloat32 para entrenamiento GPU
-    // (transfer as Transferable for better performance)
-    // ES: (transferir como Transferable para mejor rendimiento)
+    // FIX-7: Usar índice ordinal (idx) en lugar de indexOf(m) que era O(n²).
+    // indexOf recorre el array entero por cada elemento → O(n²) para 1000 moves.
+    // Ahora simplemente enumeramos con el índice del for loop → O(n).
+    // ES: índice ordinal O(n) en lugar de indexOf O(n²).
     const nnData = [];
-    for (const m of result.moves) {
+    for (let idx = 0; idx < result.moves.length; idx++) {
+      const m = result.moves[idx];
       if (m._nnFloat32) {
         nnData.push({
-          turn: m.turn ?? result.moves.indexOf(m) + 1,
+          idx,
           nn: Array.from(m._nnFloat32),
         });
-        // Don't send the huge Float32Array
-        // ES: No enviar el Float32Array enorme
-        delete m._nnFloat32;
-        delete m.boardSnapshot;
       }
     }
 
-    // Add serialized NN data to the result so server.js can receive it
-    // ES: Agregar los datos NN serializados al resultado para que server.js los reciba
     result._nnFloat32 = nnData;
-
     parentPort.postMessage(result);
   } catch (e) {
     console.error('Worker error:', e);

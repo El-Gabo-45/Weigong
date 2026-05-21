@@ -1,7 +1,7 @@
 import { dbg } from '../debug/debug.js';
 import { SIDE } from '../constants.js';
 import { getAllLegalMoves } from '../rules/index.js';
-import { search, searchRoot, allocateTime, moveKey } from './search.js';
+import { search, searchRoot, allocateTime, moveKey, decayHistoryTable } from './search.js';
 import { computeFullHash, TranspositionTable } from './hashing.js';
 import { evaluate } from './evaluation.js';
 import { adaptiveMemory } from './memory.js';
@@ -27,6 +27,14 @@ export function chooseBlackBotMove(state, options = {}) {
   let remainingDepth = maxDepth;
   for (let depth = 1; depth <= remainingDepth; depth++) {
     if (now() > deadline) break;
+
+    // OPT-6: Decay history table at the start of each IDS iteration so that
+    // move scores from shallow depths don't dominate ordering at deeper ones.
+    // Halving via right-shift is allocation-free and takes ~0.01ms even at max size.
+    // ES: Decay de la tabla de historia al inicio de cada iteración IDS para que
+    // scores de profundidades bajas no dominen el ordenamiento en profundidades mayores.
+    decayHistoryTable();
+
     const allocated = allocateTime(startTime, timeLimitMs, 40 - depth);
     const localDeadline = Math.min(deadline, startTime + allocated + (now() - startTime));
     let alpha = prevScore - aspirationWindow, beta = prevScore + aspirationWindow;
@@ -45,7 +53,7 @@ export function chooseBlackBotMove(state, options = {}) {
           beta  =  Infinity; continue;
         }
         break;
-      } catch (err) { 
+      } catch (err) {
         // Search timeout: use best from previous depth
         // ES: Tiempo de búsqueda agotado: usar el mejor de la profundidad anterior
         if (best) break;
