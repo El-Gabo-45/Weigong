@@ -73,6 +73,10 @@ export const V = {
 
   timelineSnapshots: [],
   viewPly: 0,
+
+  lastAnalyzedHash: null,
+  analysisNNScore: null,
+  analysisNNHash: null,
 };
 
 export function cancelBotTimer() {

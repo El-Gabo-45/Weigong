@@ -230,85 +230,99 @@ function updateBotButton() {
 }
 
 function formatAdvantage(score) {
-  if (score === null || score === undefined || Number.isNaN(score)) return 'n/a';
+  if (score === null || score === undefined || Number.isNaN(score)) {
+    return 'n/a';
+  }
+
   const pawns = score / 100;
+
   return `${pawns >= 0 ? '+' : ''}${pawns.toFixed(2)} pawns ${pawns >= 0 ? '(black)' : '(white)'}`;
 }
 
 function clampAnalysisValue(score) {
-  const norm = Math.max(-1, Math.min(1, score / 400));
-  return Number.isFinite(norm) ? norm : 0;
+  if (!Number.isFinite(score)) return 0;
+
+  return Math.max(-1, Math.min(1, score));
+}
+
+function formatNNValue(score) {
+  if (score === null || score === undefined || Number.isNaN(score)) {
+    return 'n/a';
+  }
+
+  const sign = score > 0 ? '+' : '';
+
+  return `${sign}${score.toFixed(2)} nn`;
 }
 
 function renderAnalysisPanel() {
   if (!analysisPanel) return;
-  analysisPanel.classList.toggle('hidden', !V.analysisMode);
-  if (!V.analysisMode) return;
+  if (!V.analysisMode) {
+    analysisPanel.classList.add('hidden');
+    return;
+  }
+  analysisPanel.classList.remove('hidden');
 
-  let infoText = 'Press the button to evaluate the current position.';
-  let fillValue = 0;
+  try {
+    const evalResult = evaluate(state, computeFullHash(state));
+    const norm    = Math.tanh(evalResult.score / 400);
+    const clamped = Math.max(-1, Math.min(1, norm));
+    const pct     = Math.abs(clamped) * 50;
 
-  if (V.analysisRunning) {
-    infoText = 'Analyzing position...';
-    if (analysisBarLabel) analysisBarLabel.textContent = 'Analyzing…';
-  } else if (V.analysisResult) {
-    const engineText = V.analysisResult.engineScore != null ? `Engine: ${formatAdvantage(V.analysisResult.engineScore)}` : 'Engine: n/a';
-    const nnText = V.analysisResult.nnScore != null ? `NN: ${formatAdvantage(V.analysisResult.nnScore)}` : 'NN: unavailable';
-    const hybrid = V.analysisResult.nnScore != null ? V.analysisResult.nnScore : V.analysisResult.engineScore;
-    const normalized = clampAnalysisValue(hybrid ?? 0);
-    fillValue = -normalized; // white advantage -> up, black advantage -> down
+    if (analysisBarFill) {
+      analysisBarFill.style.opacity = '1';
+      analysisBarFill.style.height  = `${pct}%`;
+      if (clamped >= 0) {
+        analysisBarFill.style.top    = 'auto';
+        analysisBarFill.style.bottom = '50%';
+        analysisBarFill.classList.remove('negative');
+      } else {
+        analysisBarFill.style.bottom = 'auto';
+        analysisBarFill.style.top    = '50%';
+        analysisBarFill.classList.add('negative');
+      }
+    }
+
     if (analysisBarLabel) {
-      const side = hybrid >= 0 ? 'Black' : 'White';
-      analysisBarLabel.textContent = `${Math.abs((hybrid ?? 0) / 100).toFixed(2)} pawns ${side}`;
+      if      (clamped >  0.01) analysisBarLabel.textContent = `${pct.toFixed(1)}% White`;
+      else if (clamped < -0.01) analysisBarLabel.textContent = `${pct.toFixed(1)}% Black`;
+      else                      analysisBarLabel.textContent = 'Equal';
     }
-    infoText = `${engineText} · ${nnText}`;
-  } else {
-    if (analysisBarLabel) analysisBarLabel.textContent = 'White ↔ Black';
-  }
 
-  if (analysisInfo) analysisInfo.textContent = infoText;
-  if (analysisBarFill) {
-    const amount = Math.max(0, Math.min(50, Math.abs(fillValue) * 50));
-    analysisBarFill.style.height = amount > 0 ? `${amount}%` : '0';
-    if (fillValue >= 0) {
-      analysisBarFill.style.bottom = '50%';
-      analysisBarFill.style.top = 'auto';
-    } else {
-      analysisBarFill.style.top = '50%';
-      analysisBarFill.style.bottom = 'auto';
+    if (analysisInfo) {
+      const pawns   = (evalResult.score / 100).toFixed(2);
+      const side    = evalResult.score >= 0 ? 'Black' : 'White';
+      const nn      = V.analysisNNScore;
+      const nnText  = (nn !== null && Number.isFinite(nn))
+        ? `NN: ${nn >= 0 ? '+' : ''}${nn.toFixed(2)}`
+        : 'NN: …';
+      analysisInfo.textContent = `Engine: ${pawns} (${side}) · ${nnText}`;
     }
-    analysisBarFill.classList.toggle('negative', fillValue < 0);
-  }
+  } catch (e) { /* fallo silencioso */ }
 }
 
 async function analyzeCurrentPosition() {
   if (!V.analysisMode || V.analysisRunning) return;
-  const stateHash = computeFullHash(state);
-  const positionHash = stateHash.toString();
-  if (V.analysisPositionHash === positionHash) return;
-  V.analysisPositionHash = positionHash;
   V.analysisRunning = true;
-  V.analysisResult = null;
-  renderAnalysisPanel();
-
-  const engineScore = evaluate(state, stateHash).score;
-  let nnScore = null;
   try {
-    const requestBody = { input: Array.from(encodeBoardForNN(state.board)) };
-    const response = await fetch('/api/nn/predict', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody),
+    const nnEncoding = encodeBoardForNN(state.board);
+    const resp = await fetch('/api/nn/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: Array.from(nnEncoding) }),
     });
-    const data = await response.json();
-    if (response.ok && typeof data.score === 'number') {
-      nnScore = data.score;
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.ok && Number.isFinite(data.score)) {
+        V.analysisNNScore = data.score;
+        renderAnalysisPanel(); // solo refresca el texto del NN
+      }
     }
   } catch (e) {
-    console.warn('NN analysis failed:', e);
+    console.warn('NN unavailable:', e.message);
+  } finally {
+    V.analysisRunning = false;
   }
-
-  V.analysisResult = { engineScore, nnScore };
-  V.analysisRunning = false;
-  renderAnalysisPanel();
 }
 
 function scheduleBotMove() {
@@ -543,11 +557,17 @@ export function render() {
   renderReserve(reserveWhite, SIDE.WHITE); renderReserve(reserveBlack, SIDE.BLACK);
   if (rulesSummary) rulesSummary.innerHTML = `<div>River in row 7.</div><div>Palaces: columns 6 to 8, rows 1 to 3 and 11 to 13.</div><div>Optional promotion when entering the enemy's last three rows.</div><div>Reserve: tower, general, pawn and crossbow.</div>`;
   messageBar.textContent = state.message || ""; messageBar.classList.toggle("hidden", !state.message);
-  updateBotButton(); renderAnalysisPanel();
-  if (V.analysisMode) analyzeCurrentPosition();
-  scheduleBotMove();
-  if (state.status !== "playing" && !V.aiVsAiRunning && !V.trainingRunning && !V.humanGameFinalized) {
-    V.humanGameFinalized = true; finalizeHumanGame();
+  updateBotButton();
+  if (V.analysisMode) {
+    renderAnalysisPanel();
+    const currentHash = computeFullHash(state).toString();
+    if (currentHash !== V.lastAnalyzedHash) {
+      V.lastAnalyzedHash = currentHash;
+      V.analysisNNScore = null;
+      analyzeCurrentPosition();
+    }
+  } else {
+    renderAnalysisPanel();
   }
 }
 
@@ -902,6 +922,8 @@ resetBtn.addEventListener("click", () => {
   V.totalMoves = 0; V.currentGameNotation = []; V.gameMovesData = []; V.humanGameFinalized = false;
   V.pendingMove = null;
   V.timelineSnapshots = [];
+  V.lastAnalyzedHash = null;
+  V.analysisResult = null;
   recordTimelineSnapshot();
   render();
 });
