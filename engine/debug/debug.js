@@ -48,15 +48,15 @@ let _panelFilterText   = '';
 let _panelFilterLevel  = 'all';
 
 // ── Profiler ──────────────────────────────────────────
-const _perfCounts = {};
-const _perfTimes  = {};
-const _perfMin    = {};
-const _perfMax    = {};
+const _perfCounts = new Map();
+const _perfTimes  = new Map();
+const _perfMin    = new Map();
+const _perfMax    = new Map();
 
 // ── Throttle: don't log perf individually when call count exceeds this ──
 // ES: Throttle: no registrar perf individualmente cuando el conteo excede esto
 const PERF_LOG_THROTTLE = 100;
-const _perfLogged = {};
+const _perfLogged = new Set();
 
 // ── Init: cargar desde env / URL / localStorage ───────
 function _loadFromEnv() {
@@ -190,9 +190,9 @@ function _makeLogger(module) {
   };
 
   fn.count = (label) => {
-    _perfCounts[label] = (_perfCounts[label] ?? 0) + 1;
+    _perfCounts.set(label, (_perfCounts.get(label) ?? 0) + 1);
     if (_active.has('perf') || _active.has('all'))
-      _log(module, 'info', [`# ${label} — call #${_perfCounts[label]}`]);
+      _log(module, 'info', [`# ${label} — call #${_perfCounts.get(label)}`]);
   };
 
   // assert: only fires (as error) when condition is falsy
@@ -214,18 +214,18 @@ dbg.perf.start = (label) => ({ label, t: performance.now() });
 
 dbg.perf.end = ({ label, t }) => {
   const ms = parseFloat((performance.now() - t).toFixed(2));
-  _perfCounts[label] = (_perfCounts[label] ?? 0) + 1;
-  _perfTimes[label]  = (_perfTimes[label]  ?? 0) + ms;
-  _perfMin[label]    = _perfMin[label] === undefined ? ms : Math.min(_perfMin[label], ms);
-  _perfMax[label]    = _perfMax[label] === undefined ? ms : Math.max(_perfMax[label], ms);
+  _perfCounts.set(label, (_perfCounts.get(label) ?? 0) + 1);
+  _perfTimes.set(label, (_perfTimes.get(label)  ?? 0) + ms);
+  _perfMin.set(label, _perfMin.has(label) ? Math.min(_perfMin.get(label), ms) : ms);
+  _perfMax.set(label, _perfMax.has(label) ? Math.max(_perfMax.get(label), ms) : ms);
   // Throttle: only log perf individually for first PERF_LOG_THROTTLE calls, then suppress
   // ES: Throttle: solo registrar perf individualmente para las primeras PERF_LOG_THROTTLE llamadas, luego suprimir
   if ((_active.has('perf') || _active.has('all')) && ms > 0.5) {
-    const count = _perfCounts[label];
-    if (!_perfLogged[label] || count < 10) {
-      _perfLogged[label] = true;
-      const avg = (_perfTimes[label] / _perfCounts[label]).toFixed(2);
-      _log('perf', 'info', [`⏱ ${label}: ${ms.toFixed(2)}ms  (avg ${avg} × ${_perfCounts[label]})`]);
+    const count = _perfCounts.get(label);
+    if (!_perfLogged.has(label) || count < 10) {
+      _perfLogged.add(label);
+      const avg = (_perfTimes.get(label) / _perfCounts.get(label)).toFixed(2);
+      _log('perf', 'info', [`⏱ ${label}: ${ms.toFixed(2)}ms  (avg ${avg} × ${_perfCounts.get(label)})`]);
     }
   }
   return ms;
@@ -235,8 +235,8 @@ dbg.perf.wrap = (label, fn) => (...args) => {
   const t = performance.now();
   const r = fn(...args);
   const ms = parseFloat((performance.now() - t).toFixed(2));
-  _perfCounts[label] = (_perfCounts[label] ?? 0) + 1;
-  _perfTimes[label]  = (_perfTimes[label]  ?? 0) + ms;
+  _perfCounts.set(label, (_perfCounts.get(label) ?? 0) + 1);
+  _perfTimes.set(label, (_perfTimes.get(label)  ?? 0) + ms);
   if (_active.has('perf') || _active.has('all'))
     _log('perf', 'info', [`⏱ ${label}: ${ms.toFixed(2)}ms`]);
   return r;
@@ -246,23 +246,23 @@ dbg.perf.wrapAsync = (label, fn) => async (...args) => {
   const t = performance.now();
   const r = await fn(...args);
   const ms = parseFloat((performance.now() - t).toFixed(2));
-  _perfCounts[label] = (_perfCounts[label] ?? 0) + 1;
-  _perfTimes[label]  = (_perfTimes[label]  ?? 0) + ms;
+  _perfCounts.set(label, (_perfCounts.get(label) ?? 0) + 1);
+  _perfTimes.set(label, (_perfTimes.get(label)  ?? 0) + ms);
   if (_active.has('perf') || _active.has('all'))
     _log('perf', 'info', [`⏱ async ${label}: ${ms.toFixed(2)}ms`]);
   return r;
 };
 
 dbg.perf.report = (asObject = false) => {
-  const labels = Object.keys(_perfCounts).sort((a, b) => (_perfTimes[b]??0) - (_perfTimes[a]??0));
+  const labels = Array.from(_perfCounts.keys()).sort((a, b) => (_perfTimes.get(b)??0) - (_perfTimes.get(a)??0));
   if (asObject) {
     return labels.map(l => ({
       label: l,
-      calls: _perfCounts[l],
-      total: +(_perfTimes[l]??0).toFixed(2),
-      avg:   +((_perfTimes[l]??0) / _perfCounts[l]).toFixed(2),
-      min:   +(_perfMin[l]??0).toFixed(2),
-      max:   +(_perfMax[l]??0).toFixed(2),
+      calls: _perfCounts.get(l),
+      total: +(_perfTimes.get(l)??0).toFixed(2),
+      avg:   +((_perfTimes.get(l)??0) / _perfCounts.get(l)).toFixed(2),
+      min:   +(_perfMin.get(l)??0).toFixed(2),
+      max:   +(_perfMax.get(l)??0).toFixed(2),
     }));
   }
   if (!labels.length) return '\n  (no profiling data yet)\n';
@@ -272,12 +272,12 @@ dbg.perf.report = (asObject = false) => {
     '  ─────────────────────────────  ─────   ─────────   ───────   ────   ────',
   ];
   for (const l of labels) {
-    const avg = ((_perfTimes[l]??0) / _perfCounts[l]).toFixed(2);
+    const avg = ((_perfTimes.get(l)??0) / _perfCounts.get(l)).toFixed(2);
     rows.push(
-      `  ${l.padEnd(29)} ${String(_perfCounts[l]).padStart(5)}   ` +
-      `${(_perfTimes[l]??0).toFixed(1).padStart(8)}   ` +
-      `${avg.padStart(7)}   ${(_perfMin[l]??0).toFixed(2).padStart(5)}   ` +
-      `${(_perfMax[l]??0).toFixed(2).padStart(5)}`
+      `  ${l.padEnd(29)} ${String(_perfCounts.get(l)).padStart(5)}   ` +
+      `${(_perfTimes.get(l)??0).toFixed(1).padStart(8)}   ` +
+      `${avg.padStart(7)}   ${(_perfMin.get(l)??0).toFixed(2).padStart(5)}   ` +
+      `${(_perfMax.get(l)??0).toFixed(2).padStart(5)}`
     );
   }
   rows.push('══════════════════════════════════════════════════════════════\n');
@@ -285,10 +285,11 @@ dbg.perf.report = (asObject = false) => {
 };
 
 dbg.perf.reset = () => {
-  for (const k of Object.keys(_perfCounts)) delete _perfCounts[k];
-  for (const k of Object.keys(_perfTimes))  delete _perfTimes[k];
-  for (const k of Object.keys(_perfMin))    delete _perfMin[k];
-  for (const k of Object.keys(_perfMax))    delete _perfMax[k];
+  _perfCounts.clear();
+  _perfTimes.clear();
+  _perfMin.clear();
+  _perfMax.clear();
+  _perfLogged.clear();
   _log('perf', 'info', ['Profiling stats reset.']);
 };
 
@@ -330,11 +331,11 @@ export const Debug = {
   status:   () => ({
     active:  [..._active],
     modules: Object.keys(MODULES),
-    perfEntries: Object.keys(_perfCounts).length,
-    totalPerfMs: +Object.values(_perfTimes).reduce((a,b)=>a+b,0).toFixed(1),
+    perfEntries: _perfCounts.size,
+    totalPerfMs: +Array.from(_perfTimes.values()).reduce((a,b)=>a+b,0).toFixed(1),
   }),
   exportPerf() {
-    return JSON.stringify({ counts:_perfCounts, times:_perfTimes, min:_perfMin, max:_perfMax }, null, 2);
+    return JSON.stringify({ counts:Object.fromEntries(_perfCounts), times:Object.fromEntries(_perfTimes), min:Object.fromEntries(_perfMin), max:Object.fromEntries(_perfMax) }, null, 2);
   },
   // Panel filter — usable from devtools: Debug.filterModule('search')
   // ES: Panel filter — usable from devtools: Debug.filterModule('search')
