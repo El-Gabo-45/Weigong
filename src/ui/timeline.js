@@ -64,6 +64,42 @@ export function snapshotForTimeline() {
   };
 }
 
+// Lightweight snapshot for fallback loader — avoids cloning positionHistory/history/notation
+function snapshotForTimelineFast(plyIndex, fullNotation) {
+  const board = state.board.map(row => row.map(p => p ? { ...p } : null));
+  const snap = {
+    board,
+    turn: state.turn,
+    reserves: {
+      white: state.reserves.white.map(p => ({ ...p })),
+      black: state.reserves.black.map(p => ({ ...p })),
+    },
+    status: state.status,
+    message: state.message ?? '',
+    palaceTimers: {
+      white: { ...state.palaceTimers?.white },
+      black: { ...state.palaceTimers?.black },
+    },
+    palaceTaken: { ...state.palaceTaken },
+    palaceCurse: state.palaceCurse ? {
+      white: { ...state.palaceCurse.white },
+      black: { ...state.palaceCurse.black },
+    } : null,
+    lastMove: state.lastMove ? { ...state.lastMove } : null,
+    lastRepeatedMoveKey: state.lastRepeatedMoveKey ?? null,
+    repeatMoveCount: state.repeatMoveCount ?? 0,
+    // Skip positionHistory and history — too large, not needed for board display
+    positionHistory: new Map(),
+    history: [],
+    selected: null, legalMoves: [], promotionRequest: null, archerAmbush: null,
+  };
+  return {
+    totalMoves: plyIndex,
+    notation: fullNotation, // shared reference — NOT a copy
+    state: snap,
+  };
+}
+
 export function restoreFromTimelineSnapshot(entry) {
   if (!entry?.state) return;
   cancelBotTimer();
@@ -129,31 +165,22 @@ export function renderTimeline() {
   };
 
   moveTimeline.appendChild(mkBtn("⏮ Start", 0, V.viewPly === 0));
-  // Use snapshot count as the real total — currentGameNotation can be stale during navigation
-  const maxSnap = V.timelineSnapshots ? V.timelineSnapshots.length - 1 : 0;
-  const totalPlies = Math.max(maxSnap, V.currentGameNotation.length, V.totalMoves);
-  // Full notation is always in the last snapshot — use it for labels
-  const lastSnap = V.timelineSnapshots?.[maxSnap];
-  const fullNotation = (lastSnap?.notation?.length ?? 0) >= V.currentGameNotation.length
-    ? lastSnap.notation
-    : V.currentGameNotation;
+  // V.totalMoves is the real end; V.currentGameNotation holds the full notation
+  const totalPlies = V.totalMoves;
   for (let ply = 1; ply <= totalPlies; ply++) {
-    const nota = fullNotation[ply - 1] ?? V.currentGameNotation[ply - 1] ?? '?';
+    const nota = V.currentGameNotation[ply - 1] ?? '?';
     moveTimeline.appendChild(mkWrapper(nota, ply, V.viewPly === ply));
   }
 }
 
 export function goToPly(ply) {
-  const maxPly = V.timelineSnapshots ? V.timelineSnapshots.length - 1 : 0;
+  // V.totalMoves is always the real end — set by loader or live play
+  const maxPly = V.totalMoves;
   const safePly = Math.max(0, Math.min(ply, maxPly));
   const entry = V.timelineSnapshots?.[safePly];
   if (entry) {
     restoreFromTimelineSnapshot(entry);
-    // Never overwrite currentGameNotation when navigating — it holds the full game.
-    // Only sync totalMoves when at the actual live end.
-    if (safePly >= maxPly) {
-      V.totalMoves = entry.totalMoves ?? safePly;
-    }
+    // Never overwrite currentGameNotation — it holds the full game notation
   }
   V.viewPly = safePly;
   render();
@@ -273,35 +300,66 @@ if (loadGameBtn && loadGameInput) {
         // Use stateAfter path when available (fast and reliable)
         const hasStateAfter = obj.moves.length > 0 && obj.moves[0].stateAfter;
         if (hasStateAfter) {
+          // Build snapshots directly from JSON data — no cloneStateForBot, no board loops.
+          // Each move already has a complete serialized state; wrap it as a timeline entry.
+          const fullNotation = obj.moves.map(m => m?.notation ?? '?');
+          V.currentGameNotation = fullNotation;
+
+          // Snapshot 0: initial position (need to reset for this)
           resetGame(state);
           clearSelection();
-          V.currentGameNotation = obj.moves.map(m => m?.notation ?? '?');
           V.totalMoves = 0;
           V.viewPly = 0;
           V.timelineSnapshots = [];
-          recordTimelineSnapshot();
+          // Build initial snapshot without cloneStateForBot
+          V.timelineSnapshots[0] = { totalMoves: 0, notation: [], state: cloneStateForBot(state) };
 
+          let lastLoaded = 0;
           for (let i = 0; i < obj.moves.length; i++) {
             const st = obj.moves[i].stateAfter;
             if (!st) continue;
-            restoreStateFromSerialized(state, st);
-            V.totalMoves = i + 1;
-            recordTimelineSnapshot();
-            if (st.status && st.status !== 'playing') break;
+            // Wrap the already-serialized state as a snapshot entry directly
+            const snapState = {
+              board: st.board.map(row => row.map(p => p ? { ...p } : null)),
+              turn: st.turn,
+              reserves: {
+                white: (st.reserves?.white ?? []).map(p => typeof p === 'string' ? { type: p, side: 'white', promoted: false, id: crypto.randomUUID() } : { ...p }),
+                black: (st.reserves?.black ?? []).map(p => typeof p === 'string' ? { type: p, side: 'black', promoted: false, id: crypto.randomUUID() } : { ...p }),
+              },
+              status: st.status || 'playing',
+              message: st.message || '',
+              palaceTimers: st.palaceTimers ?? { white: { invaded: false, pressure: 0, attackerSide: null }, black: { invaded: false, pressure: 0, attackerSide: null } },
+              palaceTaken: st.palaceTaken ?? { white: false, black: false },
+              palaceCurse: st.palaceCurse ?? { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } },
+              lastMove: st.lastMove ?? null,
+              lastRepeatedMoveKey: st.lastRepeatedMoveKey ?? null,
+              repeatMoveCount: st.repeatMoveCount ?? 0,
+              positionHistory: Array.isArray(st.positionHistory) ? new Map(st.positionHistory) : new Map(),
+              history: Array.isArray(st.history) ? st.history : [],
+              selected: null, legalMoves: [], promotionRequest: null, archerAmbush: null,
+            };
+            V.timelineSnapshots[i + 1] = { totalMoves: i + 1, notation: fullNotation.slice(0, i + 1), state: snapState };
+            lastLoaded = i + 1;
+            // Don't break on terminal status — load all moves
           }
-          // Keep full notation — do NOT trim it to V.totalMoves.
-          // The last snapshot holds the real end; renderTimeline uses snapshot count.
-          V.viewPly = V.totalMoves;
-          goToPly(V.totalMoves);
+
+          V.totalMoves = lastLoaded;
+          V.viewPly = lastLoaded;
+          // Restore the final state into the live state object
+          const finalSnap = V.timelineSnapshots[lastLoaded];
+          if (finalSnap) restoreFromTimelineSnapshot(finalSnap);
+          render();
         } else {
           // Fallback: repetición tradicional para partidas antiguas sin stateAfter
           resetGame(state);
           clearSelection();
-          V.currentGameNotation = obj.moves.map(m => m?.notation ?? '?');
+          const fullNotation = obj.moves.map(m => m?.notation ?? '?');
+          V.currentGameNotation = fullNotation;
           V.totalMoves = 0;
           V.viewPly = 0;
           V.timelineSnapshots = [];
-          recordTimelineSnapshot();
+          // Initial snapshot (ply 0) — use fast version
+          V.timelineSnapshots[0] = snapshotForTimelineFast(0, fullNotation);
 
           const parseMoveKeyStr = (s) => {
             if (typeof s !== 'string') return null;
@@ -325,11 +383,37 @@ if (loadGameBtn && loadGameInput) {
           for (let i = 0; i < obj.moves.length; i++) {
             const mk = obj.moves[i]?.moveKeyStr;
             const mv = parseMoveKeyStr(mk);
-            if (!mv) continue; // skip unparseable moves (archer, etc.) instead of aborting
+            if (!mv) continue;
+            try {
 
             if (mv.fromReserve) {
-              const ok = executeDrop(state, mv.reserveIndex, mv.to);
-              if (!ok) break;
+              // Identify piece type from notation prefix (G*=general, p*=pawn, T*=tower, C*=crossbow)
+              const nota = obj.moves[i]?.notation ?? '';
+              const typeHint = nota.startsWith('G*') ? 'general'
+                : nota.startsWith('p*') ? 'pawn'
+                : nota.startsWith('T*') ? 'tower'
+                : nota.startsWith('C*') ? 'crossbow'
+                : null;
+              const sideActual = state.turn;
+              // Find correct reserve index by type
+              let reserveIdx = typeHint !== null
+                ? state.reserves[sideActual].findIndex(p => p.type === typeHint)
+                : mv.reserveIndex;
+              if (reserveIdx < 0) reserveIdx = mv.reserveIndex;
+              const ok = executeDrop(state, reserveIdx, mv.to);
+              if (!ok) {
+                // executeDrop failed (e.g. square occupied or invalid) — force place the piece
+                // to keep state in sync with the recorded game
+                const piece = state.reserves[sideActual]?.[reserveIdx];
+                if (piece) {
+                  state.reserves[sideActual].splice(reserveIdx, 1);
+                  const captured = state.board[mv.to.r]?.[mv.to.c];
+                  if (captured) captureToReserve(state, captured, sideActual);
+                  state.board[mv.to.r][mv.to.c] = { ...piece, id: crypto.randomUUID() };
+                }
+                // Always advance turn even if we had to force it
+                state.turn = sideActual === 'white' ? 'black' : 'white';
+              }
             } else {
               applyMove(state, mv);
 
@@ -354,10 +438,13 @@ if (loadGameBtn && loadGameInput) {
               }
             }
 
-            afterMoveEvaluation(state);
+              afterMoveEvaluation(state);
+            } catch(_e) {
+              // Move caused an error — advance turn manually to stay in sync
+              state.turn = state.turn === 'white' ? 'black' : 'white';
+            }
             V.totalMoves = i + 1;
-            recordTimelineSnapshot();
-            if (state.status !== "playing") break;
+            V.timelineSnapshots[V.totalMoves] = snapshotForTimelineFast(V.totalMoves, fullNotation);
           }
           // Keep full notation — do NOT trim.
           V.viewPly = V.totalMoves;
@@ -636,14 +723,8 @@ function closeExportPopup() {
 // ES: Botones de navegación
 function goToFirst() { goToPly(0); }
 function goToPrev()  { goToPly(Math.max(0, V.viewPly - 1)); }
-function goToNext()  {
-  const maxPly = (V.timelineSnapshots?.length ?? 1) - 1;
-  goToPly(Math.min(maxPly, V.viewPly + 1));
-}
-function goToLast()  {
-  const maxPly = (V.timelineSnapshots?.length ?? 1) - 1;
-  goToPly(maxPly);
-}
+function goToNext()  { goToPly(Math.min(V.totalMoves, V.viewPly + 1)); }
+function goToLast()  { goToPly(V.totalMoves); }
 
 const navFirstBtn = document.getElementById('navFirstBtn');
 const navPrevBtn  = document.getElementById('navPrevBtn');
