@@ -128,8 +128,16 @@ const REPEAT_PENALTY          = 1200;
 // ES: PALACE_DEFENSE_BONUS  = bono total repartido entre las 9 casillas del palacio propias cubiertas
 // PALACE_UNDEFENDED_PEN = total penalty distributed across own palace squares attacked by enemy with no defense
 // ES: PALACE_UNDEFENDED_PEN = penalización total repartida entre casillas del palacio propias que el enemigo ataca sin defensa
-const PALACE_DEFENSE_BONUS    = 200;
-const PALACE_UNDEFENDED_PEN   = 300;
+const PALACE_DEFENSE_BONUS    = 300;   // increased from 200
+const PALACE_UNDEFENDED_PEN   = 500;   // increased from 300
+
+// Palace curse & invasion danger weight adjustments
+// ES: Ajustes de peso para maldición de palacio y peligro de invasión
+const PALACE_CURSE_ACTIVE_PEN  = 400;   // base penalty when curse is active (was effectively 300)
+const PALACE_CURSE_PER_INVADER = 120;   // extra penalty per enemy piece inside palace when curse active
+const PALACE_PRE_CURSE_DANGER  = 60;    // per-turn danger before curse activates (turnsInPalace 1-2)
+const PALACE_INVASION_PENALTY  = 200;   // penalty when enemy pieces are in your palace (regardless of curse)
+const PALACE_RECKLESS_PENALTY  = 120;   // penalty for putting own piece in enemy palace (risks activating their curse)
 
 // River control: bonus for controlling the river and for pieces that crossed
 // ES: Control del río: bono por controlar el río y por piezas que ya cruzaron
@@ -148,6 +156,42 @@ const PALACE_ROWS_BLACK = [0, 1, 2];
 const PALACE_ROWS_WHITE = [10, 11, 12];
 const PALACE_COLS       = [5, 6, 7];
 const RIVER_ROW         = 6;
+
+/**
+ * Counts enemy pieces inside `side`'s palace.
+ * ES: Cuenta piezas enemigas dentro del palacio de `side`.
+ */
+function countPalaceInvaders(board, side) {
+  const rows = side === SIDE.BLACK ? PALACE_ROWS_BLACK : PALACE_ROWS_WHITE;
+  const enemy = opponent(side);
+  let count = 0;
+  for (const r of rows) {
+    for (const c of PALACE_COLS) {
+      const p = board[r][c];
+      if (p && p.side === enemy) count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Counts own pieces inside the enemy's palace (reckless invaders that risk
+ * activating the enemy's curse timer).
+ * ES: Cuenta piezas propias dentro del palacio enemigo (invasores imprudentes
+ * que arriesgan activar el timer de maldición enemigo).
+ */
+function countOurInvadersInEnemyPalace(board, side) {
+  const enemy = opponent(side);
+  const rows = enemy === SIDE.BLACK ? PALACE_ROWS_BLACK : PALACE_ROWS_WHITE;
+  let count = 0;
+  for (const r of rows) {
+    for (const c of PALACE_COLS) {
+      const p = board[r][c];
+      if (p && p.side === side && p.type !== 'king') count++;
+    }
+  }
+  return count;
+}
 
 /**
  * Calculates net palace defense score for `side`.
@@ -220,6 +264,67 @@ function reserveValue(state, side) {
   }, 0);
 }
 
+/**
+ * Calculates the danger level from the palace curse system for `side`.
+ * Returns a score adjustment (positive = good for side).
+ * ES: Calcula el nivel de peligro del sistema de maldición de palacio para `side`.
+ * Retorna un ajuste de score (positivo = bueno para el lado).
+ */
+function palaceDangerAdjustment(state, side) {
+  const curse = state.palaceCurse?.[side];
+  const board = state.board;
+  let adjustment = 0;
+
+  // Count invaders in our palace
+  const invaderCount = countPalaceInvaders(board, side);
+
+  if (invaderCount > 0) {
+    // Base penalty for having enemy in your palace — signals danger
+    // ES: Penalización base por tener enemigos en tu palacio — señal de peligro
+    adjustment -= PALACE_INVASION_PENALTY;
+
+    if (curse?.active) {
+      // Curse active: enemy can capture anything inside. Severe penalty.
+      // ES: Maldición activa: el enemigo puede capturar cualquier cosa dentro. Penalización severa.
+      adjustment -= PALACE_CURSE_ACTIVE_PEN;
+      adjustment -= invaderCount * PALACE_CURSE_PER_INVADER;
+    } else if (curse) {
+      // Pre-curse: danger escalates as turns pass (tick tock)
+      // ES: Pre-maldición: el peligro escala con los turnos (tic tac)
+      const turns = curse.turnsInPalace; // 1-2 typically
+      adjustment -= turns * PALACE_PRE_CURSE_DANGER;
+    }
+  }
+
+  return adjustment;
+}
+
+/**
+ * Penalty for recklessly placing own pieces in the enemy palace.
+ * This risks activating the enemy's curse timer, which gives them
+ * the ability to capture freely inside their palace.
+ * ES: Penalización por colocar imprudentemente piezas propias en el palacio enemigo.
+ * Esto arriesga activar el timer de maldición del enemigo, dándoles la
+ * capacidad de capturar libremente dentro de su palacio.
+ */
+function recklessInvasionPenalty(state, side) {
+  const ourInvaders = countOurInvadersInEnemyPalace(state.board, side);
+  const enemyCurse = state.palaceCurse?.[opponent(side)];
+  if (ourInvaders === 0) return 0;
+
+  let penalty = 0;
+  if (enemyCurse?.active) {
+    // Enemy curse active: our pieces in enemy palace can be captured for free!
+    // ES: Maldición enemiga activa: ¡nuestras piezas en el palacio enemigo pueden ser capturadas gratis!
+    penalty += ourInvaders * PALACE_CURSE_PER_INVADER * 2;
+  } else if (enemyCurse && enemyCurse.turnsInPalace > 0) {
+    // Enemy curse ticking: our pieces there are at risk of being trapped
+    // ES: Maldición enemiga en cuenta regresiva: nuestras piezas allí corren riesgo
+    penalty += ourInvaders * PALACE_RECKLESS_PENALTY;
+  }
+  return penalty;
+}
+
 // OPT-12: skipMemory=true omits extractFeatures()+getFeatureScore() in internal
 // search nodes. Those build ~450 chars of strings per call — the real bottleneck.
 // applyWeights() is NOT skipped: it is O(1) arithmetic (5 muls + 5 adds) and its
@@ -271,7 +376,15 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
       score += isBlack ? local : -local;
 
       const enemy = isBlack ? SIDE.WHITE : SIDE.BLACK;
-      if (isPalaceSquare(r,c,enemy)) { if (isBlack) blackPalacePressure += 50; else whitePalacePressure += 110; }
+      // Palace pressure from being in/attacking enemy palace
+      // ES: Presión de palacio por estar/atacar el palacio enemigo
+      if (isPalaceSquare(r,c,enemy)) {
+        // Reduced pressure for being in enemy palace — it's risky and can trigger enemy curse
+        // ES: Presión reducida por estar en palacio enemigo — es riesgoso y puede activar maldición enemiga
+        const penalty = piece.type === 'king' ? 0 : 15; // slight penalty for non-king pieces invading
+        if (isBlack) blackPalacePressure += 50 - penalty;
+        else         whitePalacePressure += 110 - penalty;
+      }
       if (['tower','queen','cannon'].includes(piece.type)) {
         const palCenter = enemy===SIDE.BLACK ? 1 : 11;
         const dist = Math.abs(r-palCenter);
@@ -389,12 +502,29 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
   const whiteKS = kingSafetyFast(state, SIDE.WHITE, whiteMap.byPiece, blackMap.attackMap, phaseFactor, whiteMap.kingPos);
   score += blackKS - whiteKS;
 
-  if (state.palaceTaken?.black) score += 350;
-  if (state.palaceTaken?.white) score -= 350;
-  if (state.palaceCurse) {
-    if (state.palaceCurse.black?.active) { score -= 300; score -= Math.min(state.palaceCurse.black.turnsInPalace - 3, 5) * 40; }
-    if (state.palaceCurse.white?.active) { score += 300; score += Math.min(state.palaceCurse.white.turnsInPalace - 3, 5) * 40; }
-  }
+  // ── Palace curse & invasion danger ──
+  // ES: Maldición de palacio y peligro de invasión
+  // New comprehensive danger adjustments that properly penalize:
+  // 1. Enemy pieces in own palace (pre-curse and active curse)
+  // 2. Own pieces recklessly placed in enemy palace
+  // 3. Replaces old simplistic palaceTaken/palaceCurse handling
+  // ES: Nuevos ajustes de peligro que penalizan adecuadamente:
+  // 1. Piezas enemigas en el palacio propio (pre-maldición y maldición activa)
+  // 2. Piezas propias imprudentemente en el palacio enemigo
+  // 3. Reemplaza el manejo simplista anterior de palaceTaken/palaceCurse
+  const blackDanger = palaceDangerAdjustment(state, SIDE.BLACK);
+  const whiteDanger = palaceDangerAdjustment(state, SIDE.WHITE);
+  score += blackDanger - whiteDanger;
+
+  // Reckless invasion penalty — don't put pieces in enemy palace if their curse is ticking
+  // ES: Penalización por invasión imprudente — no poner piezas en palacio enemigo si su maldición está activa
+  score -= recklessInvasionPenalty(state, SIDE.BLACK);
+  score += recklessInvasionPenalty(state, SIDE.WHITE);
+
+  // Keep palaceTaken bonus for winning condition, but reduce weight
+  // ES: Mantener bono de palaceTaken por condición de victoria, pero reducir peso
+  if (state.palaceTaken?.black) score += 200;  // was 350
+  if (state.palaceTaken?.white) score -= 200;  // was 350
 
   const blackInvasion = countInminentPalaceInvasion(state, SIDE.BLACK, blackMap, whiteMap);
   const whiteInvasion = countInminentPalaceInvasion(state, SIDE.WHITE, whiteMap, blackMap);
@@ -425,7 +555,9 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
     whiteThreatMult:  whiteThreatMult.toFixed(2),
     blackThreatMult:  blackThreatMult.toFixed(2),
     palaceTaken:      `B:${state.palaceTaken?.black ? 'YES' : 'no'} W:${state.palaceTaken?.white ? 'YES' : 'no'}`,
-    palaceCurse:      `B:${state.palaceCurse?.black?.active ? `ACTIVE(${state.palaceCurse.black.turnsInPalace}t)` : 'off'} W:${state.palaceCurse?.white?.active ? `ACTIVE(${state.palaceCurse.white.turnsInPalace}t)` : 'off'}`,
+    palaceCurse:      `B:${state.palaceCurse?.black?.active ? `ACTIVE(${state.palaceCurse.black.turnsInPalace}t)` : state.palaceCurse?.black?.turnsInPalace > 0 ? `TICKING(${state.palaceCurse.black.turnsInPalace}t)` : 'off'} W:${state.palaceCurse?.white?.active ? `ACTIVE(${state.palaceCurse.white.turnsInPalace}t)` : state.palaceCurse?.white?.turnsInPalace > 0 ? `TICKING(${state.palaceCurse.white.turnsInPalace}t)` : 'off'}`,
+    blackDanger:      blackDanger.toFixed(1),
+    whiteDanger:      whiteDanger.toFixed(1),
   });
 
   score += state.turn === SIDE.BLACK ? TEMPO_BONUS : -TEMPO_BONUS;

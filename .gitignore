@@ -4,4 +4,4 @@ backup/
 .vscode/
 src/icons/
 engine/data/
-neuronal_network_gpu/model.bin
+neural_network_gpu/model.bin

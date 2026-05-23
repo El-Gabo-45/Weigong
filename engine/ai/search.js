@@ -34,6 +34,8 @@ function now() {
 
 class SearchTimeout extends Error {}
 
+const DROP_MOVE_FLAG = 1 << 31;
+
 export function moveKey(move, promote = false) {
   if (!move) return 'null';
   if (move.fromReserve) return `R:${move.reserveIndex}->${move.to.r},${move.to.c}`;
@@ -41,8 +43,24 @@ export function moveKey(move, promote = false) {
   return `M:${move.from.r},${move.from.c}->${move.to.r},${move.to.c}${promotionFlag}`;
 }
 
+export function moveKeyUint32(move, promote = false) {
+  if (!move) return 0;
+  if (move.fromReserve) {
+    const reserveIndex = Number.isInteger(move.reserveIndex) ? move.reserveIndex & 0xF : 0;
+    const r = move.to?.r ?? 0;
+    const c = move.to?.c ?? 0;
+    return (((DROP_MOVE_FLAG >>> 0) | ((reserveIndex & 0xF) << 24) | ((r & 0xF) << 20) | ((c & 0xF) << 16)) >>> 0);
+  }
+  const fr = move.from?.r ?? 0;
+  const fc = move.from?.c ?? 0;
+  const tr = move.to?.r ?? 0;
+  const tc = move.to?.c ?? 0;
+  const p  = promote ? 1 : 0;
+  return (((fr & 0xF) << 28) | ((fc & 0xF) << 24) | ((tr & 0xF) << 20) | ((tc & 0xF) << 16) | ((p & 1) << 15)) >>> 0;
+}
+
 function storeKiller(depth, move) {
-  const key = moveKey(move, move.promotion);
+  const key = moveKeyUint32(move, move.promotion ?? false);
   const prev = killerMoves.get(depth) ?? [];
   if (prev[0] === key) return;
   killerMoves.set(depth, [key, prev[0] ?? null].filter(Boolean).slice(0, KILLER_SLOTS));
@@ -59,7 +77,7 @@ function killerScore(depth, mk) {
 function historyScore(side, mk) { return historyTable[side].get(mk) ?? 0; }
 
 function storeHistory(side, move, depth) {
-  const key = moveKey(move, move.promotion);
+  const key = moveKeyUint32(move, move.promotion ?? false);
   historyTable[side].set(key, (historyTable[side].get(key) ?? 0) + depth * depth);
 }
 
@@ -306,7 +324,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     // Pass hash so moveOrderScore doesn't recompute computeFullHash() N times
     // ES: Pasar hash para que moveOrderScore no recalcule computeFullHash() N veces
     const s = moveOrderScore(state, m, depth, hash);
-    scoredMoves.push({ move: m, score: ttMoveKey && moveKey(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
+    scoredMoves.push({ move: m, score: ttMoveKey && moveKeyUint32(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
   }
   scoredMoves.sort((a, b) => b.score - a.score);
   const moves = [];
@@ -334,7 +352,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
           deadline, tt, md.hash, null, false);
         if (probScore >= beta) {
           tt.set(hash, { depth, score: probScore, flag: TT_BETA,
-            bestMoveKey: moveKey(move, move.promotion) });
+            bestMoveKey: moveKeyUint32(move, move.promotion) });
           return probScore;
         }
       } finally {
@@ -392,7 +410,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
             storeHistory(state.turn, move, depth);
           }
           tt.set(hash, { depth, score: best, flag: TT_BETA,
-            bestMoveKey: moveKey(bestMoveForTT || move, (bestMoveForTT || move).promotion) });
+            bestMoveKey: moveKeyUint32(bestMoveForTT || move, (bestMoveForTT || move).promotion) });
           return best;
         }
       } finally {
@@ -401,7 +419,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     }
   }
   tt.set(hash, { depth, score: best, flag: hashFlag,
-    bestMoveKey: bestMoveForTT ? moveKey(bestMoveForTT, bestMoveForTT.promotion) : null });
+    bestMoveKey: bestMoveForTT ? moveKeyUint32(bestMoveForTT, bestMoveForTT.promotion) : null });
   return best;
 }
 
@@ -426,7 +444,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     if (!m) continue;
     if (!m.fromReserve && !m.from) continue;
     const s = moveOrderScore(state, m, depth, hash);
-    scoredMoves.push({ move: m, score: ttMoveKey && moveKey(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
+    scoredMoves.push({ move: m, score: ttMoveKey && moveKeyUint32(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
   }
   scoredMoves.sort((a, b) => b.score - a.score);
   const moves = [];
@@ -481,7 +499,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
             storeHistory(state.turn, move, depth);
           }
           tt.set(hash, { depth, score: bestScore, flag: TT_BETA,
-            bestMoveKey: moveKey(bestMove || cand, (bestMove || cand).promotion) });
+            bestMoveKey: moveKeyUint32(bestMove || cand, (bestMove || cand).promotion) });
           return { bestMove, score: bestScore };
         }
       } finally {
@@ -490,7 +508,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     }
   }
   tt.set(hash, { depth, score: bestScore, flag: TT_ALPHA,
-    bestMoveKey: bestMove ? moveKey(bestMove, bestMove.promotion) : null });
+    bestMoveKey: bestMove ? moveKeyUint32(bestMove, bestMove.promotion) : null });
   return { bestMove, score: bestScore };
 }
 
@@ -621,28 +639,31 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   // historyScore, adaptiveMemory.getMovepenalty) each building the same string.
   // ES: Calcular moveKey una vez — antes se llamaba 3 veces (killerScore, historyScore,
   // adaptiveMemory.getMovepenalty) construyendo el mismo string cada vez.
-  const mk = moveKey(move, move.promotion ?? false);
+  const mk = moveKeyUint32(move, move.promotion ?? false);
   score += killerScore(depth, mk);
   score += Math.min(200, historyScore(side, mk) / 8);
-  score -= adaptiveMemory.getMovepenalty(mk);
+  score -= adaptiveMemory.getMovepenalty(moveKey(move, move.promotion ?? false));
 
-  // Repetition penalty using pre-passed hash — eliminates N×computeFullHash() calls
-  // per search node (was O(169×N) per ply, now O(1) per move).
-  // ES: Penalización de repetición con hash pre-pasado — elimina N×computeFullHash()
-  // por nodo de búsqueda (era O(169×N) por ply, ahora O(1) por movimiento).
+  // Repetition penalty using the actual future hash when available.
+  // This avoids mis-ordering based on the current board only, which is
+  // incorrect for all non-pass moves.
   if (currentHash !== null && state.history?.length >= 2) {
-    // futureHash approximation: only turn flipped (same as before, but hash is pre-computed)
-    // ES: aproximación de futureHash: solo se voltea el turno (igual que antes, pero el hash ya está calculado)
-    const futureHash = currentHash ^ ZobristTurn[0] ^ ZobristTurn[1];
-    const seen       = countRepetitions(state.history, futureHash);
-
-    if (seen >= 2) {
-      score -= 20000;   // third repetition → almost forbidden
-    } else if (seen === 1) {
-      score -= 4000;    // second repetition → heavily penalized
-    } else {
-      const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
-      score -= drawPen * 3;
+    let futureHash = null;
+    const md = makeMove(state, move, move.promotion ?? false, currentHash);
+    if (md.action) {
+      futureHash = md.hash;
+      unmakeMove(state, md);
+    }
+    if (futureHash !== null) {
+      const seen = countRepetitions(state.history, futureHash);
+      if (seen >= 2) {
+        score -= 20000;   // third repetition → almost forbidden
+      } else if (seen === 1) {
+        score -= 4000;    // second repetition → heavily penalized
+      } else {
+        const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
+        score -= drawPen * 3;
+      }
     }
   }
 

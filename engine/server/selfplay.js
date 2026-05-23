@@ -11,7 +11,7 @@ import {
 } from '../constants.js';
 import {
   chooseBotMove, evaluate, computeFullHash,
-  extractFeatures, moveKey, adaptiveMemory,
+  extractFeatures, moveKey, moveKeyUint32, adaptiveMemory,
 } from '../ai/index.js';
 import crypto from 'crypto';
 
@@ -391,10 +391,12 @@ export async function playSelfPlayGame(botParams) {
     const nnEncoding = encodeBoardForNN(state.board);
 
     const stateAfter = captureStateAfter(state);
+    const moveKeyNum = moveKeyUint32(move, shouldProm);
 
     moves.push({
       side,
       moveKeyStr:    moveKey(move),
+      moveKeyUint32: moveKeyNum,
       featureKey:    extractFeatures(state, side),
       evalBefore,
       evalAfter:     evalResult.score,
