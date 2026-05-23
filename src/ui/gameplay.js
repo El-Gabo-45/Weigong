@@ -574,6 +574,8 @@ export function render() {
   } else {
     renderAnalysisPanel();
   }
+  // If bot is enabled, schedule its move after render
+  scheduleBotMove();
 }
 
 function renderReserve(container, side) {
