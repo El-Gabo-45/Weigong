@@ -98,6 +98,7 @@ export const analysisModeBtn  = document.getElementById("analysisModeBtn");
 export const analysisPanel    = document.getElementById("analysisPanel");
 export const analysisInfo     = document.getElementById("analysisInfo");
 export const analysisBarFill  = document.getElementById("analysisBarFill");
+export const analysisBarFiller = document.getElementById("analysisBarFiller");
 export const analysisBarLabel = document.getElementById("analysisBarLabel");
 export const promotionModal   = document.getElementById("promotionModal");
 export const promotionTitle   = document.getElementById("promotionTitle");

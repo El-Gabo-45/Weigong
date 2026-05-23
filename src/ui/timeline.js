@@ -30,6 +30,22 @@ function restoreStateFromSerialized(gameState, serialized) {
   gameState.reserves.black = reserves.black.map(p => ({ ...p, id: crypto.randomUUID() }));
   gameState.status = status || 'playing';
   gameState.message = message || '';
+  gameState.palaceTimers = serialized.palaceTimers
+    ? { white: { ...serialized.palaceTimers.white }, black: { ...serialized.palaceTimers.black } }
+    : { white: { invaded: false, pressure: 0, attackerSide: null }, black: { invaded: false, pressure: 0, attackerSide: null } };
+  gameState.palaceTaken = serialized.palaceTaken
+    ? { ...serialized.palaceTaken }
+    : { white: false, black: false };
+  gameState.palaceCurse = serialized.palaceCurse
+    ? { white: { ...serialized.palaceCurse.white }, black: { ...serialized.palaceCurse.black } }
+    : { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } };
+  gameState.lastMove = serialized.lastMove ? { ...serialized.lastMove } : null;
+  gameState.lastRepeatedMoveKey = serialized.lastRepeatedMoveKey ?? null;
+  gameState.repeatMoveCount = serialized.repeatMoveCount ?? 0;
+  const ph = serialized.positionHistory;
+  gameState.positionHistory = ph instanceof Map ? new Map(ph)
+    : Array.isArray(ph) ? new Map(ph) : new Map();
+  gameState.history = Array.isArray(serialized.history) ? [...serialized.history] : [];
 }
 
 // Timeline Snapshot
@@ -113,17 +129,33 @@ export function renderTimeline() {
   };
 
   moveTimeline.appendChild(mkBtn("⏮ Start", 0, V.viewPly === 0));
-  const totalPlies = Math.max(V.currentGameNotation.length, V.totalMoves);
+  // Use snapshot count as the real total — currentGameNotation can be stale during navigation
+  const maxSnap = V.timelineSnapshots ? V.timelineSnapshots.length - 1 : 0;
+  const totalPlies = Math.max(maxSnap, V.currentGameNotation.length, V.totalMoves);
+  // Full notation is always in the last snapshot — use it for labels
+  const lastSnap = V.timelineSnapshots?.[maxSnap];
+  const fullNotation = (lastSnap?.notation?.length ?? 0) >= V.currentGameNotation.length
+    ? lastSnap.notation
+    : V.currentGameNotation;
   for (let ply = 1; ply <= totalPlies; ply++) {
-    const nota = V.currentGameNotation[ply - 1] ?? '?';
+    const nota = fullNotation[ply - 1] ?? V.currentGameNotation[ply - 1] ?? '?';
     moveTimeline.appendChild(mkWrapper(nota, ply, V.viewPly === ply));
   }
 }
 
 export function goToPly(ply) {
-  const entry = V.timelineSnapshots?.[ply];
-  if (entry) restoreFromTimelineSnapshot(entry);
-  V.viewPly = ply;
+  const maxPly = V.timelineSnapshots ? V.timelineSnapshots.length - 1 : 0;
+  const safePly = Math.max(0, Math.min(ply, maxPly));
+  const entry = V.timelineSnapshots?.[safePly];
+  if (entry) {
+    restoreFromTimelineSnapshot(entry);
+    // Never overwrite currentGameNotation when navigating — it holds the full game.
+    // Only sync totalMoves when at the actual live end.
+    if (safePly >= maxPly) {
+      V.totalMoves = entry.totalMoves ?? safePly;
+    }
+  }
+  V.viewPly = safePly;
   render();
   const active = moveTimeline?.querySelector(".plyBtn.active");
   active?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
@@ -229,7 +261,16 @@ if (loadGameBtn && loadGameInput) {
           return rest;
         });
 
-        // Si el primer movimiento tiene stateAfter, usamos ese método (rápido y fiable)
+        // Normalize version-2 format (field names: 'nota'→'notation', 'state'→'stateAfter')
+        if (obj.version === 2 || (obj.moves.length > 0 && obj.moves[0].nota !== undefined)) {
+          obj.moves = obj.moves.map(m => ({
+            ...m,
+            notation: m.notation ?? m.nota ?? '?',
+            stateAfter: m.stateAfter ?? m.state ?? null,
+          }));
+        }
+
+        // Use stateAfter path when available (fast and reliable)
         const hasStateAfter = obj.moves.length > 0 && obj.moves[0].stateAfter;
         if (hasStateAfter) {
           resetGame(state);
@@ -238,20 +279,19 @@ if (loadGameBtn && loadGameInput) {
           V.totalMoves = 0;
           V.viewPly = 0;
           V.timelineSnapshots = [];
-          recordTimelineSnapshot(); // snapshot inicial (tablero inicial)
+          recordTimelineSnapshot();
 
           for (let i = 0; i < obj.moves.length; i++) {
             const st = obj.moves[i].stateAfter;
-            if (!st) break;
+            if (!st) continue;
             restoreStateFromSerialized(state, st);
             V.totalMoves = i + 1;
             recordTimelineSnapshot();
             if (st.status && st.status !== 'playing') break;
           }
+          // Keep full notation — do NOT trim it to V.totalMoves.
+          // The last snapshot holds the real end; renderTimeline uses snapshot count.
           V.viewPly = V.totalMoves;
-          // Trim notation to match actually loaded moves-only
-          // ES: Trim notation to match actually loaded moves-only
-          V.currentGameNotation.length = V.totalMoves;
           goToPly(V.totalMoves);
         } else {
           // Fallback: repetición tradicional para partidas antiguas sin stateAfter
@@ -285,7 +325,7 @@ if (loadGameBtn && loadGameInput) {
           for (let i = 0; i < obj.moves.length; i++) {
             const mk = obj.moves[i]?.moveKeyStr;
             const mv = parseMoveKeyStr(mk);
-            if (!mv) break;
+            if (!mv) continue; // skip unparseable moves (archer, etc.) instead of aborting
 
             if (mv.fromReserve) {
               const ok = executeDrop(state, mv.reserveIndex, mv.to);
@@ -319,9 +359,8 @@ if (loadGameBtn && loadGameInput) {
             recordTimelineSnapshot();
             if (state.status !== "playing") break;
           }
-          // Trim notation to match actually loaded moves-only
-          // ES: Trim notation to match actually loaded moves-only
-          V.currentGameNotation.length = V.totalMoves;
+          // Keep full notation — do NOT trim.
+          V.viewPly = V.totalMoves;
           goToPly(V.totalMoves);
         }
       } else {
@@ -596,9 +635,15 @@ function closeExportPopup() {
 // Navigation buttons
 // ES: Botones de navegación
 function goToFirst() { goToPly(0); }
-function goToPrev() { goToPly(Math.max(0, V.viewPly - 1)); }
-function goToNext() { goToPly(Math.min(V.totalMoves, V.viewPly + 1)); }
-function goToLast() { goToPly(V.totalMoves); }
+function goToPrev()  { goToPly(Math.max(0, V.viewPly - 1)); }
+function goToNext()  {
+  const maxPly = (V.timelineSnapshots?.length ?? 1) - 1;
+  goToPly(Math.min(maxPly, V.viewPly + 1));
+}
+function goToLast()  {
+  const maxPly = (V.timelineSnapshots?.length ?? 1) - 1;
+  goToPly(maxPly);
+}
 
 const navFirstBtn = document.getElementById('navFirstBtn');
 const navPrevBtn  = document.getElementById('navPrevBtn');

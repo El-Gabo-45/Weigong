@@ -23,7 +23,7 @@ import {
   resetBtn, botToggleBtn, promotionModal, promotionTitle, promotionText, promotionChoices,
   ambushModal, ambushTitle, ambushText, ambushChoices,
   difficultySelect, aiVsAiBtn, trainBtn, analysisModeBtn,
-  analysisPanel, analysisInfo, analysisBarFill, analysisBarLabel,
+  analysisPanel, analysisInfo, analysisBarFill, analysisBarFiller, analysisBarLabel,
   messageBar, rulesSummary, moveTimeline, loadGameBtn, loadGameInput, COLS,
 } from "../../engine/state.js";
 import {
@@ -265,40 +265,45 @@ function renderAnalysisPanel() {
 
   try {
     const evalResult = evaluate(state, computeFullHash(state));
-    const norm    = Math.tanh(evalResult.score / 400);
-    const clamped = Math.max(-1, Math.min(1, norm));
-    const pct     = Math.abs(clamped) * 50;
+    const rawScore = evalResult.score;
+    const whiteScore = -rawScore; // positive = white ahead, in centipawns
 
-    if (analysisBarFill) {
-      analysisBarFill.style.opacity = '1';
-      analysisBarFill.style.height  = `${pct}%`;
-      if (clamped >= 0) {
-        analysisBarFill.style.top    = 'auto';
-        analysisBarFill.style.bottom = '50%';
-        analysisBarFill.classList.remove('negative');
-      } else {
-        analysisBarFill.style.bottom = 'auto';
-        analysisBarFill.style.top    = '50%';
-        analysisBarFill.classList.add('negative');
-      }
+    const st = state.status;
+    const isDraw = st === 'draw' || st === 'stalemate' || st === 'draw_move_limit' || st === 'draw_agreement';
+    const isWhiteWin = (st === 'checkmate' || st === 'palacemate') && state.turn === SIDE.BLACK;
+    const isBlackWin = (st === 'checkmate' || st === 'palacemate') && state.turn === SIDE.WHITE;
+
+    let whiteHeight;
+    let scoreLabel;
+
+    if (isDraw) {
+      whiteHeight = 50;
+      scoreLabel = '½-½';
+    } else if (isWhiteWin) {
+      whiteHeight = 100;
+      scoreLabel = '1-0';
+    } else if (isBlackWin) {
+      whiteHeight = 0;
+      scoreLabel = '0-1';
+    } else {
+      const norm = Math.tanh(whiteScore / 8000);
+      whiteHeight = Math.max(0, Math.min(100, 50 + norm * 50));
+      const pawns = Number.isFinite(whiteScore) ? (whiteScore / 100).toFixed(2) : '--';
+      const sign  = whiteScore > 0 ? '+' : '';
+      const side  = whiteScore > 50 ? ' W' : whiteScore < -50 ? ' B' : '';
+      scoreLabel = `${sign}${pawns}${side}`;
     }
 
+    if (analysisBarFiller) {
+      analysisBarFiller.style.height = `${whiteHeight}%`;
+    }
     if (analysisBarLabel) {
-      if      (clamped >  0.01) analysisBarLabel.textContent = `${pct.toFixed(1)}% White`;
-      else if (clamped < -0.01) analysisBarLabel.textContent = `${pct.toFixed(1)}% Black`;
-      else                      analysisBarLabel.textContent = 'Equal';
+      analysisBarLabel.style.display = 'none';
     }
-
     if (analysisInfo) {
-      const pawns   = (evalResult.score / 100).toFixed(2);
-      const side    = evalResult.score >= 0 ? 'Black' : 'White';
-      const nn      = V.analysisNNScore;
-      const nnText  = (nn !== null && Number.isFinite(nn))
-        ? `NN: ${nn >= 0 ? '+' : ''}${nn.toFixed(2)}`
-        : 'NN: …';
-      analysisInfo.textContent = `Engine: ${pawns} (${side}) · ${nnText}`;
+      analysisInfo.textContent = scoreLabel;
     }
-  } catch (e) { /* fallo silencioso */ }
+  } catch (e) { /* silent */ }
 }
 
 async function analyzeCurrentPosition() {
