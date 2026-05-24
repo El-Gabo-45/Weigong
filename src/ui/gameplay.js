@@ -41,6 +41,28 @@ import {
   updateBotButton, scheduleBotMove,
 } from "./bot-player.js";
 
+const STATS_KEY = 'gameStats13x13';
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || { white: 0, black: 0, draw: 0 }; }
+  catch { return { white: 0, black: 0, draw: 0 }; }
+}
+function saveStats(s) {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch {}
+}
+function recordResult(result) {
+  const s = loadStats();
+  if (result === 'white_win') s.white++;
+  else if (result === 'black_win') s.black++;
+  else s.draw++;
+  saveStats(s);
+}
+function getResultFromStatus() {
+  if (state.status === 'checkmate' || state.status === 'palacemate') {
+    return state.turn === SIDE.WHITE ? 'black_win' : 'white_win';
+  }
+  return 'draw';
+}
+
 function sideName(side) { return side === SIDE.WHITE ? "White" : "Black"; }
 function isVisuallyPromoted(p) { return p.promoted || p.type === "crossbow"; }
 
@@ -133,7 +155,38 @@ export function render() {
   renderTimeline();
   reserveWhite.innerHTML = ""; reserveBlack.innerHTML = "";
   renderReserve(reserveWhite, SIDE.WHITE); renderReserve(reserveBlack, SIDE.BLACK);
-  if (rulesSummary) rulesSummary.innerHTML = `<div>River in row 7.</div><div>Palaces: columns 6 to 8, rows 1 to 3 and 11 to 13.</div><div>Optional promotion when entering the enemy's last three rows.</div><div>Reserve: tower, general, pawn and crossbow.</div>`;
+  if (rulesSummary) {
+    const _st = loadStats();
+    const _total = _st.white + _st.black + _st.draw;
+    rulesSummary.innerHTML = `
+      <div>River in row 7.</div>
+      <div>Palaces: columns 6 to 8, rows 1-3 and 11-13.</div>
+      <div>Optional promotion entering enemy's last 3 rows.</div>
+      <div>Reserve: tower, general, pawn and crossbow.</div>
+      <hr style="border-color:var(--line);margin:8px 0;">
+      <div style="font-weight:700;margin-bottom:6px;">Results (${_total} games)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;margin-bottom:8px;">
+        <div style="background:rgba(255,255,255,.07);border-radius:8px;padding:6px 4px;">
+          <div style="font-size:1.15rem;font-weight:700;color:#f4f4f4;">${_st.white}</div>
+          <div style="font-size:0.7rem;color:var(--muted);">White</div>
+        </div>
+        <div style="background:rgba(255,255,255,.07);border-radius:8px;padding:6px 4px;">
+          <div style="font-size:1.15rem;font-weight:700;color:var(--muted);">${_st.draw}</div>
+          <div style="font-size:0.7rem;color:var(--muted);">Draw</div>
+        </div>
+        <div style="background:rgba(255,255,255,.07);border-radius:8px;padding:6px 4px;">
+          <div style="font-size:1.15rem;font-weight:700;color:#f4f4f4;background:#222;border-radius:6px;padding:1px 0;">${_st.black}</div>
+          <div style="font-size:0.7rem;color:var(--muted);">Black</div>
+        </div>
+      </div>
+      <button id="resetStatsBtn" style="width:100%;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:4px;font-size:0.75rem;cursor:pointer;">Reset stats</button>
+    `;
+    document.getElementById('resetStatsBtn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      saveStats({ white: 0, black: 0, draw: 0 });
+      render();
+    });
+  }
   messageBar.textContent = state.message || ""; messageBar.classList.toggle("hidden", !state.message);
   updateBotButton();
   if (V.analysisMode) {
@@ -480,7 +533,7 @@ function onCellClick(e) {
 
 resetBtn.addEventListener("click", () => {
   cancelBotTimer();
-  if (state.status !== "playing" && !V.humanGameFinalized) { V.humanGameFinalized = true; finalizeHumanGame(); }
+  if (state.status !== "playing" && !V.humanGameFinalized) { V.humanGameFinalized = true; finalizeHumanGame(); recordResult(getResultFromStatus()); }
   resetGame(state); clearSelection(); cleanupPromoBar(); state.message = "Game restarted.";
   V.totalMoves = 0; V.currentGameNotation = []; V.gameMovesData = []; V.humanGameFinalized = false;
   V.pendingMove = null;
@@ -513,4 +566,3 @@ if (analysisModeBtn) {
     render();
   });
 }
-

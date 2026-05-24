@@ -7,6 +7,7 @@
 
 import { SIDE, BOARD_SIZE } from '../constants.js';
 import { initialLayout, boardSignature, findKings } from './board.js';
+import { computeFullHash } from '../ai/hashing.js';
 
 // Create a fresh game state with initial board layout
 // ES: Crea un estado de juego nuevo con la disposición inicial del tablero
@@ -33,10 +34,16 @@ export function createGame() {
     lastMove: null,
     lastRepeatedMoveKey: null,
     repeatMoveCount: 0,
+    history: [],
   };
 
   const key = boardSignature(state);
   state.positionHistory.set(key, 1);
+  // Populate the Zobrist history with the initial position so the AI
+  // can detect repetitions back to move 1.
+  // ES: Poblar el historial Zobrist con la posición inicial para que la IA
+  // pueda detectar repeticiones desde el movimiento 1.
+  state.history.push(computeFullHash(state));
 
   return state;
 }

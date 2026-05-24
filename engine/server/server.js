@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { Worker } from 'worker_threads';
 import { SIDE } from '../constants.js';
 import { trainBinDirect, getModelInfo, predictScore, trainFromGameFiles } from './nn-bridge.js';
+import { SharedTT } from '../ai/shared-tt.js';
+import { PackedBoard, fastCloneState } from '../ai/packed-state.js';
 import pako from 'pako';
 
 import {
@@ -53,7 +55,7 @@ async function ensureMemoryFile() {
         centerControl: 1, pieceActivity: 1, kingSafety: 1,
         materialBalance: 1, pawnStructure: 1, palacePressure: 1,
       },
-      gamesPlayed: 0, gamesWon: 0,
+      gamesPlayed: 0, gamesWonWhite: 0, gamesWonBlack: 0, gamesDrawn: 0, gamesStalemate: 0, gamesDrawLimit: 0,
     }, null, 2));
   }
   memoryFileReady = true;
@@ -181,9 +183,11 @@ async function learnFromGamesDirect() {
         if (!game.moves || !Array.isArray(game.moves) || game.moves.length === 0) continue;
 
         let result = 'draw';
+        let winnerSide = null;
         if (game.finalStatus === 'checkmate' || game.finalStatus === 'palacemate') {
           const lastMove = game.moves[game.moves.length - 1];
-          result = (lastMove?.side === 'black') ? 'win' : 'loss';
+          winnerSide = (lastMove?.side === 'black') ? 'black' : 'white';
+          result = winnerSide === 'black' ? 'win' : 'loss';
         }
         const gameDelta = result === 'win' ? 1 : result === 'loss' ? -1 : 0;
 
@@ -233,10 +237,15 @@ async function learnFromGamesDirect() {
           }
         }
 
+        memory.gamesPlayed = (memory.gamesPlayed ?? 0) + 1;
         if (result !== 'draw') {
           updatePatternWeights(memory, result, game.moves);
-          memory.gamesPlayed = (memory.gamesPlayed ?? 0) + 1;
-          if (result === 'win') memory.gamesWon = (memory.gamesWon ?? 0) + 1;
+          if (winnerSide === 'black')  memory.gamesWonBlack  = (memory.gamesWonBlack  ?? 0) + 1;
+          if (winnerSide === 'white')  memory.gamesWonWhite  = (memory.gamesWonWhite  ?? 0) + 1;
+        } else {
+          if (game.finalStatus === 'stalemate')       memory.gamesStalemate = (memory.gamesStalemate ?? 0) + 1;
+          else if (game.finalStatus === 'draw_move_limit') memory.gamesDrawLimit = (memory.gamesDrawLimit ?? 0) + 1;
+          else                                        memory.gamesDrawn     = (memory.gamesDrawn     ?? 0) + 1;
         }
         learned++;
 
@@ -287,15 +296,30 @@ app.get('/api/memoryStats', async (_req, res) => {
       files => files.filter(f => (f.endsWith('.json') || f.endsWith('.json.gz')) && !f.includes('processed')).length
     ).catch(() => 0);
 
+    const _played  = mem.gamesPlayed    ?? 0;
+    const _wonW    = mem.gamesWonWhite  ?? 0;
+    const _wonB    = mem.gamesWonBlack  ?? 0;
+    const _drawn   = mem.gamesDrawn     ?? 0;
+    const _stale   = mem.gamesStalemate ?? 0;
+    const _dlimit  = mem.gamesDrawLimit ?? 0;
+    // Legacy support: if old gamesWon exists and new fields are 0, migrate
+    if (mem.gamesWon && !_wonB && !_wonW) {
+      // Can't know the split, attribute all to black (bot wins)
+    }
     res.json({
-      gamesPlayed:   mem.gamesPlayed ?? 0,
-      gamesWon:      mem.gamesWon    ?? 0,
-      winRate:       mem.gamesPlayed > 0 ? ((mem.gamesWon / mem.gamesPlayed) * 100).toFixed(1) + '%' : '0%',
-      moveMemory:    (mem.moveScores    ?? []).length,
-      featureMemory: (mem.featureScores ?? []).length,
-      blunders:      (mem.blunderMoves  ?? []).length,
-      drawMemory:    (mem.drawPositions ?? []).length,
-      pendingGames:  pending,
+      gamesPlayed:    _played,
+      gamesWonWhite:  _wonW,
+      gamesWonBlack:  _wonB,
+      gamesDrawn:     _drawn,
+      gamesStalemate: _stale,
+      gamesDrawLimit: _dlimit,
+      winRateWhite:   _played > 0 ? ((_wonW / _played) * 100).toFixed(1) + '%' : '0%',
+      winRateBlack:   _played > 0 ? ((_wonB / _played) * 100).toFixed(1) + '%' : '0%',
+      moveMemory:     (mem.moveScores    ?? []).length,
+      featureMemory:  (mem.featureScores ?? []).length,
+      blunders:       (mem.blunderMoves  ?? []).length,
+      drawMemory:     (mem.drawPositions ?? []).length,
+      pendingGames:   pending,
       patternWeights: mem.patternWeights ?? {},
     });
   } catch (e) {
@@ -336,12 +360,16 @@ function updatePatternWeights(memory, result, moves) {
   memory.patternWeights = w;
 }
 
+/* ─── Shared Transposition Table (cross-worker) ─── */
+// ES: Tabla de transposición compartida entre workers
+const SHARED_TT = new SharedTT(1_000_000); // 1M entries ~24MB
+
 /* ─── SELF‑PLAY CON WORKER THREADS ─── */
 const MAX_WORKERS = 4;
 
 app.post('/api/selfPlay', async (req, res) => {
   const { games = 10, maxDepth = 4, timeLimitMs = 500 } = req.body;
-  res.json({ ok: true, message: `Self‑play of ${games} games started (depth ${maxDepth}, ${timeLimitMs}ms, ${MAX_WORKERS} workers).` });
+  res.json({ ok: true, message: `Self‑play of ${games} games started (depth ${maxDepth}, ${timeLimitMs}ms, ${MAX_WORKERS} workers, shared TT enabled).` });
 
   (async () => {
     const botParams = { maxDepth, timeLimitMs };
@@ -349,7 +377,13 @@ app.post('/api/selfPlay', async (req, res) => {
 
     const runOneGame = () => new Promise((resolve, reject) => {
       const workerPath = path.join(__dirname, 'selfplay-worker.js');
-      const worker = new Worker(workerPath, { workerData: { botParams } });
+      const worker = new Worker(workerPath, {
+        workerData: {
+          botParams,
+          sharedTTBuffer: SHARED_TT.buffer,  // pass the SharedArrayBuffer
+          workerIndex: completed,
+        },
+      });
 
       worker.on('message', async (result) => {
         try {

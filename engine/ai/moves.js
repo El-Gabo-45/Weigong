@@ -5,6 +5,7 @@ import {
   xorPiece, xorReserves, ZobristTurn, ZobristPalaceWhite, ZobristPalaceBlack,
   SIDE_INDEX, PIECE_INDEX
 } from './hashing.js';
+import { applyMoveToMaps, rebuildMaps } from './incremental-attack.js';
 
 // ── Reusable board pool for SEE ──
 const BOARD_POOL_SIZE = 64;
@@ -71,12 +72,12 @@ export function isValidMove(move) {
   return move.from && move.to && Number.isInteger(move.from.r) && Number.isInteger(move.from.c) && Number.isInteger(move.to.r) && Number.isInteger(move.to.c);
 }
 
-export function makeMove(state, move, promote, currentHash, currentEval = null) {
+export function makeMove(state, move, promote, currentHash, currentEval = null, precomputedMaps = null) {
   const t = dbg.perf.start('makeMove');
   if (!isValidMove(move)) {
     dbg.moves.warn('makeMove invalid', { move, promote });
     dbg.perf.end(t);
-    return { action: null, undo: null, hash: currentHash, evalDiff: 0 };
+    return { action: null, undo: null, hash: currentHash, evalDiff: 0, maps: precomputedMaps };
   }
   const from = move.from ?? null, to = move.to ?? null;
   const undo = acquireUndo();
@@ -171,7 +172,7 @@ export function makeMove(state, move, promote, currentHash, currentEval = null) 
   state.history = state.history ?? []; state.history.push(currentHash);
   dbg.moves('makeMove', { from: from ? `${from.r},${from.c}` : 'R', to: to ? `${to.r},${to.c}` : 'R', promote, evalDiff: evalDiff.toFixed(1) });
   dbg.perf.end(t);
-  return { action, undo, hash: newHash, evalDiff };
+  return { action, undo, hash: newHash, evalDiff, maps: precomputedMaps };
 }
 
 export function unmakeMove(state, { undo }) {

@@ -13,6 +13,7 @@ import {
   chooseBotMove, evaluate, computeFullHash,
   extractFeatures, moveKey, moveKeyUint32, adaptiveMemory,
 } from '../ai/index.js';
+import { fastCloneState, PackedBoard } from '../ai/packed-state.js';
 import crypto from 'crypto';
 
 // ── NN prediction import opcional (solo server‑side) ──
@@ -299,20 +300,10 @@ function boardSnapshot(board) {
   return s;
 }
 
-/* ─── Captura el estado mínimo para el timeline ─── */
+/* ─── Captura el estado mínimo en formato packed (~200 bytes) ─── */
+// ES: Estado mínimo en formato packed (~200 bytes) en lugar de ~40KB de objetos
 function captureStateAfter(state) {
-  return {
-    board: state.board.map(row =>
-      row.map(p => p ? { type: p.type, side: p.side, promoted: p.promoted ?? false } : null)
-    ),
-    turn: state.turn,
-    reserves: {
-      white: state.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false })),
-      black: state.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false })),
-    },
-    status:  state.status,
-    message: state.message ?? '',
-  };
+  return PackedBoard.pack(state);
 }
 
 /* ─── FUNCIÓN PRINCIPAL ─── */

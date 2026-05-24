@@ -5,6 +5,7 @@ import { computeFullHash, TranspositionTable, ZobristTurn } from './hashing.js';
 import { evaluate, gamePhaseFactor, buildAttackMap } from './evaluation.js';
 import { makeMove, unmakeMove, isSEEPositive, pieceValue } from './moves.js';
 import { adaptiveMemory } from './memory.js';
+import { createIncrementalMaps, applyMoveToMaps } from './incremental-attack.js';
 
 const MATE_SCORE = 1_000_000;
 const INF        = 1_000_000_000;
@@ -220,11 +221,13 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     }
     if (reps === 1) {
       // Second time it appears — penalize in static evaluation
-      // so the bot looks for alternatives before reaching a third
-      // ES: Segunda vez que aparece — penalizar en la evaluación estática para que el bot busque alternativas
+      // so the bot looks for alternatives before reaching a third.
+      // Scale with depth: deeper nodes get heavier penalty so the bot
+      // avoids the repetition path well before reaching the root.
+      // ES: Segunda aparición — penalizar eval estática escalando con profundidad
       if (staticEval === null) staticEval = evaluate(state, hash, null, true).score;
       const sign = state.turn === SIDE.BLACK ? 1 : -1;
-      staticEval -= sign * 600;
+      staticEval -= sign * (600 + depth * 80);
     }
   }
 
@@ -457,10 +460,40 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     return { bestMove: null, score: term ?? prevScore };
   }
 
+  // FIX-1: Pre-compute which moves lead to a 3rd repetition so we can skip them
+  // at the root unless they are literally the only legal move.
+  // moveOrderScore already penalizes them, but the TT bonus (+1_000_000) was
+  // overwhelming that penalty — here we hard-veto them before they are searched.
+  // ES: Pre-calcular qué movimientos llevan a 3ª repetición para vetarlos en la raíz
+  // salvo que sean el único movimiento legal disponible.
+  const thirdRepMoveKeys = new Set();
+  if (state.history?.length >= 2 && moves.length > 1) {
+    for (const m of moves) {
+      for (const pr of getBranches(state, m)) {
+        const probe = makeMove(state, m, pr, hash, prevScore);
+        if (probe.action) {
+          if (countRepetitions(state.history, probe.hash) >= 2) {
+            thirdRepMoveKeys.add(moveKeyUint32(m, pr));
+          }
+          unmakeMove(state, probe);
+        }
+      }
+    }
+    // If ALL moves repeat, clear the veto set — we must play something
+    // ES: Si todos los movimientos repiten, limpiar el veto — hay que jugar algo
+    if (thirdRepMoveKeys.size >= moves.length) thirdRepMoveKeys.clear();
+  }
+
   let bestMove = null, bestScore = maximizing ? -INF : INF, moveCount = 0;
   for (const move of moves) {
     if (now() > deadline) throw new SearchTimeout();
     for (const promote of getBranches(state, move)) {
+      // FIX-1: skip moves that cause a third repetition (unless no alternative)
+      // ES: omitir movimientos que causan tercera repetición (salvo que no haya alternativa)
+      if (thirdRepMoveKeys.has(moveKeyUint32(move, promote))) {
+        dbg.ai.warn('searchRoot: skipping 3rd-rep move', { move: moveKey(move, promote) });
+        continue;
+      }
       moveCount++;
       const md        = makeMove(state, move, promote, hash, prevScore);
       if (!md.action || !md.undo) continue;
@@ -507,6 +540,48 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
       }
     }
   }
+  // FIX-1: If the veto eliminated every move (shouldn't happen given the size>1 guard
+  // and the clear-if-all-repeat logic, but belt-and-suspenders), retry without veto.
+  // ES: Si el veto eliminó todos los movimientos, reintentar sin veto (seguridad).
+  if (moveCount === 0 && moves.length > 0) {
+    dbg.ai.warn('searchRoot: all moves were vetoed, retrying without rep-veto');
+    for (const move of moves) {
+      if (now() > deadline) throw new SearchTimeout();
+      for (const promote of getBranches(state, move)) {
+        moveCount++;
+        const md = makeMove(state, move, promote, hash, prevScore);
+        if (!md.action || !md.undo) continue;
+        try {
+          let score;
+          const childEval = md.evalDiff ? prevScore + md.evalDiff : null;
+          if (moveCount === 1) {
+            score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+          } else {
+            score = -search(state, depth - 1, -alpha - 1, -alpha, deadline, tt, md.hash, childEval, false);
+            if (score > alpha && score < beta)
+              score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+          }
+          const cand = md.action;
+          if (!cand) continue;
+          if (maximizing) {
+            if (score > bestScore) { bestScore = score; bestMove = cand; }
+            if (bestScore > alpha) alpha = bestScore;
+          } else {
+            if (score < bestScore) { bestScore = score; bestMove = cand; }
+            if (bestScore < beta)  beta = bestScore;
+          }
+          if (alpha >= beta) {
+            tt.set(hash, { depth, score: bestScore, flag: TT_BETA,
+              bestMoveKey: moveKeyUint32(bestMove || cand, (bestMove || cand).promotion) });
+            return { bestMove, score: bestScore };
+          }
+        } finally {
+          unmakeMove(state, md);
+        }
+      }
+    }
+  }
+
   tt.set(hash, { depth, score: bestScore, flag: TT_ALPHA,
     bestMoveKey: bestMove ? moveKeyUint32(bestMove, bestMove.promotion) : null });
   return { bestMove, score: bestScore };
@@ -657,9 +732,11 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     if (futureHash !== null) {
       const seen = countRepetitions(state.history, futureHash);
       if (seen >= 2) {
-        score -= 20000;   // third repetition → almost forbidden
+        // FIX-2: must exceed TT bonus (+1_000_000) so no repetition ever wins ordering
+        // ES: debe superar el bonus del TT move para que ninguna repetición gane el ordenamiento
+        score -= 2_000_000;  // third repetition → completely forbidden
       } else if (seen === 1) {
-        score -= 4000;    // second repetition → heavily penalized
+        score -= 8000;       // second repetition → strongly penalized
       } else {
         const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
         score -= drawPen * 3;

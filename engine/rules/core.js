@@ -17,6 +17,7 @@ import { getLegalMovesForSquare, pseudoMovesForPiece, rayMoves, jumpMoves, addIf
 export { getLegalMovesForSquare, pseudoMovesForPiece, rayMoves, jumpMoves, addIfValid };
 import { updatePalaceState, isPalaceCursedFor, getPalaceInvaders } from './state.js';
 export { isPalaceCursedFor, getPalaceInvaders };
+import { computeFullHash } from '../ai/hashing.js';
 
 function captureToReserve(state, captured, captorSide) {
   if (!captured) return;
@@ -97,6 +98,12 @@ export function applyMove(state, action) {
   }
   if (!silent) {
     state.positionHistory.set(key, (state.positionHistory.get(key) || 0) + 1);
+    // Keep the Zobrist history in sync with the real game so the AI can detect
+    // repetitions that span across multiple bot turns.
+    // ES: Mantener el historial Zobrist sincronizado con la partida real para que
+    // la IA detecte repeticiones que abarcan múltiples turnos del bot.
+    state.history = state.history ?? [];
+    state.history.push(computeFullHash(state));
   }
   return state;
 }

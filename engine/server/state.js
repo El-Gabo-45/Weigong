@@ -2,47 +2,12 @@
 // ES: ruta corregida a '../constants.js' para consistencia con el resto del proyecto.
 import { BOARD_SIZE, SIDE } from '../constants.js';
 import { createGame } from '../rules/index.js';
+import { fastCloneState } from '../ai/packed-state.js';
 
 // Minimal state copy for the bot (canonical version — same as server.js/selfplay.js)
-// ES: Copia mínima del estado para el bot (versión canónica)
+// ES: Copia mínima del estado para el bot (versión canónica, optimizada con packed-state)
 export function cloneStateForBot(state) {
-  const board = new Array(BOARD_SIZE);
-  for (let r = 0; r < BOARD_SIZE; r++) {
-    board[r] = new Array(BOARD_SIZE);
-    for (let c = 0; c < BOARD_SIZE; c++) {
-      const p = state.board[r][c];
-      board[r][c] = p ? { ...p } : null;
-    }
-  }
-  return {
-    board,
-    turn: state.turn,
-    selected: null,
-    legalMoves: [],
-    reserves: {
-      white: state.reserves.white.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
-      black: state.reserves.black.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id })),
-    },
-    promotionRequest: null,
-    status: state.status,
-    message: '',
-    palaceTimers: {
-      white: { ...state.palaceTimers?.white ?? { pressure: 0, invaded: false, attackerSide: null } },
-      black: { ...state.palaceTimers?.black ?? { pressure: 0, invaded: false, attackerSide: null } },
-    },
-    palaceTaken:  { white: state.palaceTaken?.white ?? false, black: state.palaceTaken?.black ?? false },
-    palaceCurse: state.palaceCurse ? {
-      white: { active: state.palaceCurse.white.active, turnsInPalace: state.palaceCurse.white.turnsInPalace },
-      black: { active: state.palaceCurse.black.active, turnsInPalace: state.palaceCurse.black.turnsInPalace },
-    } : { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } },
-    lastMove: state.lastMove ? { ...state.lastMove } : null,
-    lastRepeatedMoveKey: state.lastRepeatedMoveKey ?? null,
-    repeatMoveCount: state.repeatMoveCount ?? 0,
-    positionHistory: state.positionHistory instanceof Map
-      ? new Map(state.positionHistory) : new Map(),
-    history: state.history ? [...state.history] : [],
-    archerAmbush: null,
-  };
+  return fastCloneState(state);
 }
 
 // Game state
