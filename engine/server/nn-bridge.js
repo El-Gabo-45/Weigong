@@ -25,45 +25,60 @@ const DEFAULT_MODEL = path.join(NN_DIR, 'model.bin');
 const GPU_ENV = { ...process.env, RUSTICL_ENABLE: 'radeonsi' };
 
 let isTraining = false;
+const PREDICT_CACHE_MAX = 8192;
+const predictCache = new Map();
+let ensureBinariesPromise = null;
 
 async function ensureBinaries() {
-  let compileNeeded = false;
-
-  try {
-    await fsp.access(TRAIN_BIN);
-    await fsp.access(path.join(NN_DIR, 'nn_gpu'));
-    await fsp.access(PREDICT_BIN);
-  } catch {
-    compileNeeded = true;
+  if (ensureBinariesPromise) {
+    return ensureBinariesPromise;
   }
+  ensureBinariesPromise = (async () => {
+    let compileNeeded = false;
 
-  if (!compileNeeded) {
     try {
-      const binStat = await fsp.stat(TRAIN_BIN);
-      const srcFiles = await fsp.readdir(path.join(NN_DIR, 'src'));
-      for (const fileName of srcFiles) {
-        if (!fileName.endsWith('.cpp') && !fileName.endsWith('.h')) continue;
-        const fileStat = await fsp.stat(path.join(NN_DIR, 'src', fileName));
-        if (fileStat.mtimeMs > binStat.mtimeMs) {
-          compileNeeded = true;
-          break;
-        }
-      }
+      await fsp.access(TRAIN_BIN);
+      await fsp.access(path.join(NN_DIR, 'nn_gpu'));
+      await fsp.access(PREDICT_BIN);
     } catch {
       compileNeeded = true;
     }
-  }
 
-  if (compileNeeded) {
-    console.log('⚙️  Compiling nn_train, nn_gpu and nn_predict...');
-    const { execSync } = await import('node:child_process');
-    execSync('make nn_train nn_gpu nn_predict', { cwd: NN_DIR, stdio: 'inherit' });
-  }
+    if (!compileNeeded) {
+      try {
+        const binStat = await fsp.stat(TRAIN_BIN);
+        const srcFiles = await fsp.readdir(path.join(NN_DIR, 'src'));
+        for (const fileName of srcFiles) {
+          if (!fileName.endsWith('.cpp') && !fileName.endsWith('.h')) continue;
+          const fileStat = await fsp.stat(path.join(NN_DIR, 'src', fileName));
+          if (fileStat.mtimeMs > binStat.mtimeMs) {
+            compileNeeded = true;
+            break;
+          }
+        }
+      } catch {
+        compileNeeded = true;
+      }
+    }
+
+    if (compileNeeded) {
+      console.log('⚙️  Compiling nn_train, nn_gpu and nn_predict...');
+      const { execSync } = await import('node:child_process');
+      execSync('make nn_train nn_gpu nn_predict', { cwd: NN_DIR, stdio: 'inherit' });
+    }
+
+    try {
+      await fsp.access(KERNEL_FILE);
+    } catch {
+      throw new Error(`Missing OpenCL kernel file: ${KERNEL_FILE}`);
+    }
+  })();
 
   try {
-    await fsp.access(KERNEL_FILE);
-  } catch {
-    throw new Error(`Missing OpenCL kernel file: ${KERNEL_FILE}`);
+    return await ensureBinariesPromise;
+  } catch (err) {
+    ensureBinariesPromise = null;
+    throw err;
   }
 }
 
@@ -237,12 +252,22 @@ export async function buildBinFromFiles(options = {}) {
   return { nSamples, inputDim };
 }
 
-function writePredictInputBin(filePath, nnEncoding) {
-  const buf = Buffer.allocUnsafe(4 + nnEncoding.length * 4);
-  buf.writeInt32LE(nnEncoding.length, 0);
-  for (let i = 0; i < nnEncoding.length; i++) {
-    buf.writeFloatLE(nnEncoding[i], 4 + i * 4);
+function hashNNEncoding(nnEncoding) {
+  const floats = nnEncoding instanceof Float32Array ? nnEncoding : Float32Array.from(nnEncoding);
+  const bytes = Buffer.from(floats.buffer, floats.byteOffset, floats.byteLength);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i++) {
+    hash ^= bytes[i];
+    hash = (hash * 0x01000193) >>> 0;
   }
+  return `${floats.length}_${hash}`;
+}
+
+function writePredictInputBin(filePath, nnEncoding) {
+  const floats = nnEncoding instanceof Float32Array ? nnEncoding : Float32Array.from(nnEncoding);
+  const buf = Buffer.allocUnsafe(4 + floats.length * 4);
+  buf.writeInt32LE(floats.length, 0);
+  Buffer.from(floats.buffer, floats.byteOffset, floats.byteLength).copy(buf, 4);
   fs.writeFileSync(filePath, buf);
 }
 
@@ -337,6 +362,7 @@ export async function trainFromGames(options = {}) {
 
     console.log(`🧠 Training GPU: ${allInputs.length} samples, ${epochs} epochs, batch ${batchSize}...`);
     const result = await runTrainBinary(modelPath, epochs, batchSize, tmpBin);
+    predictCache.clear();
     console.log(`✅ Done — MSE: ${result.final_mse?.toFixed(6) ?? '?'}`);
 
     return { trained: true, samples: allInputs.length, ...result, diagnosis: diag };
@@ -390,6 +416,7 @@ export async function trainFromGameFiles(options = {}) {
 
     console.log(`🧠 GPU Training: ${nSamples} samples, ${epochs} epochs, batch ${batchSize}...`);
     const result = await runTrainBinary(modelPath, epochs, batchSize, tmpBin);
+    predictCache.clear();
     console.log(`✅ NN training done — MSE: ${result.final_mse?.toFixed(6) ?? '?'}`);
 
     return {
@@ -451,10 +478,20 @@ export async function trainBinDirect(dataBin, epochs = 10, batchSize = 64, model
 // ── Predicción ────────────────────────────────────────────────────────────────
 export async function predictScore(nnEncoding, modelPath = DEFAULT_MODEL) {
   await ensureBinaries();
+  const key = `${modelPath}|${hashNNEncoding(nnEncoding)}`;
+  if (predictCache.has(key)) return predictCache.get(key);
   const tmpBin = path.join(os.tmpdir(), `nn_predict_${Date.now()}_${Math.random().toString(36).slice(2)}.bin`);
   try {
     writePredictInputBin(tmpBin, nnEncoding);
-    return await runPredictBinary(modelPath, tmpBin);
+    const score = await runPredictBinary(modelPath, tmpBin);
+    if (typeof score === 'number') {
+      predictCache.set(key, score);
+      if (predictCache.size > PREDICT_CACHE_MAX) {
+        const oldest = predictCache.keys().next().value;
+        if (oldest) predictCache.delete(oldest);
+      }
+    }
+    return score;
   } finally {
     fs.unlink(tmpBin, () => {});
   }
