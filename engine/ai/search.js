@@ -39,23 +39,11 @@ const KILLER_SLOTS = 2;
 // `danceTracker` en las opciones.  El tracker persiste entre turnos y penaliza
 // piezas que oscilan sin avanzar.
 
-const PAT_BASE_PEN  = 80;   // penalty per visit to the same target square
-const PAT_MAX_PEN   = 480;  // cap on oscillation penalty
-const PAT_STAG_PEN  = 100;  // base stagnation penalty
-const PAT_ADV_THRESHOLD = 1; // min row advance before stagnation penalty fires
+const PAT_BASE_PEN  = 80;
+const PAT_MAX_PEN   = 480;
+const PAT_STAG_PEN  = 100;
+const PAT_ADV_THRESHOLD = 1;
 
-/**
- * GameDanceTracker — one instance per game, passed from caller to search.
- *
- * Usage:
- *   const dt = new GameDanceTracker();
- *   // after each real played move:
- *   dt.record(side, piece, fromR, fromC, toR, toC);
- *   // pass to bot:
- *   chooseBlackBotMove(state, { ..., danceTracker: dt });
- *
- * ES: Una instancia por partida, creada por server.js/selfplay.js y pasada al motor.
- */
 export class GameDanceTracker {
   constructor(windowSize = 30) {
     this.windowSize = windowSize;
@@ -66,7 +54,6 @@ export class GameDanceTracker {
     this.ring      = { white: [], black: [] }; // FIFO of {key, cellIdx, toRow}
   }
 
-  /** Record a real game move (not a search move). */
   record(side, piece, fr, fc, tr, tc) {
     if (!piece || piece.type === 'king') return;
     const key     = `${piece.type}@${fr},${fc}`;
@@ -106,7 +93,6 @@ export class GameDanceTracker {
     ring.push({ key, cellIdx, toRow: tr });
   }
 
-  /** Oscillation penalty for moving `piece` from (fr,fc) to (tr,tc). */
   oscillation(side, piece, fr, fc, tr, tc) {
     if (!piece || piece.type === 'king') return 0;
     const key  = `${piece.type}@${fr},${fc}`;
@@ -117,7 +103,6 @@ export class GameDanceTracker {
     return Math.min(PAT_MAX_PEN, visits * PAT_BASE_PEN);
   }
 
-  /** Stagnation penalty: fires when a piece hasn't advanced its centroid. */
   stagnation(side, piece, fr, fc, tr, tc) {
     if (!piece || piece.type === 'king') return 0;
     const key = `${piece.type}@${fr},${fc}`;
@@ -131,7 +116,6 @@ export class GameDanceTracker {
     return PAT_STAG_PEN + (thisMoveAdv <= 0 ? PAT_STAG_PEN : 0);
   }
 
-  /** Reset (call at game start or after a capture resets piece identity). */
   reset() {
     this.visits    = { white: new Map(), black: new Map() };
     this.centroids = { white: new Map(), black: new Map() };
@@ -143,21 +127,13 @@ export class GameDanceTracker {
 // ES: Tracker activo a nivel de módulo — fijado por searchRoot cuando el llamador lo pasa.
 let _activeDanceTracker = null;
 
-/**
- * Oscillation penalty using the active tracker (called from moveOrderScore).
- * Returns 0 if no tracker is set.
- */
 function oscillationPenalty(side, piece, fr, fc, tr, tc) {
   return _activeDanceTracker?.oscillation(side, piece, fr, fc, tr, tc) ?? 0;
 }
 
-/**
- * Stagnation penalty using the active tracker (called from moveOrderScore).
- */
 function stagnationPenalty(side, piece, fr, fc, tr, tc) {
   return _activeDanceTracker?.stagnation(side, piece, fr, fc, tr, tc) ?? 0;
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
 function now() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
@@ -244,7 +220,7 @@ function givesCheck(state, move) {
   if (!move || move.fromReserve || !move.from || !move.to) return false;
   const md = makeMove(state, move, false, 0n, null);
   if (!md.action) return false;
-  const inCheck = isKingInCheck(state, state.turn);
+  const inCheck = isKingInCheck(state, opponent(state.turn));
   unmakeMove(state, md);
   return inCheck;
 }
@@ -255,19 +231,6 @@ function countRepetitions(history, hash) {
   return seen;
 }
 
-// ── INCR: Incremental attack map helpers ─────────────────────────────────────
-// evaluate() accepts precomputedMaps = { black, white } where each is an
-// attackMapResult from IncrementalAttackMap._wrapResult / createIncrementalMaps.
-// We build them once per searchRoot call, then update incrementally per move
-// using applyMoveToMaps, and rebuild (O(169)) after unmakeMove.
-//
-// On benchmarks this saves ~30% of evaluate() time at depth >= 6 since
-// buildAttackMap was called twice (black+white) per node on every evaluate call.
-// ES: Maps incrementales: se construyen una vez en searchRoot, se actualizan por
-// movimiento y se reconstruyen después de unmake. Ahorra ~30% del tiempo de evaluate.
-
-// Extract moved/captured piece from undo record for applyMoveToMaps
-// ES: Extrae pieza movida/capturada del registro undo para applyMoveToMaps
 function _extractMoveInfo(md, move) {
   let movedPiece = null, capturedPiece = null;
   if (md.undo && md.undo.cells) {
@@ -378,19 +341,19 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   // Repetition detection
   if (state.history?.length >= 2) {
     const reps = countRepetitions(state.history, hash);
-    const priorReps = Math.max(0, reps - 1);
-    if (priorReps >= 2) {
+    if (reps >= 2) {
       const contempt = state.turn === SIDE.BLACK ? -DRAW_CONTEMPT : DRAW_CONTEMPT;
-      dbg.search(`repetition draw`, { hash: hash.toString().slice(0, 10), reps, priorReps });
+      dbg.search(`repetition draw`, { hash: hash.toString().slice(0, 10), reps });
       return contempt;
     }
-    if (priorReps === 1) {
-      // INCR: use precomputed maps for this evaluate call too
-      // ES: usar mapas precomputados para este evaluate también
+    if (reps === 1) {
+      // Segunda vez que aparece — penalizar en la evaluación estática
+      // para que el bot busque alternativas antes de llegar a la tercera
+      // ES: Second time it appears — penalize in static evaluation
       const precomputed = maps ? { black: maps.black, white: maps.white } : null;
       if (staticEval === null) staticEval = evaluate(state, hash, precomputed, true).score;
       const sign = state.turn === SIDE.BLACK ? 1 : -1;
-      staticEval -= sign * (250 + depth * 35);
+      staticEval -= sign * 600;
     }
   }
 
@@ -444,7 +407,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     if (!kingAttacked) {
       const saved = state.turn;
       state.turn  = opponent(saved);
-      const R = Math.max(2, Math.floor(depth / 3));
+      const R = depth > 6 ? 3 : 2;
       // Null move doesn't change board — maps remain valid
       // ES: El movimiento nulo no cambia el tablero — los mapas siguen siendo válidos
       const nullScore = -search(state, depth - 1 - R, -beta, -alpha, deadline, tt,
@@ -476,14 +439,11 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   for (let i = 0; i < scoredMoves.length; i++) moves.push(scoredMoves[i].move);
 
   // ProbCut
-  if (effectiveDepth >= 4 && !inCheck && Math.abs(beta) < MATE_SCORE / 2) {
+  if (effectiveDepth >= 3 && !inCheck && Math.abs(beta) < MATE_SCORE / 2) {
     const probDepth  = effectiveDepth - 4;
     const probMargin = 150;
     for (const move of moves) {
       if (isTactical(state, move)) continue;
-      if (!move.fromReserve && state.board[move.to?.r]?.[move.to?.c]) {
-        if (!isSEEPositive(state, move, buildAttackMap)) continue;
-      }
       const md = makeMove(state, move, false, hash, staticEval);
       if (!md.action) continue;
       const childMaps = _applyMaps(maps, state, move, md, false);
@@ -574,10 +534,6 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
   const cached     = tt.get(hash);
   const ttMoveKey  = cached?.bestMoveKey ?? null;
 
-  // Activate the dance tracker for this search pass so moveOrderScore can use it.
-  // It is set before any move scoring and cleared on return, so concurrent calls
-  // in workers won't interfere (each worker gets its own module instance).
-  // ES: Activar el tracker de baile para este pase de búsqueda.
   _activeDanceTracker = danceTracker ?? null;
 
   const rawMoves = getAllLegalMoves(state, state.turn);
@@ -614,11 +570,6 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     return { bestMove: null, score: term ?? prevScore };
   }
 
-  // INCR: Build incremental attack maps once at the root — all child search() calls
-  // receive these maps and update them incrementally. At the root we rebuild after
-  // each unmake since each root move is independent (no shared subtree state).
-  // ES: Construir mapas incrementales una vez en la raíz. Los nodos hijos los reciben
-  // y actualizan incrementalmente. En la raíz se reconstruyen después de cada unmake.
   let rootMaps = null;
   try {
     rootMaps = createIncrementalMaps(state.board);
@@ -784,7 +735,7 @@ function kingPenalty(state, move) {
 }
 
 function kingShufflePen(state, move) {
-  const KING_SHUFFLE_PENALTY = 300;
+  const KING_SHUFFLE_PENALTY = 400;
   if (!move || move.fromReserve || !move.from || !move.to) return 0;
   const piece = state.board?.[move.from.r]?.[move.from.c];
   if (!piece || piece.type !== 'king') return 0;
@@ -871,7 +822,7 @@ function moveOrderScore(state, move, depth, currentHash = null) {
 
   const mk = moveKeyUint32(move, move.promotion ?? false);
   score += killerScore(depth, mk);
-  score += Math.min(120, historyScore(side, mk) / 10);
+  score += Math.min(200, historyScore(side, mk) / 8);
   score -= Math.min(1200, adaptiveMemory.getMovepenalty(moveKey(move, move.promotion ?? false)));
 
   // Repetition penalty: XOR directo del turno (igual que beta2.2) — sin makeMove,
@@ -885,7 +836,7 @@ function moveOrderScore(state, move, depth, currentHash = null) {
       score -= 4000;
     } else {
       const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
-      score -= Math.min(1200, drawPen);
+      score -= Math.min(1200, drawPen * 3);
     }
   }
 

@@ -33,7 +33,11 @@ export function centerBonus(r, c) {
 }
 
 export function pieceSquareBonus(piece, r, c) {
-  const prog = piece.side === SIDE.WHITE ? r : 12 - r;
+  // prog = advancement from own back rank toward enemy (0=home, 12=enemy back rank)
+  // WHITE starts at r=12 and advances toward r=0 → prog = 12 - r
+  // BLACK starts at r=0 and advances toward r=12 → prog = r
+  // ES: prog = avance desde la fila propia hacia el enemigo (0=casa, 12=fila enemiga)
+  const prog = piece.side === SIDE.WHITE ? (12 - r) : r;
   let bonus = centerBonus(r, c);
   switch (piece.type) {
     case 'pawn': bonus += prog * 12; if (piece.promoted) bonus += 22;

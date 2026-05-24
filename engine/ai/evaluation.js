@@ -587,19 +587,20 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
     riverControl:    safeRatio(blackRiver + 1, whiteRiver + 1),
   };
 
-  if (!precomputedMaps) {
-    // applyWeights: O(1) arithmetic — always run, keeps eval consistent across nodes
-    // ES: applyWeights: aritmética O(1) — siempre se ejecuta, mantiene eval consistente
-    score += adaptiveMemory.applyWeights(metrics);
+  // applyWeights: O(1) arithmetic — always run for eval consistency across all nodes
+  // Even internal nodes (with precomputedMaps) must apply weights to avoid a systematic
+  // gap between root eval and internal node eval (up to ±88 pts with learned weights).
+  // ES: applyWeights: aritmética O(1) — siempre se ejecuta para consistencia.
+  // Incluso nodos internos deben aplicar pesos para evitar brecha sistemática con la raíz.
+  score += adaptiveMemory.applyWeights(metrics);
 
-    // extractFeatures + getFeatureScore: expensive strings — skip in internal nodes
-    // ES: extractFeatures + getFeatureScore: strings caros — omitir en nodos internos
-    if (!skipMemory) {
-      const blackFk = extractFeatures(state, SIDE.BLACK);
-      const whiteFk = extractFeatures(state, SIDE.WHITE);
-      score += adaptiveMemory.getFeatureScore(blackFk, phaseFactor);
-      score -= adaptiveMemory.getFeatureScore(whiteFk, phaseFactor);
-    }
+  // extractFeatures + getFeatureScore: expensive strings — skip in internal nodes
+  // ES: extractFeatures + getFeatureScore: strings caros — omitir en nodos internos
+  if (!skipMemory && !precomputedMaps) {
+    const blackFk = extractFeatures(state, SIDE.BLACK);
+    const whiteFk = extractFeatures(state, SIDE.WHITE);
+    score += adaptiveMemory.getFeatureScore(blackFk, phaseFactor);
+    score -= adaptiveMemory.getFeatureScore(whiteFk, phaseFactor);
   }
   dbg.perf.end(t);
   return { score, metrics };
@@ -644,8 +645,10 @@ function kingSafetyFast(state, side, ownByPiece, enemyAttackMap, phaseFactor, ki
 function repetitionPenalty(hash, history) {
   let seen = 0;
   for (const h of history) if (h === hash) seen++;
-  const prior = Math.max(0, seen - 1);
-  return prior <= 0 ? 0 : prior * REPEAT_PENALTY;
+  // seen=0 → primera visita → sin penalización
+  // seen=1 → segunda visita → penalizar para evitar tercera
+  // seen≥2 → tercera o más → penalizar fuerte
+  return seen <= 0 ? 0 : seen * REPEAT_PENALTY;
 }
 
 function kingRecentMovePenalty(state) {

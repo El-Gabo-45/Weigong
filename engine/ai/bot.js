@@ -11,17 +11,6 @@ import { adaptiveMemory } from './memory.js';
 
 const MATE_SCORE = 1_000_000;
 
-// ── Per-game dance tracker ────────────────────────────────────────────────────
-// One tracker instance lives here and is reset when a new game starts.
-// It records every real move played and passes the data to searchRoot so
-// the engine can penalise oscillating pieces across turns.
-// ES: Tracker de baile por partida — persiste entre turnos y se pasa a searchRoot.
-let _gameDanceTracker = new GameDanceTracker();
-
-/** Call this at game start/reset to clear the dance history. */
-export function resetDanceTracker() { _gameDanceTracker.reset(); }
-// ─────────────────────────────────────────────────────────────────────────────
-
 // ── Detect environment ────────────────────────────────────────────────────────
 const IS_NODE   = typeof process !== 'undefined' && process.versions?.node;
 const IS_WORKER = IS_NODE && typeof workerData !== 'undefined';  // inside worker_threads worker
@@ -30,35 +19,17 @@ function now() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
 
-// ── SharedArrayBuffer TT ─────────────────────────────────────────────────────
-// We use SharedTT (SharedArrayBuffer-backed) when available so that parallel
-// workers share a single TT and benefit from each other's search results.
-// Falls back to the Map-based TranspositionTable in environments without SAB
-// (e.g. browsers without cross-origin isolation, or when explicitly disabled).
-//
-// ES: Usamos SharedTT (respaldado por SharedArrayBuffer) cuando está disponible
-// para que los workers paralelos compartan una sola TT. Recae en TranspositionTable
-// basada en Map en entornos sin SAB.
-
 const TT_MAX_ENTRIES = 500_000;
 
-let _sharedTTBuffer = null;  // SharedArrayBuffer reused across turns
+let _sharedTTBuffer = null;
 
 function _makeSharedTT() {
-  // SharedArrayBuffer requires cross-origin isolation in browsers.
-  // In Node.js it is always available.
-  // ES: SharedArrayBuffer requiere aislamiento cross-origin en navegadores.
-  // En Node.js siempre está disponible.
   try {
     if (typeof SharedArrayBuffer === 'undefined') return null;
     if (!_sharedTTBuffer) {
       const dummy = new SharedTT(TT_MAX_ENTRIES);
       _sharedTTBuffer = dummy.buffer;
     }
-    // Reuse buffer across turns — entries from previous turn improve move ordering.
-    // Depth-preferred replacement means stale entries get overwritten naturally.
-    // ES: Reutilizar buffer entre turnos — las entradas del turno anterior mejoran
-    // el ordenamiento. El reemplazo preferente por profundidad sobreescribe entradas viejas.
     return new SharedTT(TT_MAX_ENTRIES, _sharedTTBuffer);
   } catch {
     return null;
@@ -75,34 +46,9 @@ function _makeTT() {
   return new TranspositionTable(TT_MAX_ENTRIES);
 }
 
-// ── Parallel root search ─────────────────────────────────────────────────────
-// Splits root moves across N worker threads. Each worker searches its subset,
-// and we merge by taking the highest-scoring result.
-//
-// Architecture:
-//   - Worker is a self-contained module (bot-worker.js, created inline via Blob
-//     or required as a file in Node).
-//   - Workers receive: packed state (Uint8Array), move subset, TT SharedArrayBuffer,
-//     depth, alpha, beta, deadline.
-//   - They respond with: { bestMove, score } for their subset.
-//   - Main thread merges all responses.
-//
-// When workers are unavailable (browser without module workers, test env),
-// falls back to single-threaded searchRoot.
-//
-// ES: Divide los movimientos raíz entre N workers. Cada worker busca su subconjunto
-// y el hilo principal fusiona tomando el resultado de mayor score.
-
 const NUM_WORKERS = (() => {
-  // Use 2 workers in Node (typically has multiple CPUs available for the server).
-  // In browser use 0 (single-threaded) — browser workers add overhead that isn't
-  // worth it for time limits < 2000ms, and SharedArrayBuffer availability is uncertain.
-  // ES: 2 workers en Node (servidor con múltiples CPUs). 0 en browser — el overhead
-  // no compensa para límites de tiempo < 2000ms.
   if (!IS_NODE) return 0;
   try {
-    // Only use workers if worker_threads is available (Node >= 12)
-    // ES: Solo usar workers si worker_threads está disponible (Node >= 12)
     require('worker_threads');
     return 2;
   } catch {
@@ -110,9 +56,6 @@ const NUM_WORKERS = (() => {
   }
 })();
 
-// Inline worker source — avoids needing a separate file on disk.
-// The worker imports from the same module graph using workerData.basePath.
-// ES: Código fuente del worker inline — evita necesitar un archivo separado en disco.
 const WORKER_SOURCE = `
 import { workerData, parentPort } from 'worker_threads';
 import { fileURLToPath } from 'url';
@@ -173,13 +116,6 @@ for (const move of moves) {
 parentPort.postMessage({ bestMove, score: bestScore });
 `;
 
-/**
- * Run parallel root search across NUM_WORKERS threads.
- * Returns { bestMove, score }.
- * On any failure (worker crash, timeout) returns null → caller falls back to single-threaded.
- * ES: Búsqueda paralela en la raíz sobre NUM_WORKERS threads.
- * Retorna null en caso de fallo → el llamador cae en modo monohilo.
- */
 async function parallelSearchRoot(state, depth, alpha, beta, deadline, tt, hash, prevScore, moves, basePath) {
   if (NUM_WORKERS < 2 || moves.length < 4) return null;
   try {
@@ -243,21 +179,13 @@ async function parallelSearchRoot(state, depth, alpha, beta, deadline, tt, hash,
   }
 }
 
-// ── Main entry point ──────────────────────────────────────────────────────────
 
 export function chooseBlackBotMove(state, options = {}) {
   const maxDepth        = options.maxDepth        ?? 8;
   const timeLimitMs     = options.timeLimitMs     ?? 500;
   const aspirationWindow = options.aspirationWindow ?? 45;
   const rootNNByMoveKey = options.rootNNByMoveKey ?? null;
-  // Use caller-supplied danceTracker (server.js, selfplay.js) if provided,
-  // otherwise use the module-level one (direct bot.js usage).
-  // ES: Usar tracker externo si lo pasa el llamador, si no el interno del módulo.
-  const danceTracker = options.danceTracker ?? _gameDanceTracker;
 
-  // PACKED: use fastCloneState (PackedBoard intermediate) instead of cloneState.
-  // Saves ~40% clone time on 169-cell board (no dynamic property enumeration).
-  // ES: fastCloneState usa PackedBoard como intermediario — ~40% más rápido que cloneState.
   let searchState;
   try {
     searchState = fastCloneState(state);
