@@ -239,7 +239,7 @@ export class PackedBoard {
         const count = this.reserves[offset + ti];
         const type = RESERVE_TYPES[ti];
         for (let i = 0; i < count; i++) {
-          reserves[side].push({ type, side, promoted: type === 'crossbow', id: `p_${Date.now()}_${Math.random()}` });
+          reserves[side].push({ type, side, promoted: type === 'crossbow', locked: false, id: 0 });
         }
       }
     }

@@ -42,7 +42,7 @@ for (let i = 0; i < UNDO_POOL_SIZE; i++) {
     turn: null, lastMove: null,
     reservesW: null, reservesB: null,
     palaceTaken: null, palaceTimers: null, palaceCurse: null,
-    history: null, positionHistory: null, lastRepeatedMoveKey: null, repeatMoveCount: 0,
+    history: null, historyLength: 0, positionHistory: null, lastRepeatedMoveKey: null, repeatMoveCount: 0,
     archerAmbush: null, selected: null, legalMoves: null, promotionRequest: null,
     message: null, status: null,
     hash: null, eval: null,
@@ -56,7 +56,7 @@ function acquireUndo() {
   u.turn = null; u.lastMove = null;
   u.reservesW = null; u.reservesB = null;
   u.palaceTaken = null; u.palaceTimers = null; u.palaceCurse = null;
-  u.history = null; u.positionHistory = null; u.lastRepeatedMoveKey = null; u.repeatMoveCount = 0;
+  u.history = null; u.historyLength = 0; u.positionHistory = null; u.lastRepeatedMoveKey = null; u.repeatMoveCount = 0;
   u.archerAmbush = null; u.selected = null; u.legalMoves = null; u.promotionRequest = null;
   u.message = null; u.status = null;
   u.hash = null; u.eval = null;
@@ -82,13 +82,18 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
   const from = move.from ?? null, to = move.to ?? null;
   const undo = acquireUndo();
   undo.turn = state.turn;
-  undo.lastMove = state.lastMove ? { from: state.lastMove.from ? { ...state.lastMove.from } : null, to: state.lastMove.to ? { ...state.lastMove.to } : null } : null;
+  undo.lastMove = state.lastMove ? {
+    ...state.lastMove,
+    from: state.lastMove.from ? { ...state.lastMove.from } : null,
+    to: state.lastMove.to ? { ...state.lastMove.to } : null,
+  } : null;
   undo.hash = currentHash;
   undo.eval = currentEval;
 
   const rw = state.reserves.white;
   const rb = state.reserves.black;
-  if (rw.length > 0 || rb.length > 0) {
+  const reserveChange = move.fromReserve || (to && state.board[to.r]?.[to.c]);
+  if (reserveChange && (rw.length > 0 || rb.length > 0)) {
     undo.reservesW = rw.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id }));
     undo.reservesB = rb.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id }));
   } else {
@@ -99,11 +104,6 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
   undo.palaceTaken = state.palaceTaken ? { white: state.palaceTaken.white, black: state.palaceTaken.black } : null;
   undo.palaceTimers = state.palaceTimers ? { white: { ...state.palaceTimers.white }, black: { ...state.palaceTimers.black } } : null;
   undo.palaceCurse = state.palaceCurse ? { white: { ...state.palaceCurse.white }, black: { ...state.palaceCurse.black } } : null;
-  undo.history = state.history ? [...state.history] : [];
-  undo.positionHistory = state.positionHistory instanceof Map ? new Map(state.positionHistory) : state.positionHistory;
-  undo.lastRepeatedMoveKey = state.lastRepeatedMoveKey ?? null;
-  undo.repeatMoveCount = state.repeatMoveCount ?? 0;
-  undo.archerAmbush = state.archerAmbush ?? null;
   undo.selected = state.selected ?? null;
   undo.legalMoves = state.legalMoves ? [...state.legalMoves] : [];
   undo.promotionRequest = state.promotionRequest ?? null;
@@ -125,6 +125,10 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
     return { action: null, undo, hash: currentHash, evalDiff: 0 };
   }
   action.silent = true;
+
+  undo.history = state.history ?? null;
+  undo.historyLength = state.history?.length ?? 0;
+  undo.positionHistory = action.silent ? state.positionHistory : (state.positionHistory instanceof Map ? new Map(state.positionHistory) : state.positionHistory);
 
   let evalDiff = 0;
   if (currentEval !== null) {
@@ -187,7 +191,12 @@ export function unmakeMove(state, { undo }) {
   }
   state.turn = undo.turn;
   state.lastMove = undo.lastMove;
-  state.history = undo.history;
+  if (undo.history === null) {
+    state.history = null;
+  } else if (undo.history !== undefined) {
+    state.history = undo.history;
+    if (typeof undo.historyLength === 'number') state.history.length = undo.historyLength;
+  }
   state.positionHistory = undo.positionHistory;
   state.lastRepeatedMoveKey = undo.lastRepeatedMoveKey;
   state.repeatMoveCount = undo.repeatMoveCount;
