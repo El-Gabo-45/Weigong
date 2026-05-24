@@ -9,6 +9,12 @@ import { pieceValue } from './moves.js';
 const nnCache = new Map();
 let nnPredictFn = null; // set externally: (encoding) => Promise<score>
 
+export const NN_CHANNELS = 24;
+export const PIECE_CHANNEL = {
+  king:0, queen:1, general:2, elephant:3, priest:4, horse:5,
+  cannon:6, tower:7, carriage:8, archer:9, pawn:10, crossbow:11,
+};
+
 export function setNNPredictFn(fn) {
   nnPredictFn = fn;
 }
@@ -17,13 +23,36 @@ export function clearNNCache() {
   nnCache.clear();
 }
 
+export function encodeBoardForNN(board) {
+  const enc = new Float32Array(13 * 13 * NN_CHANNELS);
+  for (let r = 0; r < 13; r++) {
+    for (let c = 0; c < 13; c++) {
+      const p = board[r]?.[c];
+      if (!p) continue;
+      const ch = PIECE_CHANNEL[p.type];
+      if (ch === undefined) continue;
+      const offset = p.side === SIDE.WHITE ? 0 : 12;
+      enc[(r * 13 + c) * NN_CHANNELS + offset + ch] = 1.0;
+    }
+  }
+  return enc;
+}
+
+export function clampNNScore(nnScore) {
+  if (typeof nnScore !== 'number' || Number.isNaN(nnScore) || !Number.isFinite(nnScore)) return null;
+  return Math.max(-1, Math.min(1, nnScore));
+}
+
+export function blendScoreWithNN(classicalScore, nnScore, weight = 0.15, nnCpScale = 300) {
+  const clamped = clampNNScore(nnScore);
+  if (clamped === null) return classicalScore;
+  const w = Math.max(0, Math.min(1, weight));
+  const nnCp = clamped * nnCpScale;
+  return classicalScore * (1 - w) + nnCp * w;
+}
+
 async function getNNScore(board, side) {
   if (!nnPredictFn) return null;
-  const PIECE_CHANNEL = {
-    king:0, queen:1, general:2, elephant:3, priest:4, horse:5,
-    cannon:6, tower:7, carriage:8, archer:9, pawn:10, crossbow:11,
-  };
-  const NN_CHANNELS = 24;
   // Build cache key from board state (compact fingerprint)
   let fprint = `${side}:`;
   for (let r = 0; r < 13; r++) {
@@ -33,24 +62,11 @@ async function getNNScore(board, side) {
       fprint += `${p.type[0]}${p.side[0]}${p.promoted?1:0}`;
     }
   }
-  // Use position hash as part of key
   if (nnCache.has(fprint)) {
     return nnCache.get(fprint);
   }
 
-  // Build encoding
-  const enc = new Float32Array(13 * 13 * NN_CHANNELS);
-  for (let r = 0; r < 13; r++) {
-    for (let c = 0; c < 13; c++) {
-      const p = board[r][c];
-      if (!p) continue;
-      const ch = PIECE_CHANNEL[p.type];
-      if (ch === undefined) continue;
-      const offset = p.side === SIDE.WHITE ? 0 : 12;
-      enc[(r * 13 + c) * NN_CHANNELS + offset + ch] = 1.0;
-    }
-  }
-
+  const enc = encodeBoardForNN(board);
   const score = await nnPredictFn(enc);
   if (score !== null) nnCache.set(fprint, score);
   return score;

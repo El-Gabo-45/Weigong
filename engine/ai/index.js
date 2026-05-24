@@ -4,5 +4,5 @@
 export { chooseBlackBotMove, chooseBotMove, queueAdaptiveMemorySave, loadAdaptiveMemory } from './bot.js';
 export { adaptiveMemory, extractFeatures } from './memory.js';
 export { computeFullHash } from './hashing.js';
-export { evaluate, gamePhaseFactor } from './evaluation.js';
+export { evaluate, gamePhaseFactor, encodeBoardForNN, blendScoreWithNN, clampNNScore, NN_CHANNELS, PIECE_CHANNEL } from './evaluation.js';
 export { moveKey, moveKeyUint32 } from './search.js';

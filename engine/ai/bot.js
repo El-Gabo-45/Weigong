@@ -15,6 +15,7 @@ function now() {
 
 export function chooseBlackBotMove(state, options = {}) {
   const maxDepth = options.maxDepth ?? 8, timeLimitMs = options.timeLimitMs ?? 500, aspirationWindow = options.aspirationWindow ?? 45;
+  const rootNNByMoveKey = options.rootNNByMoveKey ?? null;
   const searchState = cloneState(state);
   let best = null, prevScore = 0;
   try {
@@ -43,7 +44,7 @@ export function chooseBlackBotMove(state, options = {}) {
     while (true) {
       if (now() > deadline) break;
       try {
-        const result = searchRoot(searchState, depth, alpha, beta, localDeadline, tt, rootHash, prevScore);
+        const result = searchRoot(searchState, depth, alpha, beta, localDeadline, tt, rootHash, prevScore, rootNNByMoveKey);
         if (result.bestMove) { best = result.bestMove; prevScore = result.score; }
         if (Math.abs(result.score) > MATE_SCORE - 50) remainingDepth = depth;
         if (result.score <= alpha) {

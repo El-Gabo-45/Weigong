@@ -14,7 +14,7 @@ const FUTILITY_MARGIN = [0, 150, 300, 500];
 
 // Umbral de ventaja mínima para que el bot acepte forzar empate por repetición.
 // Si el bot está ganando por más de esto, rechaza repetir.
-const DRAW_CONTEMPT = 150;
+const DRAW_CONTEMPT = 120;
 
 // ── OPT-4: Quiescence depth limit — prevents search explosion on long capture chains.
 // ES: Límite de profundidad en quiescence — previene explosión en cadenas largas de capturas.
@@ -143,12 +143,12 @@ function countRepetitions(history, hash) {
 // delta pruning: if even the best possible capture won't reach alpha, cut immediately.
 // ES: quiescence con límite de profundidad y delta pruning.
 // qdepth: contador regresivo desde QSEARCH_MAX_DEPTH; cuando llega a 0, retorna eval estática.
-// delta pruning: si ni la mejor captura posible alcanza alpha, cortar inmediatamente.
+// delta pruning: si ni la mejor captura alcanza alpha, cortar inmediatamente.
 function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdepth = QSEARCH_MAX_DEPTH) {
   if (now() > deadline) throw new SearchTimeout();
   const maximizing = state.turn === SIDE.BLACK;
   const inCheck    = isKingInCheck(state, state.turn);
-    const ev         = staticEval ?? evaluate(state, hash, null, true).score;
+  const ev         = staticEval ?? evaluate(state, hash, null, true).score;
 
   // Hard depth limit — return static eval when qdepth exhausted
   // ES: Límite duro de profundidad — retornar eval estática al agotar qdepth
@@ -227,7 +227,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       // ES: Segunda aparición — penalizar eval estática escalando con profundidad
       if (staticEval === null) staticEval = evaluate(state, hash, null, true).score;
       const sign = state.turn === SIDE.BLACK ? 1 : -1;
-      staticEval -= sign * (600 + depth * 80);
+      staticEval -= sign * (250 + depth * 35);
     }
   }
 
@@ -266,18 +266,11 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       return quiescence(state, alpha, beta, deadline, hash, staticEval);
   }
 
-  // OPT-3: countMaterial hoisted as module-level function to avoid re-declaring
-  // on every search() call (was an inner function definition per node).
-  // ES: countMaterial movido a nivel de módulo para evitar re-declaración por nodo.
-
   const hasDrops    = state.reserves[state.turn].length > 0;
   const curseActive = state.palaceCurse?.[state.turn]?.active;
 
   // Null move pruning with adaptive R
   // ES: Poda de movimiento nulo con R adaptativo
-  // OPT-5: R is now adaptive (depth/3, min 2) instead of fixed 2/3.
-  // Larger R at higher depths means fewer nodes at early plies.
-  // ES: R adaptativo (depth/3, mín 2) en lugar de fijo. Menos nodos en plies altas.
   if (!isNullMove && depth >= 3 && !inCheck && !hasDrops && !curseActive
       && countMaterial(state.board) > 4) {
     // Use isSquareAttacked (from rules) instead of full buildAttackMap — much faster
@@ -292,9 +285,6 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     if (!kingAttacked) {
       const saved = state.turn;
       state.turn  = opponent(saved);
-      // OPT-5: Adaptive R — deeper positions use larger reductions.
-      // depth 3-4 → R=2, depth 5-7 → R=2 or 3, depth 8+ → R=3+
-      // ES: R adaptativo: depth/3 redondeado, mínimo 2.
       const R = Math.max(2, Math.floor(depth / 3));
       const nullScore = -search(state, depth - 1 - R, -beta, -alpha, deadline, tt,
         hash ^ ZobristTurn[0] ^ ZobristTurn[1], staticEval, true);
@@ -426,7 +416,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   return best;
 }
 
-export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevScore) {
+export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevScore, rootNNByMoveKey = null) {
   const maximizing = state.turn === SIDE.BLACK;
   const cached     = tt.get(hash);
   const ttMoveKey  = cached?.bestMoveKey ?? null;
@@ -447,7 +437,10 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     if (!m) continue;
     if (!m.fromReserve && !m.from) continue;
     const s = moveOrderScore(state, m, depth, hash);
-    scoredMoves.push({ move: m, score: ttMoveKey && moveKeyUint32(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
+    const mk = moveKeyUint32(m, m.promotion ?? false);
+    const nnRaw = rootNNByMoveKey ? (rootNNByMoveKey.get?.(mk) ?? rootNNByMoveKey[mk] ?? null) : null;
+    const nnBonus = typeof nnRaw === 'number' && Number.isFinite(nnRaw) ? Math.max(-250, Math.min(250, Math.round(nnRaw * 180))) : 0;
+    scoredMoves.push({ move: m, score: s + nnBonus + (ttMoveKey && mk === ttMoveKey ? 1_000_000 : 0) });
   }
   scoredMoves.sort((a, b) => b.score - a.score);
   const moves = [];
@@ -625,7 +618,7 @@ function kingPenalty(state, move) {
 }
 
 function kingShufflePen(state, move) {
-  const KING_SHUFFLE_PENALTY = 400;
+  const KING_SHUFFLE_PENALTY = 300;
   if (!move || move.fromReserve || !move.from || !move.to) return 0;
   const piece = state.board?.[move.from.r]?.[move.from.c];
   if (!piece || piece.type !== 'king') return 0;
@@ -634,6 +627,27 @@ function kingShufflePen(state, move) {
   return (last.from.r === move.to.r && last.from.c === move.to.c
        && last.to.r   === move.from.r && last.to.c === move.from.c)
     ? KING_SHUFFLE_PENALTY : 0;
+}
+
+function shufflePenalty(state, move) {
+  if (!move || move.fromReserve || !move.from || !move.to) return 0;
+  const piece = state.board?.[move.from.r]?.[move.from.c];
+  if (!piece || piece.type === 'king') return 0;
+
+  const target = state.board?.[move.to.r]?.[move.to.c] ?? null;
+  let pen = 0;
+
+  if (!target) {
+    const dist = Math.abs(move.to.r - move.from.r) + Math.abs(move.to.c - move.from.c);
+    if (dist <= 1) pen += 180;
+    else if (dist === 2) pen += 90;
+
+    const forward = piece.side === SIDE.WHITE ? 1 : -1;
+    const advance = (move.to.r - move.from.r) * forward;
+    if (advance <= 0) pen += 120;
+  }
+
+  return pen;
 }
 
 // ── OPT-3: countMaterial hoisted to module level — was re-declared as an inner
@@ -672,7 +686,6 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   if (target) {
     const victimVal = pieceValue(target);
     const attackerVal = pieceValue(moving);
-    // MVV-LVA formula: victim*12 - attacker*2 + bonus for positive trade
     const tradeBonus = victimVal > attackerVal ? 2000 : (victimVal === attackerVal ? 1000 : -500);
     score += victimVal * 12 - attackerVal * 2 + tradeBonus;
   }
@@ -709,6 +722,7 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   if (isBacktrack(state, move)) score -= IMMEDIATE_BACKTRACK_PENALTY;
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
+  score -= shufflePenalty(state, move);
 
   // Compute moveKey once — was previously called 3 separate times (killerScore,
   // historyScore, adaptiveMemory.getMovepenalty) each building the same string.
@@ -716,8 +730,8 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   // adaptiveMemory.getMovepenalty) construyendo el mismo string cada vez.
   const mk = moveKeyUint32(move, move.promotion ?? false);
   score += killerScore(depth, mk);
-  score += Math.min(200, historyScore(side, mk) / 8);
-  score -= adaptiveMemory.getMovepenalty(moveKey(move, move.promotion ?? false));
+  score += Math.min(120, historyScore(side, mk) / 10);
+  score -= Math.min(1200, adaptiveMemory.getMovepenalty(moveKey(move, move.promotion ?? false)));
 
   // Repetition penalty using the actual future hash when available.
   // This avoids mis-ordering based on the current board only, which is
@@ -732,14 +746,12 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     if (futureHash !== null) {
       const seen = countRepetitions(state.history, futureHash);
       if (seen >= 2) {
-        // FIX-2: must exceed TT bonus (+1_000_000) so no repetition ever wins ordering
-        // ES: debe superar el bonus del TT move para que ninguna repetición gane el ordenamiento
         score -= 2_000_000;  // third repetition → completely forbidden
       } else if (seen === 1) {
-        score -= 8000;       // second repetition → strongly penalized
+        score -= 3000;       // second repetition → clearly discouraged
       } else {
         const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
-        score -= drawPen * 3;
+        score -= Math.min(1200, drawPen);
       }
     }
   }

@@ -823,6 +823,44 @@ function getBotParams(level = 5) {
   return params[Math.min(params.length - 1, level - 1)];
 }
 
+function moveKeyUint32(move, promote = false) {
+  if (!move) return 0;
+  if (move.fromReserve) {
+    const reserveIndex = Number.isInteger(move.reserveIndex) ? move.reserveIndex & 0xF : 0;
+    const r = move.to?.r ?? 0;
+    const c = move.to?.c ?? 0;
+    return (((1 << 31) >>> 0) | ((reserveIndex & 0xF) << 24) | ((r & 0xF) << 20) | ((c & 0xF) << 16)) >>> 0;
+  }
+  const fr = move.from?.r ?? 0;
+  const fc = move.from?.c ?? 0;
+  const tr = move.to?.r ?? 0;
+  const tc = move.to?.c ?? 0;
+  const p  = promote ? 1 : 0;
+  return (((fr & 0xF) << 28) | ((fc & 0xF) << 24) | ((tr & 0xF) << 20) | ((tc & 0xF) << 16) | ((p & 1) << 15)) >>> 0;
+}
+
+async function buildRootNNByMoveKey(state, legalMoves) {
+  const map = new Map();
+  if (!legalMoves?.length) return map;
+  const limited = legalMoves.length > 14 ? legalMoves.slice(0, 14) : legalMoves;
+  for (const move of limited) {
+    try {
+      const next = cloneStateForBot(state);
+      if (move.fromReserve) {
+        executeDrop(next, move.reserveIndex, move.to);
+      } else {
+        applyMove(next, { from: move.from, to: move.to, promotion: move.promotion ?? false });
+      }
+      const enc = encodeBoardForNN(next.board);
+      const nn = await predictScore(enc);
+      if (typeof nn === 'number' && Number.isFinite(nn)) {
+        map.set(moveKeyUint32(move, move.promotion ?? false), nn);
+      }
+    } catch {}
+  }
+  return map;
+}
+
 function isSameMove(move, legalMove) {
   if (!move || !legalMove) return false;
   if (Boolean(move.fromReserve) !== Boolean(legalMove.fromReserve)) return false;
@@ -843,8 +881,10 @@ app.post('/api/botMove', async (req, res) => {
     const state = cloneStateForBot(clientState);
     const originalState = cloneStateForBot(clientState);
     const params = getBotParams(difficulty || 5);
+    const legalMoves = getAllLegalMoves(state, state.turn);
+    const rootNNByMoveKey = legalMoves.length > 0 ? await buildRootNNByMoveKey(state, legalMoves) : new Map();
 
-    const { move, score } = chooseBlackBotMove(state, params);
+    const { move, score } = chooseBlackBotMove(state, { ...params, rootNNByMoveKey });
 
     if (!move) return res.json({ move: null });
 
