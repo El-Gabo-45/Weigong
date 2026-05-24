@@ -239,12 +239,13 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   // Repetition detection
   if (state.history?.length >= 2) {
     const reps = countRepetitions(state.history, hash);
-    if (reps >= 2) {
+    const priorReps = Math.max(0, reps - 1);
+    if (priorReps >= 2) {
       const contempt = state.turn === SIDE.BLACK ? -DRAW_CONTEMPT : DRAW_CONTEMPT;
-      dbg.search(`repetition draw`, { hash: hash.toString().slice(0, 10), reps });
+      dbg.search(`repetition draw`, { hash: hash.toString().slice(0, 10), reps, priorReps });
       return contempt;
     }
-    if (reps === 1) {
+    if (priorReps === 1) {
       // INCR: use precomputed maps for this evaluate call too
       // ES: usar mapas precomputados para este evaluate también
       const precomputed = maps ? { black: maps.black, white: maps.white } : null;
@@ -479,12 +480,12 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     for (const m of moves) {
       for (const pr of getBranches(state, m)) {
         const probe = makeMove(state, m, pr, hash, prevScore);
-        if (probe.action) {
-          if (countRepetitions(state.history, probe.hash) >= 2) {
+        if (probe.action && probe.undo) {
+          if (countRepetitions(state.history, probe.hash) >= 3) {
             thirdRepMoveKeys.add(moveKeyUint32(m, pr));
           }
-          unmakeMove(state, probe);
         }
+        if (probe.undo) unmakeMove(state, probe);
       }
     }
     if (thirdRepMoveKeys.size >= moves.length) thirdRepMoveKeys.clear();
@@ -738,9 +739,10 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     }
     if (futureHash !== null) {
       const seen = countRepetitions(state.history, futureHash);
-      if (seen >= 2) {
+      const priorSeen = Math.max(0, seen - 1);
+      if (priorSeen >= 2) {
         score -= 2_000_000;  // third repetition → completely forbidden (exceeds TT bonus)
-      } else if (seen === 1) {
+      } else if (priorSeen === 1) {
         score -= 3000;
       } else {
         const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());

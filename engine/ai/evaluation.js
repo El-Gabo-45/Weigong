@@ -866,7 +866,12 @@ function kingSafetyFast(state, side, ownByPiece, enemyAttackMap, phaseFactor, ki
   return score;
 }
 
-function repetitionPenalty(hash, history) { let seen = 0; for (const h of history) if (h === hash) seen++; return seen <= 0 ? 0 : seen * REPEAT_PENALTY; }
+function repetitionPenalty(hash, history) {
+  let seen = 0;
+  for (const h of history) if (h === hash) seen++;
+  const prior = Math.max(0, seen - 1);
+  return prior <= 0 ? 0 : prior * REPEAT_PENALTY;
+}
 
 function kingRecentMovePenalty(state) {
   const last = state.lastMove; if (!last?.from || !last?.to) return 0;

@@ -319,7 +319,7 @@ export class AdaptiveMemory {
     if (data?.drawPositions)  this.drawPositions = new Map(data.drawPositions);
     if (data?.patternWeights) this.patternWeights = { ...this.patternWeights, ...data.patternWeights };
     this.gamesPlayed = data?.gamesPlayed ?? 0;
-    this.gamesWon    = data?.gamesWon    ?? 0;
+    this.gamesWon    = data?.gamesWon    ?? data?.gamesWonBlack ?? 0;
   }
 }
 

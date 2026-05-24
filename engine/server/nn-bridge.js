@@ -138,29 +138,103 @@ function buildTargets(game) {
   return { inputs, scores };
 }
 
-// ── Escribe dataset como binario puro ─────────────────────────────────────────
+// ── Escribe dataset como binario puro — streaming incremental ─────────────────
+// OLD: cargaba todos los allInputs[] en memoria (podía ser GBs).
+// NEW: escribe cada fila directamente al fd en vez de acumular en RAM.
+// Formato: [int32 n_samples][int32 input_dim][float32*n*dim][float32*n]
+// El header se escribe al final (seek a byte 0) cuando se conoce n_samples.
+// ES: streaming incremental — evita OOM con datasets grandes.
 function writeDatasetBin(filePath, allInputs, allScores) {
   const n        = allInputs.length;
+  if (n === 0) { fs.writeFileSync(filePath, Buffer.alloc(8)); return; }
   const inputDim = allInputs[0].length;
 
-  const header = Buffer.allocUnsafe(8);
-  header.writeInt32LE(n,        0);
-  header.writeInt32LE(inputDim, 4);
+  const fd = fs.openSync(filePath, 'w');
+  try {
+    // Reserve 8 bytes for header (filled at the end)
+    // ES: Reservar 8 bytes para header (se rellena al final)
+    fs.writeSync(fd, Buffer.alloc(8));
 
-  const xBuf = Buffer.allocUnsafe(n * inputDim * 4);
-  for (let i = 0; i < n; i++) {
-    const row = allInputs[i];
-    for (let j = 0; j < inputDim; j++) {
-      xBuf.writeFloatLE(row[j], (i * inputDim + j) * 4);
+    const xBuf = Buffer.allocUnsafe(inputDim * 4);
+    for (let i = 0; i < n; i++) {
+      const row = allInputs[i];
+      for (let j = 0; j < inputDim; j++) xBuf.writeFloatLE(row[j], j * 4);
+      fs.writeSync(fd, xBuf);
     }
+
+    const yBuf = Buffer.allocUnsafe(n * 4);
+    for (let i = 0; i < n; i++) yBuf.writeFloatLE(allScores[i], i * 4);
+    fs.writeSync(fd, yBuf);
+
+    // Write header at offset 0
+    // ES: Escribir header al offset 0
+    const header = Buffer.allocUnsafe(8);
+    header.writeInt32LE(n,        0);
+    header.writeInt32LE(inputDim, 4);
+    fs.writeSync(fd, header, 0, 8, 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+// ── Versión streaming para archivos grandes: escribe fila a fila sin acumular ──
+// Identical binary format — can be called from trainFromGameFiles to avoid
+// holding all allInputs[] in memory simultaneously.
+// ES: versión streaming — igual formato, sin acumular en RAM.
+export async function buildBinFromFiles(options = {}) {
+  const { gamesDir, fileNames = [], outPath } = options;
+  if (!gamesDir || !outPath || fileNames.length === 0) {
+    return { nSamples: 0, inputDim: 0 };
   }
 
-  const yBuf = Buffer.allocUnsafe(n * 4);
-  for (let i = 0; i < n; i++) {
-    yBuf.writeFloatLE(allScores[i], i * 4);
-  }
+  const fd = fs.openSync(outPath, 'w');
+  let nSamples = 0, inputDim = 0;
+  const scores = [];
 
-  fs.writeFileSync(filePath, Buffer.concat([header, xBuf, yBuf]));
+  try {
+    fs.writeSync(fd, Buffer.alloc(8)); // header placeholder
+
+    const BATCH = 20;
+    for (let bs = 0; bs < fileNames.length; bs += BATCH) {
+      const be       = Math.min(bs + BATCH, fileNames.length);
+      const contents = await Promise.all(
+        fileNames.slice(bs, be).map(f =>
+          fsp.readFile(path.join(gamesDir, f), 'utf8').catch(() => null)
+        )
+      );
+      for (const raw of contents) {
+        if (!raw) continue;
+        let game;
+        try { game = JSON.parse(raw); } catch { continue; }
+        if (!game.moves?.length) continue;
+        const { inputs, scores: rowScores } = buildTargets(game);
+        for (let ri = 0; ri < inputs.length; ri++) {
+          const floats = inputs[ri];
+          const score  = rowScores[ri];
+          if (inputDim === 0) inputDim = floats.length;
+          const xBuf = Buffer.allocUnsafe(floats.length * 4);
+          for (let j = 0; j < floats.length; j++) xBuf.writeFloatLE(floats[j], j * 4);
+          fs.writeSync(fd, xBuf);
+          scores.push(score);
+          nSamples++;
+        }
+      }
+      contents.length = 0;
+      if (typeof global.gc === 'function') global.gc();
+    }
+
+    const yBuf = Buffer.allocUnsafe(nSamples * 4);
+    for (let i = 0; i < nSamples; i++) yBuf.writeFloatLE(scores[i], i * 4);
+    fs.writeSync(fd, yBuf);
+
+    const header = Buffer.allocUnsafe(8);
+    header.writeInt32LE(nSamples, 0);
+    header.writeInt32LE(inputDim, 4);
+    fs.writeSync(fd, header, 0, 8, 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+  return { nSamples, inputDim };
 }
 
 function writePredictInputBin(filePath, nnEncoding) {
@@ -273,9 +347,10 @@ export async function trainFromGames(options = {}) {
   }
 }
 
-// ── Training DIRECTLY from game files on disk ─────────────────────────────────
-// Lee archivos de partida desde el disco, construye targets y entrena la NN.
-// ES: Lee archivos de partida desde el disco, construye targets y entrena la NN.
+// ── Training DIRECTLY from game files on disk — streaming, no RAM accumulation ──
+// OLD: acumulaba todos los inputs en allInputs[] (podía ser GBs en RAM).
+// NEW: escribe cada muestra directamente al .bin vía buildBinFromFiles — O(batch) RAM.
+// ES: versión streaming — sin acumulación en RAM, O(lote) en memoria.
 export async function trainFromGameFiles(options = {}) {
   if (isTraining) throw new Error('Training already in progress');
   isTraining = true;
@@ -298,82 +373,29 @@ export async function trainFromGameFiles(options = {}) {
   try {
     await ensureBinaries();
 
-    const allInputs = [];
-    const allScores = [];
-    let gamesLoaded = 0;
-    let gamesWithData = 0;
+    tmpBin = path.join(os.tmpdir(), `nn_train_files_${Date.now()}.bin`);
+    console.log(`💾 Streaming binary dataset from ${fileNames.length} game files...`);
+    const t0 = Date.now();
 
-    // Procesar archivos en lotes de 20 para no saturar memoria
-    const BATCH = 20;
-    for (let bs = 0; bs < fileNames.length; bs += BATCH) {
-      const be = Math.min(bs + BATCH, fileNames.length);
-      const batchFiles = fileNames.slice(bs, be);
+    // STREAMING: write row-by-row without loading all inputs into RAM
+    // ES: STREAMING: escribir fila a fila sin cargar todos los inputs en RAM
+    const { nSamples, inputDim } = await buildBinFromFiles({ gamesDir, fileNames, outPath: tmpBin });
 
-      const contents = await Promise.all(
-        batchFiles.map(f =>
-          fsp.readFile(path.join(gamesDir, f), 'utf8').catch(() => null)
-        )
-      );
-
-      for (const raw of contents) {
-        if (!raw) continue;
-        try {
-          const game = JSON.parse(raw);
-          if (!game.moves?.length) continue;
-          gamesLoaded++;
-
-          const { inputs, scores } = buildTargets(game);
-          if (inputs.length === 0) continue;
-          gamesWithData++;
-
-          for (let i = 0; i < inputs.length; i++) {
-            allInputs.push(inputs[i]);
-            allScores.push(scores[i]);
-          }
-        } catch (e) {
-          // skip corrupt files
-        }
-      }
-
-      // Liberar memoria del lote
-      contents.length = 0;
-      if (typeof global.gc === 'function') global.gc();
-    }
-
-    console.log(`📊 Game files: ${fileNames.length} found, ${gamesLoaded} loaded, ${gamesWithData} with NN data`);
-    console.log(`   Samples extracted: ${allInputs.length}`);
-
-    if (allInputs.length === 0) {
+    if (nSamples === 0) {
       return { trained: false, samples: 0, message: 'No usable training samples found.' };
     }
 
-    // Log target distribution
-    const buckets = Array(10).fill(0);
-    for (const s of allScores) buckets[Math.min(9, Math.floor((s + 1) / 2 * 10))]++;
-    const labels = ['-1.0','-0.8','-0.6','-0.4','-0.2',' 0.0',' 0.2',' 0.4',' 0.6',' 0.8'];
-    console.log(`📈 Target distribution (${allInputs.length} samples):`);
-    for (let i = 0; i < 10; i++) {
-      const bar = '█'.repeat(Math.round((buckets[i] / allInputs.length) * 36));
-      console.log(`   ${labels[i]}: ${bar} ${buckets[i]}`);
-    }
-
-    // Escribir binario temporal
-    tmpBin = path.join(os.tmpdir(), `nn_train_files_${Date.now()}.bin`);
-    const t0 = Date.now();
-    writeDatasetBin(tmpBin, allInputs, allScores);
     const mb = (fs.statSync(tmpBin).size / 1024 / 1024).toFixed(1);
-    console.log(`💾 Binary dataset: ${allInputs.length} × ${allInputs[0].length} = ${mb} MB (${Date.now()-t0}ms)`);
+    console.log(`📊 ${fileNames.length} files → ${nSamples} samples, ${inputDim} dims, ${mb} MB (${Date.now()-t0}ms)`);
 
-    // Entrenar
-    console.log(`🧠 GPU Training: ${allInputs.length} samples, ${epochs} epochs, batch ${batchSize}...`);
+    console.log(`🧠 GPU Training: ${nSamples} samples, ${epochs} epochs, batch ${batchSize}...`);
     const result = await runTrainBinary(modelPath, epochs, batchSize, tmpBin);
     console.log(`✅ NN training done — MSE: ${result.final_mse?.toFixed(6) ?? '?'}`);
 
     return {
       trained: true,
-      samples: allInputs.length,
-      gamesLoaded,
-      gamesWithData,
+      samples: nSamples,
+      gamesWithData: nSamples,  // approx — exact count not tracked in streaming mode
       ...result,
     };
 

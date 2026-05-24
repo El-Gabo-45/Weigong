@@ -124,6 +124,7 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
     dbg.perf.end(t);
     return { action: null, undo, hash: currentHash, evalDiff: 0 };
   }
+  action.silent = true;
 
   let evalDiff = 0;
   if (currentEval !== null) {
@@ -169,7 +170,10 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
   newHash = xorReserves(newHash, state.reserves.black, 1);
   const newPalH = (state.palaceTaken?.white ? ZobristPalaceWhite : 0n) ^ (state.palaceTaken?.black ? ZobristPalaceBlack : 0n);
   newHash ^= oldPalH ^ newPalH ^ ZobristTurn[0] ^ ZobristTurn[1];
-  state.history = state.history ?? []; state.history.push(currentHash);
+  if (action.silent) {
+    state.history = state.history ?? [];
+    state.history.push(newHash);
+  }
   dbg.moves('makeMove', { from: from ? `${from.r},${from.c}` : 'R', to: to ? `${to.r},${to.c}` : 'R', promote, evalDiff: evalDiff.toFixed(1) });
   dbg.perf.end(t);
   return { action, undo, hash: newHash, evalDiff, maps: precomputedMaps };
