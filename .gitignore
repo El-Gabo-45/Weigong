@@ -3,5 +3,5 @@ node_modules/
 backup/
 .vscode/
 src/icons/
-engine/data/
+engine/data/*
 neural_network_gpu/model.bin
