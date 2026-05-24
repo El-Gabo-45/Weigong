@@ -795,23 +795,6 @@ function kingShufflePen(state, move) {
     ? KING_SHUFFLE_PENALTY : 0;
 }
 
-function shufflePenalty(state, move) {
-  if (!move || move.fromReserve || !move.from || !move.to) return 0;
-  const piece = state.board?.[move.from.r]?.[move.from.c];
-  if (!piece || piece.type === 'king') return 0;
-  const target = state.board?.[move.to.r]?.[move.to.c] ?? null;
-  let pen = 0;
-  if (!target) {
-    const dist = Math.abs(move.to.r - move.from.r) + Math.abs(move.to.c - move.from.c);
-    if (dist <= 1) pen += 180;
-    else if (dist === 2) pen += 90;
-    const forward = piece.side === SIDE.WHITE ? 1 : -1;
-    const advance = (move.to.r - move.from.r) * forward;
-    if (advance <= 0) pen += 120;
-  }
-  return pen;
-}
-
 function countMaterial(board) {
   let count = 0;
   for (let r = 0; r < 13; r++)
@@ -872,7 +855,6 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   if (isBacktrack(state, move)) score -= 500;
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
-  score -= shufflePenalty(state, move);
 
   // ── Anti-dance penalties (oscillation + stagnation) ──────────────────────
   // These fire for any non-king non-capture quiet move. Captures are
@@ -892,24 +874,18 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   score += Math.min(120, historyScore(side, mk) / 10);
   score -= Math.min(1200, adaptiveMemory.getMovepenalty(moveKey(move, move.promotion ?? false)));
 
+  // Repetition penalty: XOR directo del turno (igual que beta2.2) — sin makeMove,
+  // O(1) por movimiento y sin riesgo de corrupción de estado.
   if (currentHash !== null && state.history?.length >= 2) {
-    let futureHash = null;
-    const md = makeMove(state, move, move.promotion ?? false, currentHash);
-    if (md.action) {
-      futureHash = md.hash;
-      unmakeMove(state, md);
-    }
-    if (futureHash !== null) {
-      const seen = countRepetitions(state.history, futureHash);
-      const priorSeen = Math.max(0, seen - 1);
-      if (priorSeen >= 2) {
-        score -= 2_000_000;  // third repetition → completely forbidden (exceeds TT bonus)
-      } else if (priorSeen === 1) {
-        score -= 3000;
-      } else {
-        const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
-        score -= Math.min(1200, drawPen);
-      }
+    const futureHash = currentHash ^ ZobristTurn[0] ^ ZobristTurn[1];
+    const seen = countRepetitions(state.history, futureHash);
+    if (seen >= 2) {
+      score -= 20000;
+    } else if (seen === 1) {
+      score -= 4000;
+    } else {
+      const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
+      score -= Math.min(1200, drawPen);
     }
   }
 

@@ -308,6 +308,9 @@ export function fastCloneState(state) {
     promotion: state.lastMove.promotion ?? false,
   } : null;
   light.history = state.history ? [...state.history] : [];
+  light.positionHistory = state.positionHistory instanceof Map
+    ? new Map(state.positionHistory)
+    : new Map();
   light.lastRepeatedMoveKey = state.lastRepeatedMoveKey ?? null;
   light.repeatMoveCount = state.repeatMoveCount ?? 0;
   light.message = state.message ?? '';
@@ -315,6 +318,22 @@ export function fastCloneState(state) {
   light.selected = null;
   light.legalMoves = [];
   light.promotionRequest = null;
+  // Carry over palace curse and timers — toLightState() resets these to zero,
+  // but the search needs the real values to evaluate correctly.
+  // ES: Copiar maldición de palacio y timers reales — toLightState() los resetea a cero
+  // pero la búsqueda necesita los valores reales para evaluar correctamente.
+  if (state.palaceCurse) {
+    light.palaceCurse = {
+      white: { ...state.palaceCurse.white },
+      black: { ...state.palaceCurse.black },
+    };
+  }
+  if (state.palaceTimers) {
+    light.palaceTimers = {
+      white: { ...state.palaceTimers.white },
+      black: { ...state.palaceTimers.black },
+    };
+  }
   return light;
 }
 
