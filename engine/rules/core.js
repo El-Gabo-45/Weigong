@@ -8,23 +8,12 @@
 import { BOARD_SIZE, SIDE, opponent, isPalaceSquare, onBank, forwardDir, homePromotionZone, canDropOnSide, isPromotableType, isReserveType, pieceLabel, isRiverSquare } from "../constants.js";
 import { makePiece, findKings, boardSignature, cloneState } from './board.js';
 import { createGame, resetGame } from './game.js';
-export { createGame, resetGame };
 import { isSquareProtectedByArcher, getArcherAmbushResult, executeArcherAmbush, getArcherBlockedSquares } from './archer.js';
-export { isSquareProtectedByArcher, getArcherAmbushResult, executeArcherAmbush, getArcherBlockedSquares };
 import { isKingInCheck, isSquareAttacked, attackSquaresForPiece } from './check.js';
-export { isKingInCheck, isSquareAttacked, attackSquaresForPiece };
 import { getLegalMovesForSquare, pseudoMovesForPiece, rayMoves, jumpMoves, addIfValid } from './moves.js';
-export { getLegalMovesForSquare, pseudoMovesForPiece, rayMoves, jumpMoves, addIfValid };
 import { updatePalaceState, isPalaceCursedFor, getPalaceInvaders } from './state.js';
-export { isPalaceCursedFor, getPalaceInvaders };
 import { computeFullHash } from '../ai/hashing.js';
-
-function captureToReserve(state, captured, captorSide) {
-  if (!captured) return;
-  const type = captured.promoted ? (captured.type === "pawn" ? "crossbow" : captured.type) : captured.type;
-  if (!isReserveType(type)) return;
-  state.reserves[captorSide].push({ id: crypto.randomUUID(), type, side: captorSide });
-}
+import { captureToReserve } from './capture.js';
 
 function maybePromote(state, piece, r, c) {
   if (!piece || !isPromotableType(piece.type) || piece.promoted) return false;

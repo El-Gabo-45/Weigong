@@ -445,6 +445,9 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
   });
 
   const scoredMoves = [];
+  // Tiny random seed per call to break symmetric tie repetition loops
+  // ES: Pequeña semilla aleatoria por llamada para romper bucles de repetición simétrica
+  const rng = (Math.random() - 0.5) * 0.01;
   for (let mi = 0; mi < rawMoves.length; mi++) {
     const m = rawMoves[mi];
     if (!m) continue;
@@ -453,7 +456,9 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     const mk = moveKeyUint32(m, m.promotion ?? false);
     const nnRaw = rootNNByMoveKey ? (rootNNByMoveKey.get?.(mk) ?? rootNNByMoveKey[mk] ?? null) : null;
     const nnBonus = typeof nnRaw === 'number' && Number.isFinite(nnRaw) ? Math.max(-250, Math.min(250, Math.round(nnRaw * 180))) : 0;
-    scoredMoves.push({ move: m, score: s + nnBonus + (ttMoveKey && mk === ttMoveKey ? 1_000_000 : 0) });
+    // rng adds tiny random noise (±0.005) to break ties without affecting strong preferences
+    // ES: rng agrega ruido aleatorio mínimo (±0.005) para romper empates sin afectar preferencias fuertes
+    scoredMoves.push({ move: m, score: s + nnBonus + (ttMoveKey && mk === ttMoveKey ? 1_000_000 : 0) + rng });
   }
   scoredMoves.sort((a, b) => b.score - a.score);
   const moves = [];

@@ -6,6 +6,7 @@ import { Debug, createDebugPanel, dbg } from "../engine/debug/debug.js";
 import { toggleEditor, isEditorActive, ensureEditorHooks } from "./ui/editor.js";
 import { showPanel, togglePanel } from "../engine/tools/tools-panel.js";
 import { showStylePicker, openStylePicker } from "./ui/piece-style-selector.js";
+import "./ui/ai-games.js";
 
 // Detect dev environment
 // ES: Detecta entorno de desarrollo

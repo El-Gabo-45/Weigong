@@ -1,4 +1,5 @@
-import { BOARD_SIZE, SIDE, onBank, forwardDir, opponent, inBounds } from '../../engine/constants.js';
+import { BOARD_SIZE, SIDE, onBank, forwardDir, opponent, inBounds } from '../constants.js';
+import { captureToReserve } from './capture.js';
 
 export function getArcherBlockedSquares(archerRow, archerCol, archerSide) {
   if (!onBank(archerSide, archerRow)) return [];
@@ -78,9 +79,4 @@ export function executeArcherAmbush(state, choice) {
   }
 }
 
-function captureToReserve(state, captured, captorSide) {
-  if (!captured) return;
-  const type = captured.promoted ? (captured.type === "pawn" ? "crossbow" : captured.type) : captured.type;
-  if (!['tower','general','pawn','crossbow'].includes(type)) return;
-  state.reserves[captorSide].push({ id: crypto.randomUUID(), type, side: captorSide });
-}
+

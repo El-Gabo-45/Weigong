@@ -355,9 +355,11 @@ function finalizePromotion(choice) {
   const evalBefore = evaluate(state, computeFullHash(state)).score;
   const move = { from: V.pendingMove.from, to: V.pendingMove.to, promotion: choice };
   const capturedPiece = state.board[move.to.r][move.to.c];
-  let notation = generateMoveNotation(state, move, null, 0, capturedPiece);
   applyMove(state, move);
   afterMoveEvaluation(state);
+  // Generate notation AFTER applyMove so piece.promoted is correctly reflected
+  // ES: Generar notación DESPUÉS de applyMove para que piece.promoted esté actualizado
+  let notation = generateMoveNotation(state, move, null, 0, capturedPiece);
   notation += appendCurseNotation(state);
   V.currentGameNotation.push(notation);
   markLastNotationForCurrentState();

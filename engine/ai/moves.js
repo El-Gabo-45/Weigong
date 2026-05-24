@@ -1,11 +1,14 @@
 import { dbg } from '../debug/debug.js';
-import { SIDE, opponent, isPromotableType, isPalaceSquare, onBank, isReserveType } from '../constants.js';
+import { SIDE, opponent, isPromotableType, isPalaceSquare, isReserveType } from '../constants.js';
 import { applyMove, isPromotionAvailableForMove } from '../rules/index.js';
 import {
   xorPiece, xorReserves, ZobristTurn, ZobristPalaceWhite, ZobristPalaceBlack,
   SIDE_INDEX, PIECE_INDEX
 } from './hashing.js';
 import { applyMoveToMaps, rebuildMaps } from './incremental-attack.js';
+import { pieceValue, pieceSquareBonus, seeValue } from './piece-values.js';
+// Re-export so tests and other modules can import from moves.js
+export { pieceValue, pieceSquareBonus, seeValue } from './piece-values.js';
 
 // ── Reusable board pool for SEE ──
 const BOARD_POOL_SIZE = 64;
@@ -223,47 +226,7 @@ export function unmakeMove(state, { undo }) {
   if (undo.palaceCurse) state.palaceCurse = undo.palaceCurse;
 }
 
-const PIECE_VALUES = {
-  king: 0, queen: 950, general: 560, elephant: 240, priest: 400,
-  horse: 320, cannon: 450, tower: 520, carriage: 390, archer: 450,
-  pawn: 110, crossbow: 240,
-};
-const PROMOTED_VALUES = {
-  pawn: 240, tower: 520, horse: 430, elephant: 320, priest: 540, cannon: 450,
-};
 
-export function pieceValue(piece) { const base = PIECE_VALUES[piece.type] ?? 0; return piece.promoted ? (PROMOTED_VALUES[piece.type] ?? base + 120) : base; }
-
-export function pieceSquareBonus(piece, r, c) {
-  const prog = piece.side === SIDE.WHITE ? r : 12 - r;
-  let bonus = centerBonus(r, c);
-  switch (piece.type) {
-    case 'pawn': bonus += prog * 12; if (piece.promoted) bonus += 22;
-      if (piece.side === SIDE.WHITE && r >= 7) bonus += 14;
-      if (piece.side === SIDE.BLACK && r <= 5) bonus += 14;
-      break;
-    case 'horse': bonus += (6 - Math.abs(r-6)) * 4; break;
-    case 'cannon': bonus += prog * 4; break;
-    case 'tower': bonus += prog * 4; break;
-    case 'priest': bonus += 16; break;
-    case 'archer': bonus += 16; if (onBank(piece.side, r)) bonus += 300; bonus += prog * 10; break;
-    case 'king': bonus += isPalaceSquare(r, c, piece.side) ? 90 : -70; break;
-    case 'queen': bonus += 35; break;
-    case 'general': bonus += 18; break;
-    case 'carriage': bonus += 10; break;
-    case 'elephant': bonus += 8; break;
-    case 'crossbow': bonus += 20; break;
-  }
-  return bonus;
-}
-
-function centerBonus(r, c) { return (12 - Math.abs(r-6) - Math.abs(c-6)) * 3; }
-
-export function seeValue(piece) {
-  if (!piece) return 0;
-  if (piece.promoted) return PROMOTED_VALUES[piece.type] ?? (PIECE_VALUES[piece.type] ?? 0) + 120;
-  return PIECE_VALUES[piece.type] ?? 0;
-}
 
 // ── OPT-SEE: findBestAttacker now iterates Uint8Array directly ───────────────
 // OLD: iterated the Map-compatible wrapper emitting "r,c" string keys and parsing them.

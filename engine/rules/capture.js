@@ -1,0 +1,23 @@
+// ═════════════════════════════════════════════════════
+//  Capture & Reserve Utilities (EN/ES)
+// ES: Utilidades de captura y reserva
+//  Centralizes capture-to-reserve logic used by core.js and archer.js
+// ES: Centraliza la lógica de captura a reserva usada por core.js y archer.js
+// ═════════════════════════════════════════════════════
+
+import { isReserveType } from '../constants.js';
+
+/**
+ * Adds a captured piece to the appropriate reserve.
+ * Only pieces that go to reserve (tower, general, pawn, crossbow) are added.
+ * ES: Agrega una pieza capturada a la reserva correspondiente.
+ * Solo las piezas que van a reserva (torre, general, peón, ballesta) se agregan.
+ */
+export function captureToReserve(state, captured, captorSide) {
+  if (!captured) return;
+  const type = captured.promoted
+    ? (captured.type === "pawn" ? "crossbow" : captured.type)
+    : captured.type;
+  if (!isReserveType(type)) return;
+  state.reserves[captorSide].push({ id: crypto.randomUUID(), type, side: captorSide });
+}
