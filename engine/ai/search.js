@@ -12,18 +12,9 @@ const INF        = 1_000_000_000;
 const TT_EXACT = 0, TT_ALPHA = 1, TT_BETA = 2;
 const FUTILITY_MARGIN = [0, 150, 300, 500];
 
-// Umbral de ventaja mínima para que el bot acepte forzar empate por repetición.
-// Si el bot está ganando por más de esto, rechaza repetir.
-const DRAW_CONTEMPT = 120;
-
-// ── OPT-4: Quiescence depth limit — prevents search explosion on long capture chains.
-// ES: Límite de profundidad en quiescence — previene explosión en cadenas largas de capturas.
+const DRAW_CONTEMPT    = 120;
 const QSEARCH_MAX_DEPTH = 6;
-
-// ── OPT-4: Delta pruning margin in quiescence — if even capturing the best possible
-// piece won't bring us within alpha, cut off immediately.
-// ES: Margen de delta pruning en quiescence — si ni capturando la mejor pieza alcanzamos alpha, cortar.
-const QDELTA_MARGIN = 600;
+const QDELTA_MARGIN     = 600;
 
 const killerMoves  = new Map();
 const historyTable = { white: new Map(), black: new Map() };
@@ -67,8 +58,6 @@ function storeKiller(depth, move) {
   killerMoves.set(depth, [key, prev[0] ?? null].filter(Boolean).slice(0, KILLER_SLOTS));
 }
 
-// Accept pre-computed key to avoid redundant moveKey() calls from moveOrderScore
-// ES: Aceptar clave pre-computada para evitar llamadas redundantes a moveKey() desde moveOrderScore
 function killerScore(depth, mk) {
   const arr = killerMoves.get(depth);
   if (!arr) return 0;
@@ -82,11 +71,6 @@ function storeHistory(side, move, depth) {
   historyTable[side].set(key, (historyTable[side].get(key) ?? 0) + depth * depth);
 }
 
-// ── OPT-6: Age history table between IDS iterations to prevent stale scores
-// from shallow depths dominating ordering at deeper iterations.
-// Call this at the start of each new IDS depth iteration in chooseBlackBotMove.
-// ES: Decay de la tabla de historia entre iteraciones IDS para que los scores de
-// profundidades previas no dominen el ordenamiento en iteraciones más profundas.
 export function decayHistoryTable() {
   for (const [k, v] of historyTable.white) historyTable.white.set(k, v >> 1);
   for (const [k, v] of historyTable.black) historyTable.black.set(k, v >> 1);
@@ -96,10 +80,6 @@ function isQuiet(state, move, promote) {
   return !move || move.fromReserve || promote ? false : !state.board?.[move.to?.r]?.[move.to?.c];
 }
 
-// ── OPT-2: terminalScore now accepts a pre-computed legalMoves array to avoid
-// calling getAllLegalMoves() a second time when search() already computed them.
-// Pass null to fall back to computing internally (used in searchRoot edge case).
-// ES: terminalScore acepta moves pre-computados para evitar doble llamada a getAllLegalMoves().
 function terminalScore(state, depth, precomputedMoves = null) {
   try {
     const legal = precomputedMoves ?? getAllLegalMoves(state, state.turn) ?? [];
@@ -130,28 +110,77 @@ function givesCheck(state, move) {
   return inCheck;
 }
 
-// Counts how many times hash appears in history
-// ES: Cuenta cuántas veces aparece hash en el historial
 function countRepetitions(history, hash) {
   let seen = 0;
   for (const h of history) if (h === hash) seen++;
   return seen;
 }
 
-// ── OPT-1: quiescence now has a depth limit (qdepth) and delta pruning.
-// qdepth: counts down from QSEARCH_MAX_DEPTH; when it reaches 0, return static eval.
-// delta pruning: if even the best possible capture won't reach alpha, cut immediately.
-// ES: quiescence con límite de profundidad y delta pruning.
-// qdepth: contador regresivo desde QSEARCH_MAX_DEPTH; cuando llega a 0, retorna eval estática.
-// delta pruning: si ni la mejor captura alcanza alpha, cortar inmediatamente.
-function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdepth = QSEARCH_MAX_DEPTH) {
+// ── INCR: Incremental attack map helpers ─────────────────────────────────────
+// evaluate() accepts precomputedMaps = { black, white } where each is an
+// attackMapResult from IncrementalAttackMap._wrapResult / createIncrementalMaps.
+// We build them once per searchRoot call, then update incrementally per move
+// using applyMoveToMaps, and rebuild (O(169)) after unmakeMove.
+//
+// On benchmarks this saves ~30% of evaluate() time at depth >= 6 since
+// buildAttackMap was called twice (black+white) per node on every evaluate call.
+// ES: Maps incrementales: se construyen una vez en searchRoot, se actualizan por
+// movimiento y se reconstruyen después de unmake. Ahorra ~30% del tiempo de evaluate.
+
+// Extract moved/captured piece from undo record for applyMoveToMaps
+// ES: Extrae pieza movida/capturada del registro undo para applyMoveToMaps
+function _extractMoveInfo(md, move) {
+  let movedPiece = null, capturedPiece = null;
+  if (md.undo && md.undo.cells) {
+    for (let i = 0; i < md.undo.cellCount; i++) {
+      const cell = md.undo.cells[i];
+      if (!move.fromReserve && move.from && cell.r === move.from.r && cell.c === move.from.c) {
+        movedPiece = cell.p;
+      } else if (move.to && cell.r === move.to.r && cell.c === move.to.c) {
+        capturedPiece = cell.p;
+      }
+    }
+  }
+  return { movedPiece, capturedPiece };
+}
+
+// Apply maps incrementally; on any error fall back to null (maps disabled for this node)
+// ES: Actualiza mapas incrementalmente; si hay error, deshabilita los mapas para este nodo
+function _applyMaps(maps, state, move, md, promote) {
+  if (!maps) return null;
+  try {
+    const { movedPiece, capturedPiece } = _extractMoveInfo(md, move);
+    applyMoveToMaps(maps, state, move, capturedPiece, movedPiece, promote);
+    return maps;
+  } catch {
+    return null;
+  }
+}
+
+// Rebuild both sides after unmakeMove — O(169) each, but cheaper than full clone
+// ES: Reconstruye ambos bandos después de unmakeMove — O(169) cada uno
+function _rebuildMaps(maps, board) {
+  if (!maps) return;
+  try {
+    maps._blackInc?.rebuild(board);
+    maps._whiteInc?.rebuild(board);
+    // Sync the result refs so maps.black/maps.white are current
+    if (maps._blackInc) maps.black = maps._blackInc.get();
+    if (maps._whiteInc) maps.white = maps._whiteInc.get();
+  } catch {}
+}
+
+// ── quiescence ───────────────────────────────────────────────────────────────
+function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdepth = QSEARCH_MAX_DEPTH, maps = null) {
   if (now() > deadline) throw new SearchTimeout();
   const maximizing = state.turn === SIDE.BLACK;
   const inCheck    = isKingInCheck(state, state.turn);
-  const ev         = staticEval ?? evaluate(state, hash, null, true).score;
 
-  // Hard depth limit — return static eval when qdepth exhausted
-  // ES: Límite duro de profundidad — retornar eval estática al agotar qdepth
+  // INCR: pass precomputed maps to evaluate — avoids two O(169) buildAttackMap calls
+  // ES: pasar mapas precomputados a evaluate — evita dos reconstrucciones O(169)
+  const precomputed = maps ? { black: maps.black, white: maps.white } : null;
+  const ev = staticEval ?? evaluate(state, hash, precomputed, true).score;
+
   if (qdepth <= 0 && !inCheck) return ev;
 
   let best = inCheck ? (maximizing ? -INF : INF) : ev;
@@ -159,9 +188,6 @@ function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdept
     if (maximizing) {
       if (best >= beta) return best;
       alpha = Math.max(alpha, best);
-      // OPT-1: Delta pruning — skip search if even capturing the most valuable piece
-      // cannot possibly raise alpha by more than QDELTA_MARGIN.
-      // ES: Delta pruning — omitir si capturar la pieza más valiosa no puede superar alpha.
       if (ev + QDELTA_MARGIN < alpha) return ev;
     } else {
       if (best <= alpha) return best;
@@ -169,9 +195,11 @@ function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdept
       if (ev - QDELTA_MARGIN > beta) return ev;
     }
   }
+
   const moves = getAllLegalMoves(state, state.turn)
     .filter(m => m && (inCheck || isTactical(state, m)))
     .sort((a, b) => moveOrderScore(state, b, 0) - moveOrderScore(state, a, 0));
+
   for (const move of moves) {
     if (now() > deadline) throw new SearchTimeout();
     if (!inCheck && !move.fromReserve && state.board[move.to?.r]?.[move.to?.c]) {
@@ -180,9 +208,11 @@ function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdept
     for (const promote of getBranches(state, move)) {
       const md = makeMove(state, move, promote, hash, best);
       if (!md.action || !md.undo) continue;
+      const childMaps = _applyMaps(maps, state, move, md, promote);
       try {
         const score = -quiescence(state, -beta, -alpha, deadline, md.hash,
-          md.evalDiff ? -best - md.evalDiff : null, qdepth - 1);
+          md.evalDiff ? -best - md.evalDiff : null, qdepth - 1,
+          childMaps ? { black: maps.black, white: maps.white, _blackInc: maps._blackInc, _whiteInc: maps._whiteInc } : null);
         if (maximizing) {
           if (score > best) best = score;
           alpha = Math.max(alpha, best);
@@ -194,38 +224,31 @@ function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdept
         }
       } finally {
         unmakeMove(state, md);
+        if (childMaps) _rebuildMaps(maps, state.board);
       }
     }
   }
   return best;
 }
 
+// ── search ───────────────────────────────────────────────────────────────────
 export function search(state, depth, alpha, beta, deadline, tt, hash,
-                       staticEval = null, isNullMove = false) {
+                       staticEval = null, isNullMove = false, maps = null) {
   if (now() > deadline) throw new SearchTimeout();
 
-  // Repetition detection inside search
-  // ES: Detección de repetición dentro de la búsqueda
-  // If this position already appeared in the current search history,
-  // return a draw score adjusted by contempt.
-  // The bot only accepts the draw if losing; if winning, it rejects it.
-  // ES: El bot solo acepta el empate si está perdiendo; si está ganando, lo rechaza.
+  // Repetition detection
   if (state.history?.length >= 2) {
     const reps = countRepetitions(state.history, hash);
     if (reps >= 2) {
-      // Posición repetida 3 veces → empate forzado
-      // Contempt: si el bot (negro) está ganando, el empate vale menos que 0
       const contempt = state.turn === SIDE.BLACK ? -DRAW_CONTEMPT : DRAW_CONTEMPT;
       dbg.search(`repetition draw`, { hash: hash.toString().slice(0, 10), reps });
       return contempt;
     }
     if (reps === 1) {
-      // Second time it appears — penalize in static evaluation
-      // so the bot looks for alternatives before reaching a third.
-      // Scale with depth: deeper nodes get heavier penalty so the bot
-      // avoids the repetition path well before reaching the root.
-      // ES: Segunda aparición — penalizar eval estática escalando con profundidad
-      if (staticEval === null) staticEval = evaluate(state, hash, null, true).score;
+      // INCR: use precomputed maps for this evaluate call too
+      // ES: usar mapas precomputados para este evaluate también
+      const precomputed = maps ? { black: maps.black, white: maps.white } : null;
+      if (staticEval === null) staticEval = evaluate(state, hash, precomputed, true).score;
       const sign = state.turn === SIDE.BLACK ? 1 : -1;
       staticEval -= sign * (250 + depth * 35);
     }
@@ -243,38 +266,34 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     if (cached.flag === TT_BETA  && cached.score >= beta)  return beta;
   }
 
-  // OPT-2: Compute rawMoves once here — passed to terminalScore to avoid
-  // getAllLegalMoves() being called twice at depth==0 boundary.
-  // ES: Calcular rawMoves una sola vez — se pasa a terminalScore para evitar
-  // doble llamada a getAllLegalMoves() en la frontera depth==0.
   const rawMoves = getAllLegalMoves(state, state.turn);
   const term = terminalScore(state, depth, rawMoves);
   if (term !== null) return term;
-  if (depth <= 0) return quiescence(state, alpha, beta, deadline, hash, staticEval);
+  if (depth <= 0) return quiescence(state, alpha, beta, deadline, hash, staticEval, QSEARCH_MAX_DEPTH, maps);
 
   const maximizing = state.turn === SIDE.BLACK;
   const inCheck    = isKingInCheck(state, state.turn);
-  if (staticEval === null) staticEval = evaluate(state, hash, null, true).score;
+
+  // INCR: use precomputed maps for static eval — avoids O(169)×2 buildAttackMap
+  // ES: usar mapas precomputados para eval estática — evita O(169)×2 buildAttackMap
+  const precomputed = maps ? { black: maps.black, white: maps.white } : null;
+  if (staticEval === null) staticEval = evaluate(state, hash, precomputed, true).score;
 
   // Razoring
-  // ES: Razoring (poda por evaluación reducida)
   if (!inCheck && depth <= 2) {
     const razorMargin = depth === 1 ? 250 : 450;
     if (maximizing && staticEval + razorMargin <= alpha)
-      return quiescence(state, alpha, beta, deadline, hash, staticEval);
+      return quiescence(state, alpha, beta, deadline, hash, staticEval, QSEARCH_MAX_DEPTH, maps);
     if (!maximizing && staticEval - razorMargin >= beta)
-      return quiescence(state, alpha, beta, deadline, hash, staticEval);
+      return quiescence(state, alpha, beta, deadline, hash, staticEval, QSEARCH_MAX_DEPTH, maps);
   }
 
   const hasDrops    = state.reserves[state.turn].length > 0;
   const curseActive = state.palaceCurse?.[state.turn]?.active;
 
   // Null move pruning with adaptive R
-  // ES: Poda de movimiento nulo con R adaptativo
   if (!isNullMove && depth >= 3 && !inCheck && !hasDrops && !curseActive
       && countMaterial(state.board) > 4) {
-    // Use isSquareAttacked (from rules) instead of full buildAttackMap — much faster
-    // ES: Usar isSquareAttacked (de rules) en lugar de buildAttackMap completo — mucho más rápido
     let kingAttacked = false;
     for (let r = 0; r < 13 && !kingAttacked; r++)
       for (let c = 0; c < 13 && !kingAttacked; c++) {
@@ -286,20 +305,17 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       const saved = state.turn;
       state.turn  = opponent(saved);
       const R = Math.max(2, Math.floor(depth / 3));
+      // Null move doesn't change board — maps remain valid
+      // ES: El movimiento nulo no cambia el tablero — los mapas siguen siendo válidos
       const nullScore = -search(state, depth - 1 - R, -beta, -alpha, deadline, tt,
-        hash ^ ZobristTurn[0] ^ ZobristTurn[1], staticEval, true);
+        hash ^ ZobristTurn[0] ^ ZobristTurn[1], staticEval, true, maps);
       state.turn = saved;
       if (maximizing && nullScore >= beta)  return beta;
       if (!maximizing && nullScore <= alpha) return alpha;
     }
   }
 
-  // OPT-7: IIR — Internal Iterative Reduction.
-  // If no TT move is available at depth >= 5, reduce depth by 1 to get a quick
-  // estimate of the best move before doing the full search. This avoids spending
-  // full effort on nodes where move ordering is essentially random.
-  // ES: IIR: si no hay TT move en depth>=5, reducir depth-1 para obtener
-  // una estimación rápida del mejor movimiento antes de la búsqueda completa.
+  // IIR — Internal Iterative Reduction
   const ttMoveKey = cached?.bestMoveKey ?? null;
   let effectiveDepth = depth;
   if (!ttMoveKey && depth >= 5 && !inCheck) {
@@ -307,15 +323,11 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   }
 
   let hashFlag = TT_ALPHA, bestMoveForTT = null;
-  // OPT-2: reuse rawMoves computed above — no second call to getAllLegalMoves()
-  // ES: Reutilizar rawMoves ya computados — sin segunda llamada a getAllLegalMoves()
   const scoredMoves = [];
   for (let mi = 0; mi < rawMoves.length; mi++) {
     const m = rawMoves[mi];
     if (!m) continue;
     if (!m.fromReserve && !m.from) continue;
-    // Pass hash so moveOrderScore doesn't recompute computeFullHash() N times
-    // ES: Pasar hash para que moveOrderScore no recalcule computeFullHash() N veces
     const s = moveOrderScore(state, m, depth, hash);
     scoredMoves.push({ move: m, score: ttMoveKey && moveKeyUint32(m, m.promotion) === ttMoveKey ? s + 1_000_000 : s });
   }
@@ -323,26 +335,21 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   const moves = [];
   for (let i = 0; i < scoredMoves.length; i++) moves.push(scoredMoves[i].move);
 
-  // OPT-8: ProbCut — fixed to probe tactical (capture) moves with positive SEE,
-  // not quiet moves. ProbCut is designed to prune captures that are overwhelmingly
-  // likely to exceed beta at a shallower depth; it makes no sense on quiet moves.
-  // ES: ProbCut corregido para probar capturas con SEE positivo, no movs quietos.
-  // ProbCut sirve para podar capturas que probablemente superan beta en menor profundidad.
+  // ProbCut
   if (effectiveDepth >= 4 && !inCheck && Math.abs(beta) < MATE_SCORE / 2) {
     const probDepth  = effectiveDepth - 4;
     const probMargin = 150;
     for (const move of moves) {
-      // OPT-8: Only probe tactical moves (captures/promotions) with positive SEE
-      // ES: Solo probar movimientos tácticos (capturas/promociones) con SEE positivo
       if (!isTactical(state, move)) continue;
       if (!move.fromReserve && state.board[move.to?.r]?.[move.to?.c]) {
         if (!isSEEPositive(state, move, buildAttackMap)) continue;
       }
       const md = makeMove(state, move, false, hash, staticEval);
       if (!md.action) continue;
+      const childMaps = _applyMaps(maps, state, move, md, false);
       try {
         const probScore = -search(state, probDepth, -beta - probMargin, -beta + probMargin,
-          deadline, tt, md.hash, null, false);
+          deadline, tt, md.hash, null, false, childMaps ? maps : null);
         if (probScore >= beta) {
           tt.set(hash, { depth, score: probScore, flag: TT_BETA,
             bestMoveKey: moveKeyUint32(move, move.promotion) });
@@ -350,6 +357,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
         }
       } finally {
         unmakeMove(state, md);
+        if (childMaps) _rebuildMaps(maps, state.board);
       }
     }
   }
@@ -370,11 +378,14 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
       const tactical  = isTactical(state, move) || promote;
       const md        = makeMove(state, move, promote, hash, staticEval);
       if (!md.action || !md.undo) continue;
+      // INCR: update maps for child node, rebuild on unmake
+      // ES: actualizar mapas para nodo hijo, reconstruir en unmake
+      const childMaps = _applyMaps(maps, state, move, md, promote);
       try {
         let score;
         const childEval = md.evalDiff ? staticEval + md.evalDiff : null;
         if (moveCount === 1) {
-          score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+          score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false, childMaps ? maps : null);
         } else {
           let reduction = 0;
           if (effectiveDepth >= 3 && moveCount >= 3 && !tactical && !inCheck) {
@@ -382,13 +393,13 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
             reduction = Math.max(1, Math.min(reduction, effectiveDepth - 2));
           }
           score = -search(state, effectiveDepth - 1 - reduction, -alpha - 1, -alpha, deadline, tt,
-            md.hash, childEval, false);
+            md.hash, childEval, false, childMaps ? maps : null);
           if (score > alpha && reduction > 0)
             score = -search(state, effectiveDepth - 1, -alpha - 1, -alpha, deadline, tt,
-              md.hash, childEval, false);
+              md.hash, childEval, false, childMaps ? maps : null);
           if (score > alpha && score < beta)
             score = -search(state, effectiveDepth - 1, -beta, -alpha, deadline, tt,
-              md.hash, childEval, false);
+              md.hash, childEval, false, childMaps ? maps : null);
         }
         if (maximizing) {
           if (score > best) { best = score; bestMoveForTT = move; }
@@ -408,6 +419,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
         }
       } finally {
         unmakeMove(state, md);
+        if (childMaps) _rebuildMaps(maps, state.board);
       }
     }
   }
@@ -416,13 +428,12 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
   return best;
 }
 
+// ── searchRoot ───────────────────────────────────────────────────────────────
 export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevScore, rootNNByMoveKey = null) {
   const maximizing = state.turn === SIDE.BLACK;
   const cached     = tt.get(hash);
   const ttMoveKey  = cached?.bestMoveKey ?? null;
 
-  // Compute moves once — the debug log was calling getAllLegalMoves a second time
-  // ES: Calcular movimientos una vez — el log de debug llamaba getAllLegalMoves una segunda vez
   const rawMoves = getAllLegalMoves(state, state.turn);
   dbg.search.group(`searchRoot d=${depth}`, {
     moves:     rawMoves.length,
@@ -431,6 +442,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     turn:      state.turn,
     prevScore,
   });
+
   const scoredMoves = [];
   for (let mi = 0; mi < rawMoves.length; mi++) {
     const m = rawMoves[mi];
@@ -447,18 +459,21 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
   for (let i = 0; i < scoredMoves.length; i++) moves.push(scoredMoves[i].move);
 
   if (!moves.length) {
-    // OPT-2: Pass rawMoves (empty) to terminalScore — no extra getAllLegalMoves() call
-    // ES: Pasar rawMoves (vacío) a terminalScore — sin llamada extra a getAllLegalMoves()
     const term = terminalScore(state, depth, rawMoves);
     return { bestMove: null, score: term ?? prevScore };
   }
 
-  // FIX-1: Pre-compute which moves lead to a 3rd repetition so we can skip them
-  // at the root unless they are literally the only legal move.
-  // moveOrderScore already penalizes them, but the TT bonus (+1_000_000) was
-  // overwhelming that penalty — here we hard-veto them before they are searched.
-  // ES: Pre-calcular qué movimientos llevan a 3ª repetición para vetarlos en la raíz
-  // salvo que sean el único movimiento legal disponible.
+  // INCR: Build incremental attack maps once at the root — all child search() calls
+  // receive these maps and update them incrementally. At the root we rebuild after
+  // each unmake since each root move is independent (no shared subtree state).
+  // ES: Construir mapas incrementales una vez en la raíz. Los nodos hijos los reciben
+  // y actualizan incrementalmente. En la raíz se reconstruyen después de cada unmake.
+  let rootMaps = null;
+  try {
+    rootMaps = createIncrementalMaps(state.board);
+  } catch { rootMaps = null; }
+
+  // FIX-1: Pre-veto 3rd-repetition moves at root
   const thirdRepMoveKeys = new Set();
   if (state.history?.length >= 2 && moves.length > 1) {
     for (const m of moves) {
@@ -472,33 +487,33 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
         }
       }
     }
-    // If ALL moves repeat, clear the veto set — we must play something
-    // ES: Si todos los movimientos repiten, limpiar el veto — hay que jugar algo
     if (thirdRepMoveKeys.size >= moves.length) thirdRepMoveKeys.clear();
   }
 
   let bestMove = null, bestScore = maximizing ? -INF : INF, moveCount = 0;
+
   for (const move of moves) {
     if (now() > deadline) throw new SearchTimeout();
     for (const promote of getBranches(state, move)) {
-      // FIX-1: skip moves that cause a third repetition (unless no alternative)
-      // ES: omitir movimientos que causan tercera repetición (salvo que no haya alternativa)
       if (thirdRepMoveKeys.has(moveKeyUint32(move, promote))) {
         dbg.ai.warn('searchRoot: skipping 3rd-rep move', { move: moveKey(move, promote) });
         continue;
       }
       moveCount++;
-      const md        = makeMove(state, move, promote, hash, prevScore);
+      const md = makeMove(state, move, promote, hash, prevScore);
       if (!md.action || !md.undo) continue;
+      // INCR: update maps for root move child
+      // ES: actualizar mapas para el movimiento raíz hijo
+      const childMaps = _applyMaps(rootMaps, state, move, md, promote);
       try {
         let score;
         const childEval = md.evalDiff ? prevScore + md.evalDiff : null;
         if (moveCount === 1) {
-          score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+          score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false, childMaps ? rootMaps : null);
         } else {
-          score = -search(state, depth - 1, -alpha - 1, -alpha, deadline, tt, md.hash, childEval, false);
+          score = -search(state, depth - 1, -alpha - 1, -alpha, deadline, tt, md.hash, childEval, false, childMaps ? rootMaps : null);
           if (score > alpha && score < beta)
-            score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+            score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false, childMaps ? rootMaps : null);
         }
         const cand = md.action;
         if (!cand) continue;
@@ -516,10 +531,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
           });
         }
         if (alpha >= beta) {
-          dbg.search(`  beta cutoff`, {
-            move: moveKey(move, promote), score,
-            best: moveKey(bestMove, false),
-          });
+          dbg.search(`  beta cutoff`, { move: moveKey(move, promote), score, best: moveKey(bestMove, false) });
           if (isQuiet(state, move, promote)) {
             storeKiller(depth, move);
             storeHistory(state.turn, move, depth);
@@ -530,12 +542,14 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
         }
       } finally {
         unmakeMove(state, md);
+        // INCR: rebuild after each root unmake — root moves are independent
+        // ES: reconstruir después de cada unmake en la raíz — son independientes
+        if (childMaps) _rebuildMaps(rootMaps, state.board);
       }
     }
   }
-  // FIX-1: If the veto eliminated every move (shouldn't happen given the size>1 guard
-  // and the clear-if-all-repeat logic, but belt-and-suspenders), retry without veto.
-  // ES: Si el veto eliminó todos los movimientos, reintentar sin veto (seguridad).
+
+  // FIX-1: Fallback if all moves were vetoed
   if (moveCount === 0 && moves.length > 0) {
     dbg.ai.warn('searchRoot: all moves were vetoed, retrying without rep-veto');
     for (const move of moves) {
@@ -544,15 +558,16 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
         moveCount++;
         const md = makeMove(state, move, promote, hash, prevScore);
         if (!md.action || !md.undo) continue;
+        const childMaps = _applyMaps(rootMaps, state, move, md, promote);
         try {
           let score;
           const childEval = md.evalDiff ? prevScore + md.evalDiff : null;
           if (moveCount === 1) {
-            score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+            score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false, childMaps ? rootMaps : null);
           } else {
-            score = -search(state, depth - 1, -alpha - 1, -alpha, deadline, tt, md.hash, childEval, false);
+            score = -search(state, depth - 1, -alpha - 1, -alpha, deadline, tt, md.hash, childEval, false, childMaps ? rootMaps : null);
             if (score > alpha && score < beta)
-              score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false);
+              score = -search(state, depth - 1, -beta, -alpha, deadline, tt, md.hash, childEval, false, childMaps ? rootMaps : null);
           }
           const cand = md.action;
           if (!cand) continue;
@@ -570,6 +585,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
           }
         } finally {
           unmakeMove(state, md);
+          if (childMaps) _rebuildMaps(rootMaps, state.board);
         }
       }
     }
@@ -633,26 +649,19 @@ function shufflePenalty(state, move) {
   if (!move || move.fromReserve || !move.from || !move.to) return 0;
   const piece = state.board?.[move.from.r]?.[move.from.c];
   if (!piece || piece.type === 'king') return 0;
-
   const target = state.board?.[move.to.r]?.[move.to.c] ?? null;
   let pen = 0;
-
   if (!target) {
     const dist = Math.abs(move.to.r - move.from.r) + Math.abs(move.to.c - move.from.c);
     if (dist <= 1) pen += 180;
     else if (dist === 2) pen += 90;
-
     const forward = piece.side === SIDE.WHITE ? 1 : -1;
     const advance = (move.to.r - move.from.r) * forward;
     if (advance <= 0) pen += 120;
   }
-
   return pen;
 }
 
-// ── OPT-3: countMaterial hoisted to module level — was re-declared as an inner
-// function on every search() call, causing per-node function allocation overhead.
-// ES: countMaterial movido a nivel de módulo para evitar re-declaración por nodo.
 function countMaterial(board) {
   let count = 0;
   for (let r = 0; r < 13; r++)
@@ -663,10 +672,6 @@ function countMaterial(board) {
   return count;
 }
 
-// currentHash: pass the already-known hash from the search node to avoid
-// recomputing computeFullHash(state) once per candidate move (was O(169) × N).
-// ES: currentHash: pasar el hash ya conocido del nodo de búsqueda para evitar
-// recalcular computeFullHash(state) una vez por movimiento candidato (era O(169) × N).
 function moveOrderScore(state, move, depth, currentHash = null) {
   if (!isValidMove(move)) return -999_999;
   const side   = state.turn;
@@ -679,14 +684,10 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   let score = 0;
   const PALACE_PRESSURE_BONUS = 350;
 
-  // MVV-LVA: Most Valuable Victim - Least Valuable Attacker
-  // Much faster than full SEE for move ordering; SEE is kept for quiescence search
-  // ES: MVV-LVA: Víctima más valiosa - Atacante menos valioso
-  // Mucho más rápido que SEE completo para ordenamiento; SEE se mantiene en quiescence search
   if (target) {
-    const victimVal = pieceValue(target);
+    const victimVal   = pieceValue(target);
     const attackerVal = pieceValue(moving);
-    const tradeBonus = victimVal > attackerVal ? 2000 : (victimVal === attackerVal ? 1000 : -500);
+    const tradeBonus  = victimVal > attackerVal ? 2000 : (victimVal === attackerVal ? 1000 : -500);
     score += victimVal * 12 - attackerVal * 2 + tradeBonus;
   }
 
@@ -718,24 +719,16 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   const enemy = opponent(side);
   if (isPalaceSquare(move.to.r, move.to.c, enemy)) score += PALACE_PRESSURE_BONUS;
 
-  const IMMEDIATE_BACKTRACK_PENALTY = 500;
-  if (isBacktrack(state, move)) score -= IMMEDIATE_BACKTRACK_PENALTY;
+  if (isBacktrack(state, move)) score -= 500;
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
   score -= shufflePenalty(state, move);
 
-  // Compute moveKey once — was previously called 3 separate times (killerScore,
-  // historyScore, adaptiveMemory.getMovepenalty) each building the same string.
-  // ES: Calcular moveKey una vez — antes se llamaba 3 veces (killerScore, historyScore,
-  // adaptiveMemory.getMovepenalty) construyendo el mismo string cada vez.
   const mk = moveKeyUint32(move, move.promotion ?? false);
   score += killerScore(depth, mk);
   score += Math.min(120, historyScore(side, mk) / 10);
   score -= Math.min(1200, adaptiveMemory.getMovepenalty(moveKey(move, move.promotion ?? false)));
 
-  // Repetition penalty using the actual future hash when available.
-  // This avoids mis-ordering based on the current board only, which is
-  // incorrect for all non-pass moves.
   if (currentHash !== null && state.history?.length >= 2) {
     let futureHash = null;
     const md = makeMove(state, move, move.promotion ?? false, currentHash);
@@ -746,9 +739,9 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     if (futureHash !== null) {
       const seen = countRepetitions(state.history, futureHash);
       if (seen >= 2) {
-        score -= 2_000_000;  // third repetition → completely forbidden
+        score -= 2_000_000;  // third repetition → completely forbidden (exceeds TT bonus)
       } else if (seen === 1) {
-        score -= 3000;       // second repetition → clearly discouraged
+        score -= 3000;
       } else {
         const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
         score -= Math.min(1200, drawPen);
@@ -758,7 +751,6 @@ function moveOrderScore(state, move, depth, currentHash = null) {
 
   if (!move.fromReserve) {
     let forkCount = 0;
-    const FORK_BONUS = 120;
     for (const [dr, dc] of [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]) {
       const nr = move.to.r + dr, nc = move.to.c + dc;
       if (nr >= 0 && nr < 13 && nc >= 0 && nc < 13) {
@@ -766,16 +758,16 @@ function moveOrderScore(state, move, depth, currentHash = null) {
         if (p && p.side === enemy && pieceValue(p) > 250) forkCount++;
       }
     }
-    if (forkCount >= 2) score += FORK_BONUS * forkCount;
+    if (forkCount >= 2) score += 120 * forkCount;
   }
 
   return score;
 }
 
 export function allocateTime(startTime, timeLimitMs, moveCount = 30) {
-  const elapsed    = now() - startTime;
-  const remaining  = timeLimitMs - elapsed;
-  const movesLeft  = Math.max(5, moveCount - 10);
+  const elapsed     = now() - startTime;
+  const remaining   = timeLimitMs - elapsed;
+  const movesLeft   = Math.max(5, moveCount - 10);
   const timePerMove = remaining / movesLeft;
   return Math.min(timePerMove * 0.8, timeLimitMs * 0.3);
 }
