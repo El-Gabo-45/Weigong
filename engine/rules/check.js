@@ -4,6 +4,231 @@ import { findKings, pathSquares } from './board.js';
 
 function addForAttack(moves, board, r, c, fk) { if (inBounds(r, c)) moves.push([r, c]); }
 
+function _lineClear(board, r, c, dr, dc, steps) {
+  for (let i = 1; i < steps; i++) {
+    if (board[r + dr * i][c + dc * i]) return false;
+  }
+  return true;
+}
+
+function _pieceAttacksSquare(board, piece, r, c, tr, tc, state) {
+  if (r === tr && c === tc) return false;
+  const target = board[tr][tc];
+  if (target && target.side === piece.side) return false;
+  const f = forwardDir(piece.side);
+  const dr = tr - r;
+  const dc = tc - c;
+  const absDr = Math.abs(dr);
+  const absDc = Math.abs(dc);
+  const sdr = Math.sign(dr);
+  const sdc = Math.sign(dc);
+  const dist = Math.max(absDr, absDc);
+  const forwardRow = r + f;
+
+  const testRay = (maxStep) => {
+    if (!(dr === 0 || dc === 0 || absDr === absDc)) return false;
+    if (dist < 1 || dist > maxStep) return false;
+    return _lineClear(board, r, c, sdr, sdc, dist);
+  };
+
+  const testRiverJump = (jr, jc) => {
+    const step1r = r + jr;
+    const step1c = c + jc;
+    if (!inBounds(step1r, step1c)) return false;
+    if (isRiverSquare(step1r)) {
+      if (board[step1r][step1c]) return false;
+      const step2r = step1r + jr;
+      const step2c = step1c;
+      if (!inBounds(step2r, step2c)) return false;
+      return tr === step2r && tc === step2c;
+    }
+    return tr === step1r && tc === step1c;
+  };
+
+  if (!piece.promoted) {
+    switch (piece.type) {
+      case 'king':
+        if (dist > 2 || !(dr === 0 || dc === 0 || absDr === absDc)) return false;
+        return _lineClear(board, r, c, sdr, sdc, dist);
+      case 'queen':
+        return testRay(BOARD_SIZE - 1);
+      case 'general':
+        if ((absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2)) return true;
+        if (absDr === absDc && absDr <= 4) return _lineClear(board, r, c, sdr, sdc, absDr);
+        return false;
+      case 'elephant': {
+        for (const [dr0, dc0, maxStep] of [[f, 0, 2], [f, -1, 1], [f, 1, 1], [-f, -1, 2], [-f, 1, 2]]) {
+          for (let step = 1; step <= maxStep; step++) {
+            if (dr === dr0 * step && dc === dc0 * step) {
+              if (!_lineClear(board, r, c, Math.sign(dr0), Math.sign(dc0), step)) return false;
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      case 'priest':
+        if (dr === 0 && absDc === 1) return true;
+        if (dc === 0 && absDr === 1) return true;
+        if (absDr === absDc) return _lineClear(board, r, c, sdr, sdc, absDr);
+        return false;
+      case 'horse': {
+        const patterns = [
+          { nr: r + 2, nc: c + 1, block: [[r + 1, c], [r + 2, c]] },
+          { nr: r + 2, nc: c - 1, block: [[r + 1, c], [r + 2, c]], },
+          { nr: r - 2, nc: c + 1, block: [[r - 1, c], [r - 2, c]] },
+          { nr: r - 2, nc: c - 1, block: [[r - 1, c], [r - 2, c]] },
+          { nr: r + 1, nc: c + 2, block: [[r, c + 1], [r + 1, c + 1]] },
+          { nr: r + 1, nc: c - 2, block: [[r, c - 1], [r + 1, c - 1]] },
+          { nr: r - 1, nc: c + 2, block: [[r, c + 1], [r - 1, c + 1]] },
+          { nr: r - 1, nc: c - 2, block: [[r, c - 1], [r - 1, c - 1]] },
+        ];
+        for (const pattern of patterns) {
+          if (pattern.nr === tr && pattern.nc === tc) {
+            if (pattern.block.every(([br, bc]) => inBounds(br, bc) && !board[br][bc])) return true;
+          }
+        }
+        return false;
+      }
+      case 'cannon':
+        if (dr !== 0 && dc !== 0) return false;
+        if (dist < 1) return false;
+        let seen = 0;
+        for (let i = 1; i < dist; i++) {
+          if (board[r + sdr * i][c + sdc * i]) seen++;
+        }
+        return seen === 1;
+      case 'tower':
+        if (dr !== 0 && dc !== 0) return false;
+        return _lineClear(board, r, c, sdr, sdc, dist);
+      case 'carriage':
+        if (absDr === absDc && absDr === 1) return true;
+        if (dr !== 0 && dc !== 0) return false;
+        if (dist < 1 || dist > 4) return false;
+        if (!isOwnSide(piece.side, tr)) return false;
+        return _lineClear(board, r, c, sdr, sdc, dist);
+      case 'archer':
+        if (onBank(piece.side, r) && tr === r + f && absDc <= 1) return true;
+        if (!isOwnSide(piece.side, tr)) return false;
+        return (absDr === 3 && absDc === 1) || (absDr === 1 && absDc === 3);
+      case 'pawn': {
+        const forwardTarget = isRiverSquare(forwardRow) && board[forwardRow][c]
+          ? null
+          : isRiverSquare(forwardRow) ? forwardRow + f : forwardRow;
+        if (forwardTarget !== null && inBounds(forwardTarget, c) && !board[forwardTarget][c] && tr === forwardTarget && tc === c) return true;
+        if (isOwnSide(piece.side, r)) {
+          if (tr === r && absDc === 1 && target && target.side !== piece.side) return true;
+          return false;
+        }
+        if (tr === r && absDc === 1) return true;
+        for (const [dr2, dc2] of [[f, 1], [f, -1]]) {
+          if (tr === r + dr2 && tc === c + dc2) return true;
+        }
+        return false;
+      }
+      case 'crossbow':
+        return testRiverJump(f, 0) || (absDr === 1 && absDc === 1 && testRiverJump(dr, dc));
+      default:
+        return false;
+    }
+  }
+
+  if (piece.type === 'elephant') {
+    const testRiver = (dr0, dc0) => {
+      const step1r = r + dr0;
+      const step1c = c + dc0;
+      if (!inBounds(step1r, step1c)) return false;
+      if (isRiverSquare(step1r)) {
+        if (board[step1r][step1c]) return false;
+        const step2r = step1r + dr0;
+        const step2c = step1c;
+        if (!inBounds(step2r, step2c)) return false;
+        return tr === step2r && tc === step2c;
+      }
+      return tr === step1r && tc === step1c;
+    };
+    if (testRiver(1, 0) || testRiver(-1, 0) || testRiver(0, 1) || testRiver(0, -1) || testRiver(f, 1) || testRiver(f, -1) || testRiver(2, 0)) return true;
+    return false;
+  }
+
+  if (piece.type === 'horse') {
+    for (let dr2 = -1; dr2 <= 1; dr2++) {
+      for (let dc2 = -1; dc2 <= 1; dc2++) {
+        if (dr2 === 0 && dc2 === 0) continue;
+        if (tr === r + dr2 && tc === c + dc2) return true;
+      }
+    }
+    for (const [dr2, dc2] of [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]) {
+      if (tr === r + dr2 && tc === c + dc2) return true;
+    }
+    return false;
+  }
+
+  if (piece.type === 'priest') {
+    if (absDr === absDc && _lineClear(board, r, c, sdr, sdc, absDr)) return true;
+    return (dr === 1 && dc === 0) || (dr === -1 && dc === 0);
+  }
+
+  if (piece.type === 'cannon') {
+    if (dr !== 0 && dc !== 0) return false;
+    if (dist < 1) return false;
+    let seen = 0;
+    for (let i = 1; i < dist; i++) {
+      if (board[r + sdr * i][c + sdc * i]) seen++;
+    }
+    return seen === 1;
+  }
+
+  if (piece.type === 'tower') {
+    if (dr !== 0 && dc !== 0) return false;
+    return _lineClear(board, r, c, sdr, sdc, dist);
+  }
+
+  if (piece.type === 'carriage') {
+    if (absDr === absDc && absDr === 1) return true;
+    if (dr !== 0 && dc !== 0) return false;
+    if (dist < 1 || dist > 4) return false;
+    if (!isOwnSide(piece.side, tr)) return false;
+    return _lineClear(board, r, c, sdr, sdc, dist);
+  }
+
+  if (piece.type === 'archer') {
+    if (onBank(piece.side, r) && tr === r + f && absDc <= 1) return true;
+    if (!isOwnSide(piece.side, tr)) return false;
+    return (absDr === 3 && absDc === 1) || (absDr === 1 && absDc === 3);
+  }
+
+  if (piece.type === 'pawn') {
+    const forwardTarget = isRiverSquare(forwardRow) ? forwardRow + f : forwardRow;
+    if (tr === forwardTarget && tc === c) return true;
+    if (isOwnSide(piece.side, r)) {
+      if (tr === r && absDc === 1 && target && target.side !== piece.side) return true;
+      return false;
+    }
+    if (tr === r && absDc === 1) return true;
+    return (tr === r + f && absDc === 1);
+  }
+
+  if (piece.type === 'crossbow') {
+    const testRiver = (dr0, dc0) => {
+      const step1r = r + dr0;
+      const step1c = c + dc0;
+      if (!inBounds(step1r, step1c)) return false;
+      if (isRiverSquare(step1r)) {
+        if (board[step1r][step1c]) return false;
+        const step2r = step1r + dr0;
+        const step2c = step1c;
+        if (!inBounds(step2r, step2c)) return false;
+        return tr === step2r && tc === step2c;
+      }
+      return tr === step1r && tc === step1c;
+    };
+    return testRiver(f, 0) || (absDr === 1 && absDc === 1 && testRiver(dr, dc));
+  }
+
+  return false;
+}
+
 export function attackSquaresForPiece(board, piece, r, c, state) {
   const moves = [];
   const f = forwardDir(piece.side);
@@ -105,18 +330,15 @@ export function isSquareAttacked(board, r, c, bySide, state) {
   if (!board || !Array.isArray(board)) return false;
 
   for (let rr = 0; rr < BOARD_SIZE; rr++) {
-    if (!board[rr]) continue;
+    const row = board[rr];
+    if (!row) continue;
     for (let cc = 0; cc < BOARD_SIZE; cc++) {
-      const p = board[rr][cc];
+      const p = row[cc];
       if (!p || p.side !== bySide) continue;
-      const attacks = attackSquaresForPiece(board, p, rr, cc, state);
-      for (const move of attacks) {
-        const ar = Array.isArray(move) ? move[0] : move.r;
-        const ac = Array.isArray(move) ? move[1] : move.c;
-        if (ar === r && ac === c) return true;
-      }
+      if (_pieceAttacksSquare(board, p, rr, cc, r, c, state)) return true;
     }
   }
+
   const kings = findKings(board);
   const enemyKing = kings[bySide];
   const myKing = kings[opponent(bySide)];

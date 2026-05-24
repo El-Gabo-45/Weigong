@@ -367,10 +367,9 @@ export function getLegalMovesForSquare(state, r, c, opts = {}) {
   if (opts.skipKingCheck) return moves;
 
   // ── King-check filter: in-place board mutation (no clone) ──────────────────
-  // Uses write-index into a separate `legal` array since we can't reuse
-  // `moves` here (isKingInCheck reads the board while we mutate it).
-  const legal = [];
+  // Reuse the original move array by compacting legal moves in-place.
   const origFrom = board[r][c];
+  wi = 0;
   for (let i = 0; i < moves.length; i++) {
     const move = moves[i];
     const origTo = board[move.r][move.c];
@@ -379,8 +378,8 @@ export function getLegalMovesForSquare(state, r, c, opts = {}) {
     const inCheck = isKingInCheck(state, piece.side);
     board[r][c] = origFrom;
     board[move.r][move.c] = origTo;
-    if (!inCheck) legal.push(move);
+    if (!inCheck) moves[wi++] = move;
   }
-
-  return legal;
+  moves.length = wi;
+  return moves;
 }

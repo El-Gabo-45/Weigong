@@ -1,5 +1,5 @@
 import { dbg } from '../debug/debug.js';
-import { SIDE, opponent, isPromotableType, isPalaceSquare, onBank } from '../constants.js';
+import { SIDE, opponent, isPromotableType, isPalaceSquare, onBank, isReserveType } from '../constants.js';
 import { applyMove, isPromotionAvailableForMove } from '../rules/index.js';
 import {
   xorPiece, xorReserves, ZobristTurn, ZobristPalaceWhite, ZobristPalaceBlack,
@@ -41,6 +41,7 @@ for (let i = 0; i < UNDO_POOL_SIZE; i++) {
     cellCount: 0,
     turn: null, lastMove: null,
     reservesW: null, reservesB: null,
+    reserveRemoved: null, reserveCaptureAdded: false,
     palaceTaken: null, palaceTimers: null, palaceCurse: null,
     history: null, historyLength: 0, positionHistory: null, lastRepeatedMoveKey: null, repeatMoveCount: 0,
     archerAmbush: null, selected: null, legalMoves: null, promotionRequest: null,
@@ -55,6 +56,7 @@ function acquireUndo() {
   u.cellCount = 0;
   u.turn = null; u.lastMove = null;
   u.reservesW = null; u.reservesB = null;
+  u.reserveRemoved = null; u.reserveCaptureAdded = false;
   u.palaceTaken = null; u.palaceTimers = null; u.palaceCurse = null;
   u.history = null; u.historyLength = 0; u.positionHistory = null; u.lastRepeatedMoveKey = null; u.repeatMoveCount = 0;
   u.archerAmbush = null; u.selected = null; u.legalMoves = null; u.promotionRequest = null;
@@ -92,13 +94,15 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
 
   const rw = state.reserves.white;
   const rb = state.reserves.black;
-  const reserveChange = move.fromReserve || (to && state.board[to.r]?.[to.c]);
-  if (reserveChange && (rw.length > 0 || rb.length > 0)) {
-    undo.reservesW = rw.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id }));
-    undo.reservesB = rb.map(p => ({ type: p.type, side: p.side, promoted: p.promoted ?? false, id: p.id }));
-  } else {
-    undo.reservesW = null;
-    undo.reservesB = null;
+  undo.reserveRemoved = null;
+  undo.reserveCaptureAdded = false;
+  if (move.fromReserve) {
+    const entry = rw[move.reserveIndex];
+    undo.reserveRemoved = entry ? { index: move.reserveIndex, entry: { ...entry } } : null;
+  } else if (to && state.board[to.r]?.[to.c]) {
+    const target = state.board[to.r][to.c];
+    const type = target.promoted ? (target.type === 'pawn' ? 'crossbow' : target.type) : target.type;
+    undo.reserveCaptureAdded = isReserveType(type);
   }
 
   undo.palaceTaken = state.palaceTaken ? { white: state.palaceTaken.white, black: state.palaceTaken.black } : null;
@@ -109,6 +113,8 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
   undo.promotionRequest = state.promotionRequest ?? null;
   undo.message = state.message ?? null;
   undo.status = state.status ?? null;
+  undo.lastRepeatedMoveKey = state.lastRepeatedMoveKey ?? null;
+  undo.repeatMoveCount = state.repeatMoveCount ?? 0;
   undo.cellCount = 0;
 
   if (!move.fromReserve && from && state.board[from.r]?.[from.c]) {
@@ -189,6 +195,12 @@ export function unmakeMove(state, { undo }) {
     const cell = undo.cells[i];
     state.board[cell.r][cell.c] = cell.p;
   }
+  if (undo.reserveRemoved) {
+    state.reserves[undo.turn].splice(undo.reserveRemoved.index, 0, undo.reserveRemoved.entry);
+  }
+  if (undo.reserveCaptureAdded) {
+    state.reserves[undo.turn].pop();
+  }
   state.turn = undo.turn;
   state.lastMove = undo.lastMove;
   if (undo.history === null) {
@@ -208,8 +220,6 @@ export function unmakeMove(state, { undo }) {
   state.status = undo.status;
   state.palaceTaken = undo.palaceTaken;
   state.palaceTimers = undo.palaceTimers;
-  if (undo.reservesW !== null) state.reserves.white = undo.reservesW;
-  if (undo.reservesB !== null) state.reserves.black = undo.reservesB;
   if (undo.palaceCurse) state.palaceCurse = undo.palaceCurse;
 }
 

@@ -179,12 +179,14 @@ export function getLegalReserveDrops(state, side) {
 
   for (let i = 0; i < reserve.length; i++) {
     const type = reserve[i].type;
+    const tempPiece = { id: '_tmp', type, side, promoted: false, locked: false };
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         if (state.board[r][c]) continue;
         if (type !== 'crossbow' && !canDropOnSide(type, side, r)) continue;
         if (_archerSet.has(r * BOARD_SIZE + c)) continue;
-        const tempPiece = { id: '_tmp', type, side, promoted: false, locked: false };
+        tempPiece.type = type;
+        tempPiece.side = side;
         state.board[r][c] = tempPiece;
         const removed = state.reserves[side].splice(i, 1)[0];
         const legal = !isKingInCheck(state, side);
