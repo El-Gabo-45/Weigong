@@ -84,9 +84,9 @@ export class SharedTT {
     if (storedHash !== hash) return undefined;
 
     const score = Atomics.load(this.int32, intOff + 2);  // byteOff+8
-    const depth = Atomics.load(this.int16At(intOff + 3)); // byteOff+12
+    const depth = this._readDepth(intOff + 3);             // byteOff+12 (Int16, no Atomics — DataView)
     const flags = Atomics.load(this.uint8, byteOff + FLAGS_OFF);
-    const bestMoveKey = Atomics.load(this.uint32, intOff + 4); // byteOff+16 (misaligned? No, 16 is aligned)
+    const bestMoveKey = Atomics.load(this.uint32, intOff + 4); // byteOff+16
 
     return { depth, score, flag: flags, bestMoveKey };
   }

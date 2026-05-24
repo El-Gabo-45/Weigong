@@ -480,7 +480,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
     const probDepth  = effectiveDepth - 4;
     const probMargin = 150;
     for (const move of moves) {
-      if (!isTactical(state, move)) continue;
+      if (isTactical(state, move)) continue;
       if (!move.fromReserve && state.board[move.to?.r]?.[move.to?.c]) {
         if (!isSEEPositive(state, move, buildAttackMap)) continue;
       }
