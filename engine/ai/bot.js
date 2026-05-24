@@ -3,13 +3,24 @@ import { SIDE } from '../constants.js';
 import { getAllLegalMoves } from '../rules/index.js';
 import { cloneState } from '../rules/board.js';
 import { fastCloneState } from '../ai/packed-state.js';
-import { search, searchRoot, allocateTime, moveKey, decayHistoryTable } from './search.js';
+import { search, searchRoot, allocateTime, moveKey, decayHistoryTable, GameDanceTracker } from './search.js';
 import { computeFullHash, TranspositionTable } from './hashing.js';
 import { SharedTT, TT_EXACT, TT_ALPHA, TT_BETA } from './shared-tt.js';
 import { evaluate } from './evaluation.js';
 import { adaptiveMemory } from './memory.js';
 
 const MATE_SCORE = 1_000_000;
+
+// ── Per-game dance tracker ────────────────────────────────────────────────────
+// One tracker instance lives here and is reset when a new game starts.
+// It records every real move played and passes the data to searchRoot so
+// the engine can penalise oscillating pieces across turns.
+// ES: Tracker de baile por partida — persiste entre turnos y se pasa a searchRoot.
+let _gameDanceTracker = new GameDanceTracker();
+
+/** Call this at game start/reset to clear the dance history. */
+export function resetDanceTracker() { _gameDanceTracker.reset(); }
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ── Detect environment ────────────────────────────────────────────────────────
 const IS_NODE   = typeof process !== 'undefined' && process.versions?.node;
@@ -239,6 +250,10 @@ export function chooseBlackBotMove(state, options = {}) {
   const timeLimitMs     = options.timeLimitMs     ?? 500;
   const aspirationWindow = options.aspirationWindow ?? 45;
   const rootNNByMoveKey = options.rootNNByMoveKey ?? null;
+  // Use caller-supplied danceTracker (server.js, selfplay.js) if provided,
+  // otherwise use the module-level one (direct bot.js usage).
+  // ES: Usar tracker externo si lo pasa el llamador, si no el interno del módulo.
+  const danceTracker = options.danceTracker ?? _gameDanceTracker;
 
   // PACKED: use fastCloneState (PackedBoard intermediate) instead of cloneState.
   // Saves ~40% clone time on 169-cell board (no dynamic property enumeration).
@@ -289,7 +304,7 @@ export function chooseBlackBotMove(state, options = {}) {
     while (true) {
       if (now() > deadline) break;
       try {
-        const result = searchRoot(searchState, depth, alpha, beta, localDeadline, tt, rootHash, prevScore, rootNNByMoveKey);
+        const result = searchRoot(searchState, depth, alpha, beta, localDeadline, tt, rootHash, prevScore, rootNNByMoveKey, danceTracker);
         if (result.bestMove) { best = result.bestMove; prevScore = result.score; }
         if (Math.abs(result.score) > MATE_SCORE - 50) remainingDepth = depth;
         if (result.score <= alpha) {
@@ -330,6 +345,16 @@ export function chooseBlackBotMove(state, options = {}) {
           : { from: { ...fm.from }, to: { ...fm.to }, promotion: false };
       }
     } catch (err) { console.error('[chooseBlackBotMove] Error obteniendo fallback:', err); }
+  }
+
+  // Record the chosen move in the per-game dance tracker so future turns
+  // penalise pieces that oscillate back to the same squares.
+  // ES: Registrar movimiento elegido en el tracker de baile por partida.
+  if (best && !best.fromReserve && best.from && best.to) {
+    try {
+      const piece = state.board?.[best.from.r]?.[best.from.c];
+      if (piece) danceTracker.record(state.turn, piece, best.from.r, best.from.c, best.to.r, best.to.c);
+    } catch {}
   }
 
   return { move: best, score: prevScore };

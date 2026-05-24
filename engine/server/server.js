@@ -18,6 +18,7 @@ import {
   isPromotionAvailableForMove, getLegalMovesForSquare, isDropLegal,
 } from '../rules/index.js';
 import { chooseBlackBotMove, evaluate, computeFullHash } from '../ai/index.js';
+import { GameDanceTracker } from '../ai/search.js';
 import { adaptiveMemory } from '../ai/memory.js';
 import { isPalaceSquare, opponent } from '../constants.js';
 
@@ -375,6 +376,24 @@ function updatePatternWeights(memory, result, moves) {
 /* ─── Shared Transposition Table (cross-worker) ─── */
 // ES: Tabla de transposición compartida entre workers
 const SHARED_TT = new SharedTT(1_000_000); // 1M entries ~24MB
+
+// ── Per-game Dance Tracker ────────────────────────────────────────────────────
+// Tracks which squares each piece has visited across turns of the same game.
+// Reset when a new game is detected (move count drops or goes to 0).
+// ES: Rastrea casillas visitadas por cada pieza entre turnos de la misma partida.
+// Se resetea cuando se detecta una partida nueva (el conteo de movimientos baja).
+let _serverDanceTracker = new GameDanceTracker(30);
+let _serverLastMoveCount = 0;  // track history length to detect new games
+
+function getOrResetDanceTracker(gameHistoryLength) {
+  // If move count dropped (new game or reset), clear the tracker
+  if (gameHistoryLength <= 1 || gameHistoryLength < _serverLastMoveCount) {
+    _serverDanceTracker.reset();
+  }
+  _serverLastMoveCount = gameHistoryLength;
+  return _serverDanceTracker;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 /* ─── SELF‑PLAY CON WORKER THREADS ─── */
 const MAX_WORKERS = 4;
@@ -790,11 +809,11 @@ function resolveAmbushAuto(ambush, side, state) {
 
 function getBotParams(level = 5) {
   const params = [
-    { maxDepth: 5,  timeLimitMs: 1500 }, { maxDepth: 6,  timeLimitMs: 2000 },
-    { maxDepth: 7,  timeLimitMs: 2500 }, { maxDepth: 8,  timeLimitMs: 3000 },
-    { maxDepth: 9,  timeLimitMs: 3500 }, { maxDepth: 10, timeLimitMs: 4000 },
-    { maxDepth: 11, timeLimitMs: 4500 }, { maxDepth: 12, timeLimitMs: 5000 },
-    { maxDepth: 13, timeLimitMs: 5500 }, { maxDepth: 14, timeLimitMs: 6000 },
+    { maxDepth: 5,  timeLimitMs: 2500 }, { maxDepth: 6,  timeLimitMs: 3000 },
+    { maxDepth: 7,  timeLimitMs: 3500 }, { maxDepth: 8,  timeLimitMs: 4000 },
+    { maxDepth: 9,  timeLimitMs: 4500 }, { maxDepth: 10, timeLimitMs: 5000 },
+    { maxDepth: 11, timeLimitMs: 5500 }, { maxDepth: 12, timeLimitMs: 6000 },
+    { maxDepth: 13, timeLimitMs: 6500 }, { maxDepth: 14, timeLimitMs: 7000 },
   ];
   return params[Math.min(params.length - 1, level - 1)];
 }
@@ -860,7 +879,22 @@ app.post('/api/botMove', async (req, res) => {
     const legalMoves = getAllLegalMoves(state, state.turn);
     const rootNNByMoveKey = legalMoves.length > 0 ? await buildRootNNByMoveKey(state, legalMoves) : new Map();
 
-    const { move, score } = chooseBlackBotMove(state, { ...params, rootNNByMoveKey, _sharedTTBuffer: SHARED_TT.buffer });
+    // Get (or reset) the dance tracker for this game session
+    // ES: Obtener (o resetear) el tracker de baile para esta sesión de partida
+    const danceTracker = getOrResetDanceTracker(state.history?.length ?? 0);
+
+    const { move, score } = chooseBlackBotMove(state, { ...params, rootNNByMoveKey, _sharedTTBuffer: SHARED_TT.buffer, danceTracker });
+
+    if (!move) return res.json({ move: null });
+
+    // Record this move in the dance tracker for future turns
+    // ES: Registrar el movimiento en el tracker para los próximos turnos
+    if (move && !move.fromReserve && move.from && move.to) {
+      try {
+        const piece = originalState.board?.[move.from.r]?.[move.from.c];
+        if (piece) danceTracker.record(state.turn, piece, move.from.r, move.from.c, move.to.r, move.to.c);
+      } catch {}
+    }
 
     if (!move) return res.json({ move: null });
 

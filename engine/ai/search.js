@@ -12,13 +12,152 @@ const INF        = 1_000_000_000;
 const TT_EXACT = 0, TT_ALPHA = 1, TT_BETA = 2;
 const FUTILITY_MARGIN = [0, 150, 300, 500];
 
-const DRAW_CONTEMPT    = 120;
+const DRAW_CONTEMPT    = 180;   // increased from 120: stronger contempt for draw lines
 const QSEARCH_MAX_DEPTH = 6;
 const QDELTA_MARGIN     = 600;
 
 const killerMoves  = new Map();
 const historyTable = { white: new Map(), black: new Map() };
 const KILLER_SLOTS = 2;
+
+// ── Piece-Activity Tracker (anti-dance / anti-shuffle) ────────────────────────
+// Penalises pieces that oscillate between squares without making positional
+// progress, even if the exact same position isn't repeated.
+//
+// Design: the CALLER (server.js / bot.js) builds a GameDanceTracker per game
+// and passes it as `danceTracker` in the options to chooseBlackBotMove / searchRoot.
+// The tracker holds real game history (not search tree history), so it persists
+// across turns.  Inside moveOrderScore, we look up the candidate move's destination
+// in the tracker to compute oscillation and stagnation penalties.
+//
+// Penalty schedule (quiet non-king non-capture moves only):
+//   oscillationPenalty : +80 per previous visit to the target square, cap 480
+//   stagnationPenalty  : +100 if piece centroid hasn't advanced ≥1 row, +100 more
+//                        if this specific move also doesn't advance
+//
+// ES: El LLAMADOR construye un GameDanceTracker por partida y lo pasa como
+// `danceTracker` en las opciones.  El tracker persiste entre turnos y penaliza
+// piezas que oscilan sin avanzar.
+
+const PAT_BASE_PEN  = 80;   // penalty per visit to the same target square
+const PAT_MAX_PEN   = 480;  // cap on oscillation penalty
+const PAT_STAG_PEN  = 100;  // base stagnation penalty
+const PAT_ADV_THRESHOLD = 1; // min row advance before stagnation penalty fires
+
+/**
+ * GameDanceTracker — one instance per game, passed from caller to search.
+ *
+ * Usage:
+ *   const dt = new GameDanceTracker();
+ *   // after each real played move:
+ *   dt.record(side, piece, fromR, fromC, toR, toC);
+ *   // pass to bot:
+ *   chooseBlackBotMove(state, { ..., danceTracker: dt });
+ *
+ * ES: Una instancia por partida, creada por server.js/selfplay.js y pasada al motor.
+ */
+export class GameDanceTracker {
+  constructor(windowSize = 30) {
+    this.windowSize = windowSize;
+    // visitCounts[side][cellIdx] = { [pieceType@fromSquare]: count }
+    // Stored as: Map<side, Map<pieceKey, Map<cellIdx, count>>>
+    this.visits    = { white: new Map(), black: new Map() };
+    this.centroids = { white: new Map(), black: new Map() }; // pieceKey → {sumRow, count}
+    this.ring      = { white: [], black: [] }; // FIFO of {key, cellIdx, toRow}
+  }
+
+  /** Record a real game move (not a search move). */
+  record(side, piece, fr, fc, tr, tc) {
+    if (!piece || piece.type === 'king') return;
+    const key     = `${piece.type}@${fr},${fc}`;
+    const cellIdx = tr * 13 + tc;
+    const sv      = this.visits[side];
+    const sc      = this.centroids[side];
+    const ring    = this.ring[side];
+
+    // Visit map
+    let pm = sv.get(key);
+    if (!pm) { pm = new Map(); sv.set(key, pm); }
+    pm.set(cellIdx, (pm.get(cellIdx) ?? 0) + 1);
+
+    // Centroid
+    let ce = sc.get(key);
+    if (!ce) { ce = { sumRow: 0, count: 0 }; sc.set(key, ce); }
+    ce.sumRow += tr;
+    ce.count++;
+
+    // Ring buffer eviction
+    if (ring.length >= this.windowSize) {
+      const evicted = ring.shift();
+      const epm = sv.get(evicted.key);
+      if (epm) {
+        const prev = epm.get(evicted.cellIdx) ?? 0;
+        if (prev <= 1) epm.delete(evicted.cellIdx);
+        else           epm.set(evicted.cellIdx, prev - 1);
+        if (epm.size === 0) sv.delete(evicted.key);
+      }
+      const ece = sc.get(evicted.key);
+      if (ece) {
+        ece.sumRow -= evicted.toRow;
+        ece.count   = Math.max(0, ece.count - 1);
+        if (ece.count === 0) sc.delete(evicted.key);
+      }
+    }
+    ring.push({ key, cellIdx, toRow: tr });
+  }
+
+  /** Oscillation penalty for moving `piece` from (fr,fc) to (tr,tc). */
+  oscillation(side, piece, fr, fc, tr, tc) {
+    if (!piece || piece.type === 'king') return 0;
+    const key  = `${piece.type}@${fr},${fc}`;
+    const pm   = this.visits[side]?.get(key);
+    if (!pm) return 0;
+    const visits = pm.get(tr * 13 + tc) ?? 0;
+    if (visits < 1) return 0;
+    return Math.min(PAT_MAX_PEN, visits * PAT_BASE_PEN);
+  }
+
+  /** Stagnation penalty: fires when a piece hasn't advanced its centroid. */
+  stagnation(side, piece, fr, fc, tr, tc) {
+    if (!piece || piece.type === 'king') return 0;
+    const key = `${piece.type}@${fr},${fc}`;
+    const ce  = this.centroids[side]?.get(key);
+    if (!ce || ce.count < 3) return 0;
+    const avgRow  = ce.sumRow / ce.count;
+    // BLACK advances toward row 0 (lower rows), WHITE toward row 12
+    const advance = side === SIDE.BLACK ? fr - avgRow : avgRow - fr;
+    if (advance >= PAT_ADV_THRESHOLD) return 0;
+    const thisMoveAdv = side === SIDE.BLACK ? fr - tr : tr - fr;
+    return PAT_STAG_PEN + (thisMoveAdv <= 0 ? PAT_STAG_PEN : 0);
+  }
+
+  /** Reset (call at game start or after a capture resets piece identity). */
+  reset() {
+    this.visits    = { white: new Map(), black: new Map() };
+    this.centroids = { white: new Map(), black: new Map() };
+    this.ring      = { white: [], black: [] };
+  }
+}
+
+// Module-level active tracker — set by searchRoot when caller passes one.
+// ES: Tracker activo a nivel de módulo — fijado por searchRoot cuando el llamador lo pasa.
+let _activeDanceTracker = null;
+
+/**
+ * Oscillation penalty using the active tracker (called from moveOrderScore).
+ * Returns 0 if no tracker is set.
+ */
+function oscillationPenalty(side, piece, fr, fc, tr, tc) {
+  return _activeDanceTracker?.oscillation(side, piece, fr, fc, tr, tc) ?? 0;
+}
+
+/**
+ * Stagnation penalty using the active tracker (called from moveOrderScore).
+ */
+function stagnationPenalty(side, piece, fr, fc, tr, tc) {
+  return _activeDanceTracker?.stagnation(side, piece, fr, fc, tr, tc) ?? 0;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function now() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
@@ -430,10 +569,16 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
 }
 
 // ── searchRoot ───────────────────────────────────────────────────────────────
-export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevScore, rootNNByMoveKey = null) {
+export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevScore, rootNNByMoveKey = null, danceTracker = null) {
   const maximizing = state.turn === SIDE.BLACK;
   const cached     = tt.get(hash);
   const ttMoveKey  = cached?.bestMoveKey ?? null;
+
+  // Activate the dance tracker for this search pass so moveOrderScore can use it.
+  // It is set before any move scoring and cleared on return, so concurrent calls
+  // in workers won't interfere (each worker gets its own module instance).
+  // ES: Activar el tracker de baile para este pase de búsqueda.
+  _activeDanceTracker = danceTracker ?? null;
 
   const rawMoves = getAllLegalMoves(state, state.turn);
   dbg.search.group(`searchRoot d=${depth}`, {
@@ -479,7 +624,6 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     rootMaps = createIncrementalMaps(state.board);
   } catch { rootMaps = null; }
 
-  // FIX-1: Pre-veto 3rd-repetition moves at root
   const thirdRepMoveKeys = new Set();
   if (state.history?.length >= 2 && moves.length > 1) {
     for (const m of moves) {
@@ -555,7 +699,6 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
     }
   }
 
-  // FIX-1: Fallback if all moves were vetoed
   if (moveCount === 0 && moves.length > 0) {
     dbg.ai.warn('searchRoot: all moves were vetoed, retrying without rep-veto');
     for (const move of moves) {
@@ -599,6 +742,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
 
   tt.set(hash, { depth, score: bestScore, flag: TT_ALPHA,
     bestMoveKey: bestMove ? moveKeyUint32(bestMove, bestMove.promotion) : null });
+  _activeDanceTracker = null;
   return { bestMove, score: bestScore };
 }
 
@@ -729,6 +873,19 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
   score -= shufflePenalty(state, move);
+
+  // ── Anti-dance penalties (oscillation + stagnation) ──────────────────────
+  // These fire for any non-king non-capture quiet move. Captures are
+  // intrinsically progress (they change material) so we skip them.
+  // ES: Penalizaciones anti-baile: oscilación y estancamiento.
+  if (!move.fromReserve && moving && moving.type !== 'king') {
+    const isCapture = !!target;
+    if (!isCapture) {
+      score -= oscillationPenalty(side, moving, move.from.r, move.from.c, move.to.r, move.to.c);
+      score -= stagnationPenalty(side, moving, move.from.r, move.from.c, move.to.r, move.to.c);
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const mk = moveKeyUint32(move, move.promotion ?? false);
   score += killerScore(depth, mk);

@@ -13,6 +13,7 @@ import {
   chooseBotMove, evaluate, computeFullHash,
   extractFeatures, moveKey, adaptiveMemory,
 } from '../ai/index.js';
+import { GameDanceTracker } from '../ai/search.js';
 import { fastCloneState, PackedBoard } from '../ai/packed-state.js';
 import { SharedTT } from '../ai/shared-tt.js';
 import crypto from 'crypto';
@@ -311,6 +312,10 @@ export async function playSelfPlayGame(botParams) {
   const moves  = [];
   const MAX_MOVES = 1000;
 
+  // One dance tracker per game — persists across turns, reset at game start.
+  // ES: Un tracker de baile por partida — persiste entre turnos.
+  const danceTracker = new GameDanceTracker(30);
+
   // PACKED-TT: If the caller supplied a sharedTTBuffer (from selfplay-worker.js),
   // attach a SharedTT wrapper so both sides of self-play share the same TT
   // across the entire game. This gives much better move ordering from depth 1 on.
@@ -333,7 +338,7 @@ export async function playSelfPlayGame(botParams) {
 
     const stateCopy = cloneStateForBot(state);
     const rootNNByMoveKey = await buildRootNNByMoveKey(state, legalMoves);
-    const { move: botMove } = chooseBotMove(stateCopy, { ...effectiveBotParams, rootNNByMoveKey });
+    const { move: botMove } = chooseBotMove(stateCopy, { ...effectiveBotParams, rootNNByMoveKey, danceTracker });
 
     let move = null;
     if (botMove) {
@@ -367,6 +372,9 @@ export async function playSelfPlayGame(botParams) {
         && isPromotableType(piece.type)
         && !piece.promoted;
       capturedPiece = state.board[move.to.r]?.[move.to.c];
+      // Record this move in the dance tracker before applying it
+      // ES: Registrar el movimiento en el tracker de baile antes de aplicarlo
+      if (piece) danceTracker.record(side, piece, move.from.r, move.from.c, move.to.r, move.to.c);
     }
 
     const evalBefore = evaluate(state, currentHash).score;
