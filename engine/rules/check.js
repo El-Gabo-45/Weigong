@@ -335,7 +335,12 @@ export function isSquareAttacked(board, r, c, bySide, state) {
     for (let cc = 0; cc < BOARD_SIZE; cc++) {
       const p = row[cc];
       if (!p || p.side !== bySide) continue;
-      if (_pieceAttacksSquare(board, p, rr, cc, r, c, state)) return true;
+      const attacks = attackSquaresForPiece(board, p, rr, cc, state);
+      for (const move of attacks) {
+        const ar = Array.isArray(move) ? move[0] : move.r;
+        const ac = Array.isArray(move) ? move[1] : move.c;
+        if (ar === r && ac === c) return true;
+      }
     }
   }
 
@@ -343,14 +348,22 @@ export function isSquareAttacked(board, r, c, bySide, state) {
   const enemyKing = kings[bySide];
   const myKing = kings[opponent(bySide)];
   if (enemyKing && myKing) {
-    const dr = Math.sign(myKing.r - enemyKing.r);
-    const dc = Math.sign(myKing.c - enemyKing.c);
-    const sameRow = dr === 0 && dc !== 0;
-    const sameCol = dc === 0 && dr !== 0;
-    const sameDiag = dr !== 0 && dc !== 0 && Math.abs(myKing.r - enemyKing.r) === Math.abs(myKing.c - enemyKing.c);
-    if (sameRow || sameCol || sameDiag) {
-      const between = pathSquares(enemyKing.r, enemyKing.c, myKing.r, myKing.c);
-      if (!between.some(([rr, cc]) => board[rr][cc])) return true;
+    // Kings have limited range; do not treat long-distance alignment as an attack.
+    // Only consider the special "face-to-face" case when the kings are within
+    // a short manhattan distance (<=2), which matches the king's movement.
+    const drAbs = Math.abs(myKing.r - enemyKing.r);
+    const dcAbs = Math.abs(myKing.c - enemyKing.c);
+    const manhattan = drAbs + dcAbs;
+    if (manhattan <= 2) {
+      const dr = Math.sign(myKing.r - enemyKing.r);
+      const dc = Math.sign(myKing.c - enemyKing.c);
+      const sameRow = dr === 0 && dc !== 0;
+      const sameCol = dc === 0 && dr !== 0;
+      const sameDiag = dr !== 0 && dc !== 0 && drAbs === dcAbs;
+      if (sameRow || sameCol || sameDiag) {
+        const between = pathSquares(enemyKing.r, enemyKing.c, myKing.r, myKing.c);
+        if (!between.some(([rr, cc]) => board[rr][cc])) return true;
+      }
     }
   }
   return false;

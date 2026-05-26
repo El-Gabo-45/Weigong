@@ -23,9 +23,12 @@ const TT_MAX_ENTRIES = 500_000;
 
 let _sharedTTBuffer = null;
 
-function _makeSharedTT() {
+function _makeSharedTT(buffer = null) {
   try {
     if (typeof SharedArrayBuffer === 'undefined') return null;
+    if (buffer) {
+      _sharedTTBuffer = buffer;
+    }
     if (!_sharedTTBuffer) {
       const dummy = new SharedTT(TT_MAX_ENTRIES);
       _sharedTTBuffer = dummy.buffer;
@@ -36,8 +39,8 @@ function _makeSharedTT() {
   }
 }
 
-function _makeTT() {
-  const sharedTT = _makeSharedTT();
+function _makeTT(sharedBuffer = null) {
+  const sharedTT = _makeSharedTT(sharedBuffer);
   if (sharedTT) {
     dbg.ai('Using SharedArrayBuffer TT', { entries: TT_MAX_ENTRIES });
     return sharedTT;
@@ -181,10 +184,12 @@ async function parallelSearchRoot(state, depth, alpha, beta, deadline, tt, hash,
 
 
 export function chooseBlackBotMove(state, options = {}) {
-  const maxDepth        = options.maxDepth        ?? 8;
-  const timeLimitMs     = options.timeLimitMs     ?? 500;
+  const maxDepth         = options.maxDepth        ?? 8;
+  const timeLimitMs      = options.timeLimitMs     ?? 500;
   const aspirationWindow = options.aspirationWindow ?? 45;
-  const rootNNByMoveKey = options.rootNNByMoveKey ?? null;
+  const rootNNByMoveKey  = options.rootNNByMoveKey ?? null;
+  const danceTracker     = options.danceTracker ?? null;
+  const sharedTTBuffer   = options._sharedTTBuffer ?? null;
 
   let searchState;
   try {
@@ -209,7 +214,7 @@ export function chooseBlackBotMove(state, options = {}) {
 
   // SHARED-TT: reuse SharedArrayBuffer across turns for better move ordering
   // ES: Reutilizar SharedArrayBuffer entre turnos para mejor ordenamiento
-  const tt = _makeTT();
+  const tt = _makeTT(sharedTTBuffer);
 
   const rootHash = computeFullHash(searchState);
   try { prevScore = evaluate(searchState, rootHash).score; } catch { prevScore = 0; }

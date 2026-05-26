@@ -644,10 +644,7 @@ function kingSafetyFast(state, side, ownByPiece, enemyAttackMap, phaseFactor, ki
 function repetitionPenalty(hash, history) {
   let seen = 0;
   for (const h of history) if (h === hash) seen++;
-  // seen=0 → primera visita → sin penalización
-  // seen=1 → segunda visita → penalizar para evitar tercera
-  // seen≥2 → tercera o más → penalizar fuerte
-  return seen <= 0 ? 0 : seen * REPEAT_PENALTY;
+  return Math.max(0, seen - 1) * REPEAT_PENALTY;
 }
 
 function kingRecentMovePenalty(state) {
@@ -657,4 +654,4 @@ function kingRecentMovePenalty(state) {
   if (isPalaceSquare(last.from.r,last.from.c,mp.side) && !isPalaceSquare(last.to.r,last.to.c,mp.side)) pen += 60;
   if (!isPalaceSquare(last.to.r,last.to.c,mp.side)) pen += 35;
   return mp.side === SIDE.BLACK ? -pen : pen;
-}y
+}
