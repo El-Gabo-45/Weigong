@@ -326,7 +326,7 @@ function quiescence(state, alpha, beta, deadline, hash, staticEval = null, qdept
         }
       } finally {
         unmakeMove(state, md);
-        if (childMaps) _rebuildMaps(maps, state.board);
+        _rebuildMaps(maps, state.board);
       }
     }
   }
@@ -457,7 +457,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
         }
       } finally {
         unmakeMove(state, md);
-        if (childMaps) _rebuildMaps(maps, state.board);
+        _rebuildMaps(maps, state.board);
       }
     }
   }
@@ -519,7 +519,7 @@ export function search(state, depth, alpha, beta, deadline, tt, hash,
         }
       } finally {
         unmakeMove(state, md);
-        if (childMaps) _rebuildMaps(maps, state.board);
+        _rebuildMaps(maps, state.board);
       }
     }
   }
@@ -645,7 +645,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
         unmakeMove(state, md);
         // INCR: rebuild after each root unmake — root moves are independent
         // ES: reconstruir después de cada unmake en la raíz — son independientes
-        if (childMaps) _rebuildMaps(rootMaps, state.board);
+        _rebuildMaps(rootMaps, state.board);
       }
     }
   }
@@ -685,7 +685,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
           }
         } finally {
           unmakeMove(state, md);
-          if (childMaps) _rebuildMaps(rootMaps, state.board);
+          _rebuildMaps(rootMaps, state.board);
         }
       }
     }

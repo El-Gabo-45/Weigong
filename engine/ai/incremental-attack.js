@@ -97,48 +97,13 @@ export class IncrementalAttackMap {
    * @param {boolean} shouldPromote - Whether promotion occurred
    */
   applyMove(state, move, capturedPiece, movedPiece, shouldPromote) {
-    if (!this._map) {
-      this.init(state.board, this._side);
-      return;
-    }
-    this._board = state.board;
-
-    // From-reserve drops: just add the dropped piece at destination
-    if (move.fromReserve) {
-      if (move.to) {
-        this._addPiece(state.board, move.to.r, move.to.c);
-      }
-      return;
-    }
-
-    if (!move.from || !move.to) return;
-
-    // 1. Remove piece from source square
-    if (movedPiece) {
-      this._removePiece(state.board, move.from.r, move.from.c, movedPiece);
-    }
-
-    // 2. If capture, remove captured piece from destination (it was there before move)
-    if (capturedPiece) {
-      this._removePiece(state.board, move.to.r, move.to.c, capturedPiece);
-    }
-
-    // 3. Add moved piece at destination (with promotion if applicable)
-    const destPiece = state.board[move.to.r]?.[move.to.c];
-    if (destPiece) {
-      this._addPiece(state.board, move.to.r, move.to.c);
-    }
-
-    // 4. Update king positions
-    if (movedPiece?.type === 'king') {
-      this._map.kingIdx = idx(move.to.r, move.to.c);
-    }
-    if (capturedPiece?.type === 'king') {
-      this._map.enemyKingIdx = -1; // enemy king captured — shouldn't happen in practice
-    }
-
-    // 5. Check king-line attack (king-to-king direct attacks)
-    this._updateKingLine(state.board);
+    // Full rebuild after each move — correct by definition and eliminates all
+    // incremental-delta bugs (wrong board reference, attackArr/byPieceArr mismatch,
+    // cannon subtraction with post-move board, king-line double-count).
+    // Cost is O(169) per node, same as before but without silent corruption.
+    // ES: Rebuild completo tras cada movimiento — correcto por definición y elimina
+    // todos los bugs del delta incremental. Costo O(169) por nodo.
+    this.rebuild(state.board);
   }
 
   /**

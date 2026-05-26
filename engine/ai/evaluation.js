@@ -372,9 +372,8 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
       if (isPalaceSquare(r,c,enemy)) {
         // Reduced pressure for being in enemy palace — it's risky and can trigger enemy curse
         // ES: Presión reducida por estar en palacio enemigo — es riesgoso y puede activar maldición enemiga
-        const penalty = piece.type === 'king' ? 0 : 15; // slight penalty for non-king pieces invading
-        if (isBlack) blackPalacePressure += 50 - penalty;
-        else         whitePalacePressure += 110 - penalty;
+        if (isBlack) blackPalacePressure += 50;
+        else         whitePalacePressure += 110;
       }
       if (['tower','queen','cannon'].includes(piece.type)) {
         const palCenter = enemy===SIDE.BLACK ? 1 : 11;
@@ -514,8 +513,8 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
 
   // Keep palaceTaken bonus for winning condition, but reduce weight
   // ES: Mantener bono de palaceTaken por condición de victoria, pero reducir peso
-  if (state.palaceTaken?.black) score += 200;  // was 350
-  if (state.palaceTaken?.white) score -= 200;  // was 350
+  if (state.palaceTaken?.black) score += 350;
+  if (state.palaceTaken?.white) score -= 350;
 
   const blackInvasion = countInminentPalaceInvasion(state, SIDE.BLACK, blackMap, whiteMap);
   const whiteInvasion = countInminentPalaceInvasion(state, SIDE.WHITE, whiteMap, blackMap);
@@ -658,4 +657,4 @@ function kingRecentMovePenalty(state) {
   if (isPalaceSquare(last.from.r,last.from.c,mp.side) && !isPalaceSquare(last.to.r,last.to.c,mp.side)) pen += 60;
   if (!isPalaceSquare(last.to.r,last.to.c,mp.side)) pen += 35;
   return mp.side === SIDE.BLACK ? -pen : pen;
-}
+}y
