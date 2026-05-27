@@ -194,7 +194,9 @@ function developmentScore(board, side, phaseFactor) {
         const advance = isBlack ? r - homePawnRank : homePawnRank - r;
         if (advance > 0) pawnsAdvanced++;
         else if (advance === 0) pawnsOnHome++;
-        if (isBlack ? (r <= 5) : (r >= 7)) piecesInEnemyTerritory++;
+        // BLACK advances toward row 12: enemy territory = r >= 7
+        // WHITE advances toward row 0:  enemy territory = r <= 5
+        if (isBlack ? (r >= 7) : (r <= 5)) piecesInEnemyTerritory++;
       } else {
         // Non-king, non-pawn pieces
         if (r === homeBackRank) {
@@ -202,7 +204,7 @@ function developmentScore(board, side, phaseFactor) {
         } else {
           movedPieces++;
           piecesActive++;
-          if (isBlack ? (r <= 5) : (r >= 7)) piecesInEnemyTerritory++;
+          if (isBlack ? (r >= 7) : (r <= 5)) piecesInEnemyTerritory++;
         }
       }
     }
@@ -339,7 +341,9 @@ function riverAndCrossedScore(board, side, ownAttackMap) {
       const p = board[r][c];
       if (!p || p.side !== side) continue;
       if (p.type === 'king' || p.type === 'archer') continue;
-      const crossed = side === SIDE.BLACK ? (r <= 5) : (r >= 7);
+      // BLACK advances toward row 12: crosses river when r >= 7 (enemy WHITE territory)
+      // WHITE advances toward row 0:  crosses river when r <= 5 (enemy BLACK territory)
+      const crossed = side === SIDE.BLACK ? (r >= 7) : (r <= 5);
       if (crossed) crossedPieces++;
     }
   }
@@ -644,9 +648,11 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
         if (dist<=4) { const pb=(5-Math.min(4,dist))*25; if (isBlack) blackPalacePressure+=pb; else whitePalacePressure+=pb; }
       }
       if (piece.type==='pawn') {
-        const progress = isBlack ? (12 - r) : r;
+        // BLACK advances toward row 12 (forwardDir=+1) → progress = r
+        // WHITE advances toward row 0  (forwardDir=-1) → progress = 12 - r
+        const progress = isBlack ? r : (12 - r);
         const pawnScore = progress*PAWN_ADVANCE_WEIGHT*(1+endgame);
-        const crossed = isBlack ? (r <= 5) : (r >= 7);
+        const crossed = isBlack ? (r >= 7) : (r <= 5);
         const ps = pawnScore+(crossed?12*(1+endgame):0)+(piece.promoted?24:0);
         score += isBlack ? ps : -ps;
         if (isBlack) blackPawnCols[c]++; else whitePawnCols[c]++;

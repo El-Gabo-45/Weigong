@@ -869,9 +869,9 @@ function moveOrderScore(state, move, depth, currentHash = null) {
       score += 150; // break the pawn wall
     }
 
-    // Bonus for crossing the river
-    // ES: Bono por cruzar el río
-    if ((side === SIDE.WHITE && move.to.r <= 6) || (side === SIDE.BLACK && move.to.r >= 6)) {
+    // Bonus for crossing the river (landing in enemy territory)
+    // BLACK crosses to r >= 7, WHITE crosses to r <= 5
+    if ((side === SIDE.BLACK && move.to.r >= 7) || (side === SIDE.WHITE && move.to.r <= 5)) {
       score += 150;
     }
 
@@ -886,32 +886,52 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   // ES: DESARROLLO DE PIEZAS NO PEÓN
   if (!move.fromReserve && moving.type !== 'pawn' && moving.type !== 'king') {
     const homeBackRank = side === SIDE.WHITE ? 12 : 0;
-    if (move.from.r === homeBackRank && move.to.r !== homeBackRank) {
-      // Moving off the back rank — development bonus (MASSIVE)
-      // ES: Salir de la fila trasera — bono de desarrollo (ENORME)
-      score += 200;
-    }
+    const ownRiverEdge = side === SIDE.BLACK ? 6 : 6; // river row
 
-    const forward = side === SIDE.WHITE ? -1 : 1;
-    const advance = (move.to.r - move.from.r) * forward;
-    if (advance > 0) {
-      // Bonus for advancing toward enemy territory
-      // ES: Bono por avanzar hacia territorio enemigo
-      score += Math.min(advance * 50, 200);
-    } else if (advance < 0) {
-      // STRONG PENALTY for retreating — but NOT if it's a capture (exchange/escape)
-      // and NOT if the piece is currently hanging (being attacked)
-      // ES: FUERTE PENALIZACIÓN por retroceder — pero NO si es una captura o la pieza está colgada
-      const isCapture = !!state.board[move.to?.r]?.[move.to?.c];
-      if (!isCapture) {
-        score -= 500;
+    // GENERAL: extremely fragile piece — heavily penalise advancing past own side,
+    // especially toward enemy archers. The general should stay back as support.
+    // ES: GENERAL: pieza muy frágil — penalizar fuerte el avance al lado enemigo.
+    if (moving.type === 'general') {
+      const isOwnSideRow = side === SIDE.BLACK ? move.to.r <= 5 : move.to.r >= 7;
+      if (!isOwnSideRow) {
+        // General crossing the river = almost always suicidal
+        score -= 800;
+      } else {
+        // On own side: small penalty for advancing too far forward (toward river)
+        const forward = side === SIDE.BLACK ? 1 : -1;
+        const advance = (move.to.r - move.from.r) * forward;
+        if (advance > 0) score -= advance * 40; // gently discourage forward movement
+      }
+    } else {
+      if (move.from.r === homeBackRank && move.to.r !== homeBackRank) {
+        // Moving off the back rank — development bonus (MASSIVE)
+        // ES: Salir de la fila trasera — bono de desarrollo (ENORME)
+        score += 200;
+      }
+
+      const forward = side === SIDE.WHITE ? -1 : 1;
+      const advance = (move.to.r - move.from.r) * forward;
+      if (advance > 0) {
+        // Bonus for advancing toward enemy territory
+        // ES: Bono por avanzar hacia territorio enemigo
+        score += Math.min(advance * 50, 200);
+      } else if (advance < 0) {
+        // STRONG PENALTY for retreating — but NOT if it's a capture (exchange/escape)
+        // ES: FUERTE PENALIZACIÓN por retroceder — pero NO si es una captura
+        const isCapture = !!state.board[move.to?.r]?.[move.to?.c];
+        if (!isCapture) {
+          score -= 500;
+        }
       }
     }
 
-    // Crossed the river bonus
-    // ES: Bono por cruzar el río
-    if ((side === SIDE.WHITE && move.to.r <= 6) || (side === SIDE.BLACK && move.to.r >= 6)) {
-      score += 150;
+    // Crossed the river bonus (but NOT for the general — already handled above)
+    // BLACK crosses toward row 12: enemy side starts at r >= 7
+    // WHITE crosses toward row 0:  enemy side starts at r <= 5
+    if (moving.type !== 'general') {
+      if ((side === SIDE.BLACK && move.to.r >= 7) || (side === SIDE.WHITE && move.to.r <= 5)) {
+        score += 150;
+      }
     }
   }
 
