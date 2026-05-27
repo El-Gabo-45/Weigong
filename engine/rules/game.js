@@ -22,6 +22,7 @@ export function createGame() {
     promotionRequest: null,
     status: "playing",
     message: "Partida lista.",
+    moveCount: 0,
     palaceTimers: {
       white: { pressure: 0, invaded: false, attackerSide: null },
       black: { pressure: 0, invaded: false, attackerSide: null },

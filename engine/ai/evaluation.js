@@ -113,6 +113,116 @@ const KING_ESCAPE_PENALTY     = 200;
 const KING_SHUFFLE_PENALTY    = 400;
 const REPEAT_PENALTY          = 1200;
 
+// ── Checkmate urgency & endgame acceleration ───────────────────────────────────
+// ES: Urgencia de jaque mate y aceleración de final
+// Scales with phaseFactor: strongest in middlegame/endgame when material is low
+// and the bot should be looking for finishing blows, not quiet positioning.
+// ES: Escala con phaseFactor: más fuerte en medio juego/final cuando hay poco
+// material y el bot debería buscar golpes decisivos, no posicionamiento tranquilo.
+const CHECKMATE_URGENCY_BASE   = 120;   // bonus for any attack on king zone
+const CHECKMATE_URGENCY_PER    = 80;    // per attacker near the enemy king
+const CHECKMATE_NEARNESS_BONUS = 60;    // bonus per enemy king escape square under attack
+const CHECKMATE_DEPTH_BONUS    = 200;   // extra bonus when in endgame (phaseFactor < 0.3)
+
+// ── Pawn chain & structure ──────────────────────────────────────────────────────
+// ES: Cadena de peones y estructura
+// Rewards pawn chains (pawns defending each other diagonally) which are the
+// backbone of a strong positional structure. Avoids isolated and doubled pawns.
+// ES: Recompensa cadenas de peones (peones que se defienden en diagonal) que son
+// la columna vertebral de una estructura posicional fuerte.
+const PAWN_CHAIN_BONUS         = 25;    // per pawn that defends another pawn
+const PAWN_ISOLATED_PENALTY    = 30;    // per isolated pawn (no friendly pawns in adjacent columns)
+
+// ── Jumping piece over-reliance penalty ───────────────────────────────────────
+// ES: Penalización por exceso de dependencia de piezas que saltan
+// Cannons, carriages, and generals that jump are powerful in the opening but
+// the bot should also develop normal pieces. This slightly penalises making
+// multiple consecutive jumps with the same piece type, encouraging variety.
+const JUMP_REPEAT_PENALTY      = 50;    // per additional jump move by same piece type
+const JUMP_EARLY_PENALTY       = 30;    // penalty per jump-piece moved before 3 non-jump pieces
+
+// ── Development & Opening Urgency ──────────────────────────────────────────────
+// ES: Desarrollo y urgencia de apertura
+// Rewards piece activation in the opening and early midgame.
+// The bot should feel increasing pressure to develop pieces and advance pawns
+// the longer it stays in undeveloped starting positions.
+// ES: Recompensa la activación de piezas en la apertura y medio juego temprano.
+// El bot debe sentir presión creciente por desarrollar piezas y avanzar peones
+// cuanto más tiempo permanezca en posiciones iniciales sin desarrollo.
+const DEV_PIECE_MOVED_BONUS     = 45;   // per piece that has left its starting square
+const DEV_PAWN_ADVANCED_BONUS   = 35;   // per pawn that has advanced at least 1 row
+const DEV_UNDEVELOPED_PENALTY   = 60;   // per piece still on its home rank (back rank)
+const DEV_MAX_OPENING_BONUS     = 300;  // max bonus when all pieces are active
+const DEV_URGENCE_SCALE         = 0.6;  // how much urgency scales with game phase (0=never, 1=full)
+const DEV_ACTIVATION_BONUS      = 30;   // bonus per piece that can move to enemy side of the river
+const DEV_PIECE_IN_PLAY_BONUS   = 25;   // bonus per non-pawn non-king piece that's not on home rank
+
+/**
+ * Calculates development score for `side`.
+ * Rewards pieces that have moved from their starting squares, pawns that have
+ * advanced, and penalises undeveloped pieces still on home ranks.
+ * Scales with phase factor: strongest in opening, fades in endgame.
+ * ES: Calcula el score de desarrollo para `side`. Recompensa piezas que se han
+ * movido de sus casillas iniciales, peones que han avanzado, y penaliza piezas
+ * que siguen en sus filas iniciales. Escala con phaseFactor: más fuerte en
+ * apertura, se desvanece en el final.
+ */
+function developmentScore(board, side, phaseFactor) {
+  const openingUrgency = 1 - phaseFactor; // 1.0 in opening, ~0 in endgame
+  const devWeight = Math.pow(openingUrgency, DEV_URGENCE_SCALE * 2 + 0.4);
+  if (devWeight < 0.05) return 0; // skip if negligible
+
+  const isBlack = side === SIDE.BLACK;
+  const homeBackRank = isBlack ? 0 : 12;
+  const homePawnRank = isBlack ? 2 : 10;
+  const enemySideStart = isBlack ? 5 : 7; // first row on enemy side after river
+
+  let movedPieces = 0;      // pieces that left their starting square
+  let undeveloped = 0;      // pieces still on home back rank (non-pawn)
+  let pawnsAdvanced = 0;    // pawns that advanced at least 1 row forward
+  let pawnsOnHome = 0;      // pawns still on home pawn rank
+  let piecesInEnemyTerritory = 0; // non-king pieces that crossed the river
+  let piecesActive = 0;     // pieces in play (not on home back rank, non-king non-pawn)
+
+  for (let r = 0; r < 13; r++) {
+    for (let c = 0; c < 13; c++) {
+      const p = board[r][c];
+      if (!p || p.side !== side) continue;
+      if (p.type === 'king') continue; // exclude king
+
+      if (p.type === 'pawn') {
+        const advance = isBlack ? r - homePawnRank : homePawnRank - r;
+        if (advance > 0) pawnsAdvanced++;
+        else if (advance === 0) pawnsOnHome++;
+        if (isBlack ? (r <= 5) : (r >= 7)) piecesInEnemyTerritory++;
+      } else {
+        // Non-king, non-pawn pieces
+        if (r === homeBackRank) {
+          undeveloped++; // still on starting back rank
+        } else {
+          movedPieces++;
+          piecesActive++;
+          if (isBlack ? (r <= 5) : (r >= 7)) piecesInEnemyTerritory++;
+        }
+      }
+    }
+  }
+
+  // Score calculation
+  let devScore = 
+    movedPieces * DEV_PIECE_MOVED_BONUS
+    + pawnsAdvanced * DEV_PAWN_ADVANCED_BONUS
+    + piecesActive * DEV_ACTIVATION_BONUS / 2
+    + piecesInEnemyTerritory * DEV_ACTIVATION_BONUS
+    - undeveloped * DEV_UNDEVELOPED_PENALTY;
+
+  // Cap max bonus
+  devScore = Math.max(0, Math.min(DEV_MAX_OPENING_BONUS, devScore));
+
+  // Scale by opening urgency
+  return Math.round(devScore * devWeight);
+}
+
 // Palace defense: penalty for neglecting own palace
 // ES: Defensa de palacio: penalización por descuidar el propio palacio
 // PALACE_DEFENSE_BONUS  = total bonus distributed across own 9 palace squares covered
@@ -314,6 +424,153 @@ function recklessInvasionPenalty(state, side) {
     penalty += ourInvaders * PALACE_RECKLESS_PENALTY;
   }
   return penalty;
+}
+
+// ── Checkmate Urgency ─────────────────────────────────────────────────────────
+// ES: Urgencia de jaque mate
+// Rewards the attacking side for putting pressure on the enemy king zone.
+// Stronger in endgame when the bot should be looking for finishing blows.
+function checkmateUrgencyScore(board, side, enemyKingPos, ownMap, enemyMap, phaseFactor) {
+  if (!enemyKingPos) return 0;
+  const enemy = opponent(side);
+  const endgameUrgency = 1 - phaseFactor;
+
+  let attackers = 0;
+  let escapeSqUnderAttack = 0;
+
+  // Count pieces attacking/adjacent to enemy king zone
+  // ES: Contar piezas que atacan/están adyacentes a la zona del rey enemigo
+  const kRow = enemyKingPos.r, kCol = enemyKingPos.c;
+  const kingAdj = [[kRow-1,kCol-1],[kRow-1,kCol],[kRow-1,kCol+1],[kRow,kCol-1],[kRow,kCol+1],[kRow+1,kCol-1],[kRow+1,kCol],[kRow+1,kCol+1]];
+  
+  const ownArr = ownMap.attackMap._arr;
+  const enemyArr = enemyMap.attackMap._arr;
+
+  // Count our pieces attacking near the king (within 3 squares)
+  for (let r = Math.max(0, kRow - 3); r <= Math.min(12, kRow + 3); r++) {
+    for (let c = Math.max(0, kCol - 3); c <= Math.min(12, kCol + 3); c++) {
+      if (ownArr[r * 13 + c]) {
+        const p = board[r][c];
+        if (p && p.side === side) attackers++;
+      }
+    }
+  }
+
+  // Count enemy king escape squares under attack
+  for (const [er, ec] of kingAdj) {
+    if (er >= 0 && er < 13 && ec >= 0 && ec < 13) {
+      if (ownArr[er * 13 + ec]) escapeSqUnderAttack++;
+    }
+  }
+
+  let urgency = attackers * CHECKMATE_URGENCY_PER + escapeSqUnderAttack * CHECKMATE_NEARNESS_BONUS;
+
+  // Base urgency if any attacker is present
+  if (attackers > 0) urgency += CHECKMATE_URGENCY_BASE;
+
+  // Extra bonus in endgame (phaseFactor < 0.3 = more than 70% material gone)
+  if (endgameUrgency > 0.7) urgency += CHECKMATE_DEPTH_BONUS;
+
+  return Math.round(urgency * (0.5 + endgameUrgency * 0.5));
+}
+
+// ── Pawn Chain & Structure ──────────────────────────────────────────────────
+// ES: Cadena de peones y estructura
+// Rewards pawn chains (pawns defending each other diagonally).
+// Penalises isolated pawns.
+function pawnStructureScore(board, side) {
+  const isBlack = side === SIDE.BLACK;
+  const pawnPositions = [];
+
+  // Collect all pawn positions for this side
+  for (let r = 0; r < 13; r++) {
+    for (let c = 0; c < 13; c++) {
+      const p = board[r][c];
+      if (p && p.side === side && p.type === 'pawn') {
+        pawnPositions.push({ r, c });
+      }
+    }
+  }
+
+  if (pawnPositions.length < 2) return 0;
+
+  let chainBonus = 0;
+  let isolatedPenalty = 0;
+
+  // Build column presence map for isolation detection
+  const colPresence = new Set();
+  for (const pos of pawnPositions) colPresence.add(pos.c);
+
+  for (const pos of pawnPositions) {
+    // Check if this pawn defends another pawn (chain)
+    let isChain = false;
+    for (const other of pawnPositions) {
+      if (other.r === pos.r && other.c === pos.c) continue;
+      // Pawn at (r,c) defends pawn at (r-1,c-1) or (r-1,c+1) if advancing
+      // In this game, pawns move FORWARD: WHITE goes up (r decreases), BLACK goes down (r increases)
+      const defendedR = isBlack ? pos.r + 1 : pos.r - 1;
+      if (other.r === defendedR && (other.c === pos.c - 1 || other.c === pos.c + 1)) {
+        isChain = true;
+        break;
+      }
+    }
+    if (isChain) chainBonus++;
+
+    // Check if isolated (no friendly pawns in adjacent columns)
+    let hasNeighbor = false;
+    for (const adjCol of [pos.c - 1, pos.c + 1]) {
+      if (colPresence.has(adjCol)) { hasNeighbor = true; break; }
+    }
+    if (!hasNeighbor) isolatedPenalty++;
+  }
+
+  return chainBonus * PAWN_CHAIN_BONUS - isolatedPenalty * PAWN_ISOLATED_PENALTY;
+}
+
+// ── Jumping piece over-reliance penalty ─────────────────────────────────────
+// ES: Penalización por exceso de dependencia de piezas que saltan
+// Penalises the bot for moving jumping pieces (cannon, carriage, general)
+// before developing non-jumping pieces.
+function jumpingPieceOverusePenalty(board, side, phaseFactor) {
+  const isBlack = side === SIDE.BLACK;
+  const homeBackRank = isBlack ? 0 : 12;
+  const JUMP_TYPES = new Set(['cannon', 'carriage', 'general']);
+
+  let jumpPiecesMoved = 0;
+  let normalPiecesDeveloped = 0;
+  let penalty = 0;
+
+  for (let r = 0; r < 13; r++) {
+    for (let c = 0; c < 13; c++) {
+      const p = board[r][c];
+      if (!p || p.side !== side || p.type === 'king') continue;
+
+      if (p.type === 'pawn') continue;
+
+      if (JUMP_TYPES.has(p.type)) {
+        // Jumping piece: count if it has moved off the back rank
+        if (r !== homeBackRank) jumpPiecesMoved++;
+      } else {
+        // Normal piece: count if it has started developing
+        if (r !== homeBackRank) normalPiecesDeveloped++;
+      }
+    }
+  }
+
+  // Penalty when jumping pieces are moved but few normal pieces are developed
+  // Only applies in the opening (high phaseFactor)
+  const openingUrgency = Math.max(0, 1 - phaseFactor);
+  if (jumpPiecesMoved > 0 && normalPiecesDeveloped < 3) {
+    const lack = 3 - normalPiecesDeveloped;
+    penalty += lack * JUMP_EARLY_PENALTY;
+  }
+
+  // Extra penalty if more jump pieces moved than normal pieces developed
+  if (jumpPiecesMoved > normalPiecesDeveloped && normalPiecesDeveloped > 0) {
+    penalty += (jumpPiecesMoved - normalPiecesDeveloped) * JUMP_REPEAT_PENALTY;
+  }
+
+  return Math.round(penalty * openingUrgency);
 }
 
 // OPT-12: skipMemory=true omits extractFeatures()+getFeatureScore() in internal
@@ -533,7 +790,44 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
   const whiteRiver = riverAndCrossedScore(board, SIDE.WHITE, whiteMap.attackMap);
   score += blackRiver - whiteRiver;
 
+  // ── Development & Opening Urgency ──
+  // ES: Desarrollo y urgencia de apertura
+  // Rewards piece activation in the opening. The bot is incentivised to move
+  // pieces off their starting squares, advance pawns, and get pieces across the
+  // river. This creates natural attacking pressure from the very first moves.
+  // ES: Recompensa la activación de piezas en la apertura. El bot es incentivado
+  // a mover piezas de sus casillas iniciales, avanzar peones, y cruzar el río.
+  // Esto crea presión de ataque natural desde los primeros movimientos.
+  const blackDev = developmentScore(board, SIDE.BLACK, phaseFactor);
+  const whiteDev = developmentScore(board, SIDE.WHITE, phaseFactor);
+  score += blackDev - whiteDev;
+
+  // ── Checkmate urgency ──
+  // ES: Urgencia de jaque mate
+  // Rewards attacking pieces near the enemy king, especially in endgame.
+  // ES: Recompensa piezas atacantes cerca del rey enemigo, especialmente en final.
+  const blackMateUrgency = checkmateUrgencyScore(board, SIDE.BLACK, whiteMap.kingPos, blackMap, whiteMap, phaseFactor);
+  const whiteMateUrgency = checkmateUrgencyScore(board, SIDE.WHITE, blackMap.kingPos, whiteMap, blackMap, phaseFactor);
+  score += blackMateUrgency - whiteMateUrgency;
+
+  // ── Pawn chain & structure ──
+  // ES: Cadena de peones y estructura
+  // Rewards pawn chains (pawns defending each other). Penalises isolated pawns.
+  // ES: Recompensa cadenas de peones. Penaliza peones aislados.
+  const blackPawnStruct = pawnStructureScore(board, SIDE.BLACK);
+  const whitePawnStruct = pawnStructureScore(board, SIDE.WHITE);
+  score += blackPawnStruct - whitePawnStruct;
+
+  // ── Jumping piece over-reliance penalty ──
+  // ES: Penalización por exceso de dependencia de piezas que saltan
+  // Penalises over-using cannon/carriage/general without developing normal pieces.
+  // ES: Penaliza el uso excesivo de cañón/carriage/general sin desarrollar piezas normales.
+  score -= jumpingPieceOverusePenalty(board, SIDE.BLACK, phaseFactor);
+  score += jumpingPieceOverusePenalty(board, SIDE.WHITE, phaseFactor);
+
   dbg.ai.group('eval:full', {
+    blackDev:         blackDev,
+    whiteDev:         whiteDev,
     blackPalaceDef:   blackPalaceDef.toFixed(1),
     whitePalaceDef:   whitePalaceDef.toFixed(1),
     palaceNet:        (blackPalaceDef - whitePalaceDef).toFixed(1),

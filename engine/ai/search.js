@@ -56,7 +56,8 @@ export class GameDanceTracker {
 
   record(side, piece, fr, fc, tr, tc) {
     if (!piece || piece.type === 'king') return;
-    const key     = `${piece.type}@${fr},${fc}`;
+    const id      = piece.id ?? `${piece.type}@${fr},${fc}`;
+    const key     = `${piece.type}@${id}`;
     const cellIdx = tr * 13 + tc;
     const sv      = this.visits[side];
     const sc      = this.centroids[side];
@@ -95,8 +96,9 @@ export class GameDanceTracker {
 
   oscillation(side, piece, fr, fc, tr, tc) {
     if (!piece || piece.type === 'king') return 0;
-    const key  = `${piece.type}@${fr},${fc}`;
-    const pm   = this.visits[side]?.get(key);
+    const id  = piece.id ?? `${piece.type}@${fr},${fc}`;
+    const key = `${piece.type}@${id}`;
+    const pm  = this.visits[side]?.get(key);
     if (!pm) return 0;
     const visits = pm.get(tr * 13 + tc) ?? 0;
     if (visits < 1) return 0;
@@ -105,7 +107,8 @@ export class GameDanceTracker {
 
   stagnation(side, piece, fr, fc, tr, tc) {
     if (!piece || piece.type === 'king') return 0;
-    const key = `${piece.type}@${fr},${fc}`;
+    const id  = piece.id ?? `${piece.type}@${fr},${fc}`;
+    const key = `${piece.type}@${id}`;
     const ce  = this.centroids[side]?.get(key);
     if (!ce || ce.count < 3) return 0;
     const avgRow  = ce.sumRow / ce.count;
@@ -127,12 +130,12 @@ export class GameDanceTracker {
 // ES: Tracker activo a nivel de módulo — fijado por searchRoot cuando el llamador lo pasa.
 let _activeDanceTracker = null;
 
-function oscillationPenalty(side, piece, fr, fc, tr, tc) {
-  return _activeDanceTracker?.oscillation(side, piece, fr, fc, tr, tc) ?? 0;
+function oscillationPenalty(/* side, piece, fr, fc, tr, tc */) {
+  return 0;
 }
 
-function stagnationPenalty(side, piece, fr, fc, tr, tc) {
-  return _activeDanceTracker?.stagnation(side, piece, fr, fc, tr, tc) ?? 0;
+function stagnationPenalty(/* side, piece, fr, fc, tr, tc */) {
+  return 0;
 }
 
 function now() {
@@ -592,6 +595,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
   }
 
   let bestMove = null, bestScore = maximizing ? -INF : INF, moveCount = 0;
+  const rootBoardSnapshot = JSON.stringify(state.board);
 
   for (const move of moves) {
     if (now() > deadline) throw new SearchTimeout();
@@ -646,6 +650,13 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
         // INCR: rebuild after each root unmake — root moves are independent
         // ES: reconstruir después de cada unmake en la raíz — son independientes
         _rebuildMaps(rootMaps, state.board);
+        if (depth >= 5) {
+          const currentSnapshot = JSON.stringify(state.board);
+          if (currentSnapshot !== rootBoardSnapshot) {
+            console.error('[searchRoot] root state corrupted after unmake at depth', depth, 'move', moveKey(move, promote));
+            throw new Error('root state corrupted');
+          }
+        }
       }
     }
   }
@@ -794,6 +805,53 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     if (dist < 6) score += (6 - dist) * 10;
   }
 
+  // Pawn development bonus: strongly incentivise pawn advancement from home rank
+  // ES: Bono de desarrollo del peón: incentivar fuertemente el avance del peón
+  if (!move.fromReserve && moving.type === 'pawn') {
+    const homePawnRow = side === SIDE.WHITE ? 10 : 2;
+    const adv = side === SIDE.WHITE ? (homePawnRow - move.to.r) : (move.to.r - homePawnRow);
+    if (adv > 0) {
+      // Bonus for advancing pawn: higher for first few ranks, diminishes
+      score += Math.min(adv * 35, 120);
+    }
+    // Bonus for crossing the river
+    if ((side === SIDE.WHITE && move.to.r <= 6) || (side === SIDE.BLACK && move.to.r >= 6)) {
+      score += 80;
+    }
+    // Bonus for pawns that reach the back ranks
+    if ((side === SIDE.WHITE && move.to.r <= 2) || (side === SIDE.BLACK && move.to.r >= 10)) {
+      score += 150;
+    }
+  }
+
+  // Non-pawn piece development: bonus for moving off the home back rank
+  // ES: Desarrollo de piezas no peón: bono por salir de la fila trasera
+  if (!move.fromReserve && moving.type !== 'pawn' && moving.type !== 'king') {
+    const homeBackRank = side === SIDE.WHITE ? 12 : 0;
+    if (move.from.r === homeBackRank && move.to.r !== homeBackRank) {
+      // Moving off the back rank for the first time — development bonus
+      score += 120;
+    }
+    // HEAVY advance/retreat incentives for non-pawn, non-king pieces
+    // ES: FUERTE incentivo de avance/retroceso para piezas que no son peón ni rey
+    const forward = side === SIDE.WHITE ? -1 : 1;
+    const advance = (move.to.r - move.from.r) * forward; // positive=forward, negative=backward
+    if (advance > 0) {
+      // BONUS for moving forward — pieces should advance toward the enemy
+      // ES: BONO por avanzar — las piezas deben ir hacia el enemigo
+      score += Math.min(advance * 45, 150);
+    } else if (advance < 0) {
+      // STRONG PENALTY for retreating — pointless backward moves waste time
+      // ES: FUERTE PENALIZACIÓN por retroceder — moverse hacia atrás pierde tiempo
+      score -= 350;
+    }
+    // Crossed the river bonus for ANY non-king piece
+    // ES: Bono por cruzar el río para CUALQUIER pieza que no sea rey
+    if ((side === SIDE.WHITE && move.to.r <= 6) || (side === SIDE.BLACK && move.to.r >= 6)) {
+      score += 120;
+    }
+  }
+
   if (move.fromReserve) {
     score += 100;
     if ((side === SIDE.WHITE && move.to.r >= 7) || (side === SIDE.BLACK && move.to.r <= 5)) score += 80;
@@ -806,19 +864,6 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   if (isBacktrack(state, move)) score -= 500;
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
-
-  // ── Anti-dance penalties (oscillation + stagnation) ──────────────────────
-  // These fire for any non-king non-capture quiet move. Captures are
-  // intrinsically progress (they change material) so we skip them.
-  // ES: Penalizaciones anti-baile: oscilación y estancamiento.
-  if (!move.fromReserve && moving && moving.type !== 'king') {
-    const isCapture = !!target;
-    if (!isCapture) {
-      score -= oscillationPenalty(side, moving, move.from.r, move.from.c, move.to.r, move.to.c);
-      score -= stagnationPenalty(side, moving, move.from.r, move.from.c, move.to.r, move.to.c);
-    }
-  }
-  // ─────────────────────────────────────────────────────────────────────────
 
   const mk = moveKeyUint32(move, move.promotion ?? false);
   score += killerScore(depth, mk);
