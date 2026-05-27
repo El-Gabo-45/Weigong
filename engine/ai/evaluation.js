@@ -119,10 +119,10 @@ const REPEAT_PENALTY          = 1200;
 // and the bot should be looking for finishing blows, not quiet positioning.
 // ES: Escala con phaseFactor: más fuerte en medio juego/final cuando hay poco
 // material y el bot debería buscar golpes decisivos, no posicionamiento tranquilo.
-const CHECKMATE_URGENCY_BASE   = 120;   // bonus for any attack on king zone
-const CHECKMATE_URGENCY_PER    = 80;    // per attacker near the enemy king
-const CHECKMATE_NEARNESS_BONUS = 60;    // bonus per enemy king escape square under attack
-const CHECKMATE_DEPTH_BONUS    = 200;   // extra bonus when in endgame (phaseFactor < 0.3)
+const CHECKMATE_URGENCY_BASE   = 200;   // bonus for any attack on king zone (was 120)
+const CHECKMATE_URGENCY_PER    = 150;   // per attacker near the enemy king (was 80)
+const CHECKMATE_NEARNESS_BONUS = 120;   // bonus per enemy king escape square under attack (was 60)
+const CHECKMATE_DEPTH_BONUS    = 400;   // extra bonus when in endgame (was 200)
 
 // ── Pawn chain & structure ──────────────────────────────────────────────────────
 // ES: Cadena de peones y estructura
@@ -766,21 +766,21 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
   // de mover piezas sin rumbo. Esto añade un bono extra proporcional a la ventaja
   // que incentiva al bot a cruzar el río, atacar, y terminar la partida.
   const ADV_ADVANTAGE_THRESHOLD = 300;  // minimum material advantage to trigger urgency
-  const ADV_CROSSED_RIVER_BONUS = 18;   // bonus per own piece in enemy territory when winning
-  const ADV_PAWN_PUSH_BONUS     = 12;   // bonus per pawn advance when winning
-  const ADV_MAX_URGENCY         = 400;  // max conversion urgency bonus
+  const ADV_CROSSED_RIVER_BONUS = 30;   // bonus per own piece in enemy territory when winning (was 18)
+  const ADV_PAWN_PUSH_BONUS     = 20;   // bonus per pawn advance when winning (was 12)
+  const ADV_MAX_URGENCY         = 700;  // max conversion urgency bonus (was 400)
   let blackAdvUrgency = 0, whiteAdvUrgency = 0;
   if (materialAdv > ADV_ADVANTAGE_THRESHOLD) {
-    // Black is winning — incentivise pushing forward
+    // Black is winning — incentivise pushing forward (BLACK advances toward row 12)
     for (let r = 0; r < 13; r++) {
       for (let c = 0; c < 13; c++) {
         const p = board[r][c];
         if (!p || p.side !== SIDE.BLACK) continue;
         if (p.type === 'king') continue;
         if (p.type !== 'pawn') {
-          if (r <= 5) blackAdvUrgency += ADV_CROSSED_RIVER_BONUS;
+          if (r >= 7) blackAdvUrgency += ADV_CROSSED_RIVER_BONUS; // BLACK in WHITE territory
         } else {
-          const advance = 12 - r;
+          const advance = r; // BLACK pawn at r=12 is maximally advanced
           blackAdvUrgency += advance * ADV_PAWN_PUSH_BONUS / 3;
         }
       }
@@ -788,16 +788,16 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
     blackAdvUrgency = Math.min(ADV_MAX_URGENCY, Math.round(blackAdvUrgency * (materialAdv / 2000)));
   }
   if (materialAdv < -ADV_ADVANTAGE_THRESHOLD) {
-    // White is winning — incentivise pushing forward
+    // White is winning — incentivise pushing forward (WHITE advances toward row 0)
     for (let r = 0; r < 13; r++) {
       for (let c = 0; c < 13; c++) {
         const p = board[r][c];
         if (!p || p.side !== SIDE.WHITE) continue;
         if (p.type === 'king') continue;
         if (p.type !== 'pawn') {
-          if (r >= 7) whiteAdvUrgency += ADV_CROSSED_RIVER_BONUS;
+          if (r <= 5) whiteAdvUrgency += ADV_CROSSED_RIVER_BONUS; // WHITE in BLACK territory
         } else {
-          const advance = r;
+          const advance = 12 - r; // WHITE pawn at r=0 is maximally advanced
           whiteAdvUrgency += advance * ADV_PAWN_PUSH_BONUS / 3;
         }
       }

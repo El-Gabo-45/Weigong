@@ -710,10 +710,15 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
 }
 
 function getBranches(state, move) {
-  if (isValidMove(move) && !move.fromReserve && move.from && move.to
-      && isPromotionAvailableForMove(state, move.from, move.to))
-    return [true, false];
-  return [false];
+  if (!isValidMove(move) || move.fromReserve || !move.from || !move.to) return [false];
+  if (!isPromotionAvailableForMove(state, move.from, move.to)) return [false];
+  const piece = state.board[move.from.r]?.[move.from.c];
+  // For pawns: promotion is ALWAYS beneficial (pawn → crossbow = +130 pts).
+  // Force promote=true only to avoid wasting search budget on the non-promote branch.
+  // ES: Para peones: la promoción SIEMPRE es beneficiosa. Forzar promote=true.
+  if (piece?.type === 'pawn') return [true];
+  // For other promotable pieces, explore both branches
+  return [true, false];
 }
 
 function isValidMove(move) {
@@ -875,10 +880,10 @@ function moveOrderScore(state, move, depth, currentHash = null) {
       score += 150;
     }
 
-    // Bonus for reaching back ranks (promotion zone)
-    // ES: Bono por llegar a las filas traseras (zona de promoción)
+    // Bonus for reaching promotion zone (last 3 rows of enemy territory)
+    // This is a huge incentive to push pawns to promotion
     if ((side === SIDE.WHITE && move.to.r <= 2) || (side === SIDE.BLACK && move.to.r >= 10)) {
-      score += 300;
+      score += 600; // was 300 — promotion is a game-changer
     }
   }
 
@@ -939,19 +944,14 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     const homeBackRank = side === SIDE.WHITE ? 12 : 0;
     const homePawnRank = side === SIDE.WHITE ? 10 : 2;
     // Penalise drops on the back rank — terrible placement
-    // ES: Penalizar drops en la fila trasera — pésima colocación
-    if (move.to.r === homeBackRank) {
-      score -= 200;
-    }
+    if (move.to.r === homeBackRank) score -= 200;
     // Penalise drops on the pawn rank — also terrible (blocks own pawns)
-    // ES: Penalizar drops en la fila de peones — también pésimo (bloquea peones)
-    if (move.to.r === homePawnRank) {
-      score -= 100;
-    }
-    // Bonus for dropping in advanced positions (forward)
-    // ES: Bono por soltar en posiciones avanzadas
-    if ((side === SIDE.WHITE && move.to.r >= 7) || (side === SIDE.BLACK && move.to.r <= 5)) score += 100;
-    if ((side === SIDE.WHITE && move.to.r >= 9) || (side === SIDE.BLACK && move.to.r <= 3)) score += 80;
+    if (move.to.r === homePawnRank) score -= 100;
+    // Bonus for dropping in advanced (enemy-side) positions
+    // BLACK advances toward row 12: advanced = r >= 7 (WHITE territory)
+    // WHITE advances toward row 0:  advanced = r <= 5 (BLACK territory)
+    if ((side === SIDE.BLACK && move.to.r >= 7) || (side === SIDE.WHITE && move.to.r <= 5)) score += 100;
+    if ((side === SIDE.BLACK && move.to.r >= 9) || (side === SIDE.WHITE && move.to.r <= 3)) score += 80;
   }
 
   const enemy = opponent(side);
