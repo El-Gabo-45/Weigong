@@ -112,10 +112,11 @@ export class GameDanceTracker {
     const ce  = this.centroids[side]?.get(key);
     if (!ce || ce.count < 3) return 0;
     const avgRow  = ce.sumRow / ce.count;
-    // BLACK advances toward row 0 (lower rows), WHITE toward row 12
-    const advance = side === SIDE.BLACK ? fr - avgRow : avgRow - fr;
+    // BLACK advances toward row 12 (higher rows), WHITE toward row 0 (lower rows)
+    // prog for BLACK = r (higher = more advanced), for WHITE = 12 - r
+    const advance = side === SIDE.BLACK ? avgRow - fr : fr - avgRow;
     if (advance >= PAT_ADV_THRESHOLD) return 0;
-    const thisMoveAdv = side === SIDE.BLACK ? fr - tr : tr - fr;
+    const thisMoveAdv = side === SIDE.BLACK ? tr - fr : fr - tr;
     return PAT_STAG_PEN + (thisMoveAdv <= 0 ? PAT_STAG_PEN : 0);
   }
 
@@ -779,14 +780,48 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   let score = 0;
   const PALACE_PRESSURE_BONUS = 350;
 
+  // ── ESCAPE BONUS: if the moving piece is currently under attack, heavily
+  // prioritise moving it (especially valuable pieces). This ensures the bot
+  // doesn't leave pieces hanging until they are captured.
+  // ES: BONO DE ESCAPE: si la pieza está siendo atacada, priorizar moverla.
+  if (!move.fromReserve && move.from) {
+    const attackerMap = side === 'black'
+      ? state._whiteAttackArr   // pre-built if available
+      : state._blackAttackArr;
+    // Fallback: check board directly for enemy pieces that could attack from square
+    const fromIdx = move.from.r * 13 + move.from.c;
+    const movingVal = pieceValue(moving);
+    // Simple heuristic: check 8 adjacent squares for enemy pieces as a proxy
+    // (full attack map not available here without building it — use value as proxy)
+    // We use the eval hanging penalty as signal: high-value pieces on attacked squares
+    // get a proportional escape bonus
+    if (movingVal >= 300) {
+      // Check if any enemy piece threatens from·origin by scanning nearby squares
+      const enemy = side === 'black' ? 'white' : 'black';
+      let threatened = false;
+      for (let dr = -2; dr <= 2 && !threatened; dr++) {
+        for (let dc = -2; dc <= 2 && !threatened; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = move.from.r + dr, nc = move.from.c + dc;
+          if (nr < 0 || nr >= 13 || nc < 0 || nc >= 13) continue;
+          const ep = state.board[nr]?.[nc];
+          if (ep && ep.side === enemy) threatened = true;
+        }
+      }
+      if (threatened) score += Math.min(movingVal * 0.6, 400);
+    }
+  }
+
+
   if (target) {
     const victimVal   = pieceValue(target);
     const attackerVal = pieceValue(moving);
-    // Trade bonus: capturing is ALWAYS good if the trade is even or better.
-    // Even when attacking higher value with lower, the positional benefits
-    // of removing enemy pieces are significant.
-    // ES: Capturar siempre es bueno si el cambio es justo o mejor.
-    const tradeBonus  = victimVal > attackerVal ? 2500 : (victimVal >= attackerVal ? 1500 : -300);
+    // MVV-LVA: prioritise high-value victims captured by low-value attackers.
+    // Never assign a large negative tradeBonus here — SEE in quiescence already
+    // filters losing captures; penalising them here just hides them from search.
+    // ES: MVV-LVA: priorizar víctimas de alto valor capturadas por atacantes de bajo valor.
+    // Nunca asignar tradeBonus negativo grande — SEE en quiescence ya filtra capturas perdedoras.
+    const tradeBonus  = victimVal > attackerVal ? 2500 : (victimVal >= attackerVal ? 1500 : 200);
     score += victimVal * 15 - attackerVal * 2 + tradeBonus;
   }
 
@@ -798,7 +833,8 @@ function moveOrderScore(state, move, depth, currentHash = null) {
 
   if (!move.fromReserve && moving.type === 'archer' && onBank(side, move.to.r)) score += 400;
   if (!move.fromReserve && moving.type === 'archer') {
-    const forward = side === SIDE.WHITE ? 1 : -1;
+    // BLACK advances toward higher rows (bank = row 5), WHITE toward lower rows (bank = row 7)
+    const forward = side === SIDE.BLACK ? 1 : -1;
     if ((move.to.r - move.from.r) * forward > 0) score += 50;
   }
 
@@ -863,9 +899,13 @@ function moveOrderScore(state, move, depth, currentHash = null) {
       // ES: Bono por avanzar hacia territorio enemigo
       score += Math.min(advance * 50, 200);
     } else if (advance < 0) {
-      // STRONG PENALTY for retreating
-      // ES: FUERTE PENALIZACIÓN por retroceder
-      score -= 500;
+      // STRONG PENALTY for retreating — but NOT if it's a capture (exchange/escape)
+      // and NOT if the piece is currently hanging (being attacked)
+      // ES: FUERTE PENALIZACIÓN por retroceder — pero NO si es una captura o la pieza está colgada
+      const isCapture = !!state.board[move.to?.r]?.[move.to?.c];
+      if (!isCapture) {
+        score -= 500;
+      }
     }
 
     // Crossed the river bonus

@@ -104,7 +104,7 @@ function kingShieldBonus(board, kingR, kingC, side) {
 
 const HANGING_PENALTY_FACTOR  = 0.85; // increased from 0.42 — lose a piece = massive penalty
 const DOUBLED_PAWN_PENALTY    = 22;
-const PAWN_ADVANCE_WEIGHT     = 7;
+const PAWN_ADVANCE_WEIGHT     = 14; // increased: peón debe avanzar competitivamente
 const PALACE_PRESSURE_BONUS   = 350;
 const MOBILITY_WEIGHT         = 9;
 const TEMPO_BONUS             = 15;
@@ -503,13 +503,16 @@ function pawnStructureScore(board, side) {
 
   for (const pos of pawnPositions) {
     // Check if this pawn defends another pawn (chain)
+    // A pawn at (r,c) defends pawns diagonally one row ahead (forward direction)
+    // AND is defended by pawns one row behind diagonally.
+    // We reward any pawn that has at least one friendly pawn diagonally adjacent
+    // (either row +1 or row -1) — covers both support and being supported.
     let isChain = false;
     for (const other of pawnPositions) {
       if (other.r === pos.r && other.c === pos.c) continue;
-      // Pawn at (r,c) defends pawn at (r-1,c-1) or (r-1,c+1) if advancing
-      // In this game, pawns move FORWARD: WHITE goes up (r decreases), BLACK goes down (r increases)
-      const defendedR = isBlack ? pos.r + 1 : pos.r - 1;
-      if (other.r === defendedR && (other.c === pos.c - 1 || other.c === pos.c + 1)) {
+      const rowDiff = Math.abs(other.r - pos.r);
+      const colDiff = Math.abs(other.c - pos.c);
+      if (rowDiff === 1 && colDiff === 1) {
         isChain = true;
         break;
       }
@@ -560,14 +563,17 @@ function jumpingPieceOverusePenalty(board, side, phaseFactor) {
   // Penalty when jumping pieces are moved but few normal pieces are developed
   // Only applies in the opening (high phaseFactor)
   const openingUrgency = Math.max(0, 1 - phaseFactor);
-  if (jumpPiecesMoved > 0 && normalPiecesDeveloped < 3) {
-    const lack = 3 - normalPiecesDeveloped;
+  // Only apply early-jump penalty when NO normal pieces have developed at all
+  // (threshold 3 → 1 to avoid over-penalising cannon development in the opening)
+  // ES: Solo penalizar cuando NINGUNA pieza normal se ha desarrollado (umbral 3→1)
+  if (jumpPiecesMoved > 0 && normalPiecesDeveloped < 1) {
+    const lack = 1 - normalPiecesDeveloped;
     penalty += lack * JUMP_EARLY_PENALTY;
   }
 
   // Extra penalty if more jump pieces moved than normal pieces developed
-  if (jumpPiecesMoved > normalPiecesDeveloped && normalPiecesDeveloped > 0) {
-    penalty += (jumpPiecesMoved - normalPiecesDeveloped) * JUMP_REPEAT_PENALTY;
+  if (jumpPiecesMoved > normalPiecesDeveloped + 1 && normalPiecesDeveloped > 0) {
+    penalty += (jumpPiecesMoved - normalPiecesDeveloped - 1) * JUMP_REPEAT_PENALTY;
   }
 
   return Math.round(penalty * openingUrgency);
