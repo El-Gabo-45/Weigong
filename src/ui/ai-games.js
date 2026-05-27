@@ -15,7 +15,7 @@ import { buildMoveData } from "./board-snapshot.js";
 import { sendGameForLearning, finalizeHumanGame } from "./game-learning.js";
 import { recordTimelineSnapshot, markLastNotationForCurrentState } from "./timeline.js";
 import { render } from "./gameplay.js";
-import { isSameMove, resolveAmbushAuto, getBotParams } from "./bot-player.js";
+import { isSameMove, resolveAmbushAuto, getBotParams, resetDanceTracker } from "./bot-player.js";
 
 async function runAiVsAi() {
   if (!V.aiVsAiMode || !V.aiVsAiRunning) return;
@@ -156,6 +156,7 @@ if (aiVsAiBtn) {
     V.botEnabled = false; cancelBotTimer();
     if (state.status !== "playing" && !V.humanGameFinalized) { V.humanGameFinalized = true; finalizeHumanGame(); }
     resetGame(state); V.aiVsAiMoves = []; V.aiVsAiRunning = true; V.aiVsAiMode = true;
+    resetDanceTracker();
     V.totalMoves = 0; V.currentGameNotation = []; V.gameMovesData = []; V.humanGameFinalized = false;
     V.pendingMove = null;
     aiVsAiBtn.classList.add("active"); aiVsAiBtn.textContent = "⏹ Stop AI vs AI";

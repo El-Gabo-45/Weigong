@@ -38,7 +38,7 @@ import { buildMoveData } from "./board-snapshot.js";
 import { finalizeHumanGame } from "./game-learning.js";
 import {
   resolveAmbushAuto,
-  updateBotButton, scheduleBotMove,
+  updateBotButton, scheduleBotMove, resetDanceTracker,
 } from "./bot-player.js";
 
 const STATS_KEY = 'gameStats13x13';
@@ -537,6 +537,7 @@ resetBtn.addEventListener("click", () => {
   cancelBotTimer();
   if (state.status !== "playing" && !V.humanGameFinalized) { V.humanGameFinalized = true; finalizeHumanGame(); recordResult(getResultFromStatus()); }
   resetGame(state); clearSelection(); cleanupPromoBar(); state.message = "Game restarted.";
+  resetDanceTracker();
   V.totalMoves = 0; V.currentGameNotation = []; V.gameMovesData = []; V.humanGameFinalized = false;
   V.pendingMove = null;
   V.timelineSnapshots = [];

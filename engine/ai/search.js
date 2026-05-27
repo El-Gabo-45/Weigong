@@ -131,12 +131,14 @@ export class GameDanceTracker {
 // ES: Tracker activo a nivel de módulo — fijado por searchRoot cuando el llamador lo pasa.
 let _activeDanceTracker = null;
 
-function oscillationPenalty(/* side, piece, fr, fc, tr, tc */) {
-  return 0;
+function oscillationPenalty(side, piece, fr, fc, tr, tc) {
+  if (!_activeDanceTracker) return 0;
+  return _activeDanceTracker.oscillation(side, piece, fr, fc, tr, tc);
 }
 
-function stagnationPenalty(/* side, piece, fr, fc, tr, tc */) {
-  return 0;
+function stagnationPenalty(side, piece, fr, fc, tr, tc) {
+  if (!_activeDanceTracker) return 0;
+  return _activeDanceTracker.stagnation(side, piece, fr, fc, tr, tc);
 }
 
 function now() {
@@ -960,6 +962,13 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   if (isBacktrack(state, move)) score -= 500;
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
+
+  // Anti-dance: penalise oscillating or stagnating pieces
+  // ES: Anti-dance: penaliza piezas que oscilan o se estancan
+  if (!move.fromReserve && move.from) {
+    score -= oscillationPenalty(side, moving, move.from.r, move.from.c, move.to.r, move.to.c);
+    score -= stagnationPenalty(side, moving, move.from.r, move.from.c, move.to.r, move.to.c);
+  }
 
   const mk = moveKeyUint32(move, move.promotion ?? false);
   score += killerScore(depth, mk);

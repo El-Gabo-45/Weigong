@@ -303,6 +303,7 @@ export class AdaptiveMemory {
   }
   toJSON() {
     return {
+      _version:       4,  // bump when bugs fixed — old memory discarded on load
       moveScores:     [...this.moveScores.entries()],
       featureScores:  [...this.featureScores.entries()],
       blunderMoves:   [...this.blunderMoves.entries()],
