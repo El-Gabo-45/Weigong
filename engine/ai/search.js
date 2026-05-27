@@ -711,10 +711,17 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
 function getBranches(state, move) {
   if (!isValidMove(move) || move.fromReserve || !move.from || !move.to) return [false];
   if (!isPromotionAvailableForMove(state, move.from, move.to)) return [false];
-  const piece = state.board[move.from.r]?.[move.from.c];
-  // Pawn promotion is ALWAYS better — crossbow >> pawn. Force promote=true.
-  if (piece?.type === 'pawn') return [true];
-  return [true, false];
+  // Always force promotion when available.
+  // The evalDiff sign for WHITE pieces (multiplied by -1 in makeMove) causes
+  // promote:true to appear negative to the search, so the engine was always
+  // choosing promote:false. Since promotion is always beneficial (or neutral),
+  // we force promote:true for all piece types, just as we already did for pawns.
+  // ES: Forzar siempre la promoción cuando está disponible.
+  // El signo de evalDiff para piezas blancas (multiplicado por -1 en makeMove)
+  // hacía que promote:true pareciera negativo al buscador, eligiendo siempre
+  // promote:false. Como promover es siempre beneficioso (o neutro), forzamos
+  // promote:true para todos los tipos, igual que ya se hacía para los peones.
+  return [true];
 }
 
 function isValidMove(move) {
