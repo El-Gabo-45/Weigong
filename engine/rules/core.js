@@ -228,17 +228,17 @@ export function executeDrop(state, reserveIndex, to) {
   return true;
 }
 
-const MAX_MOVES = 500; // 250 full moves (plies / 2) before draw
+const MAX_MOVES = 400; // 200 full moves (plies / 2) before draw
 // ES: Máximo de movimientos antes del empate
 
-// Post-move evaluation: detect checkmate, stalemate, palace mate, 3-fold repetition, 500-move limit
-// ES: Evaluación post-movimiento: detecta jaque mate, ahogado, mate de palacio, triple repetición, límite de 500 movimientos
+// Post-move evaluation: detect checkmate, stalemate, palace mate, 3-fold repetition, 400-move limit
+// ES: Evaluación post-movimiento: detecta jaque mate, ahogado, mate de palacio, triple repetición, límite de 400 movimientos
 export function afterMoveEvaluation(state) {
   try {
     const side = state.turn;
     const key = boardSignature(state);
     if (state.positionHistory.get(key) >= 3) { state.status = "draw"; state.message = "Draw by position repetition (3 times)."; return; }
-    if ((state.moveCount ?? 0) >= MAX_MOVES) { state.status = "draw"; state.message = "Draw by 500-move limit."; return; }
+    if ((state.moveCount ?? 0) >= MAX_MOVES) { state.status = "draw"; state.message = "Draw by 400-move limit."; return; }
     const legal = getAllLegalMoves(state, side);
     const inCheck = isKingInCheck(state, side);
     if (legal.length === 0) {

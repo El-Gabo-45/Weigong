@@ -271,7 +271,12 @@ export function isSEEPositive(state, move, buildAttackMap) {
   const piece = state.board[move.from.r]?.[move.from.c];
   if (piece && (piece.type === 'archer' || piece.type === 'cannon')) return true;
   if (state.palaceCurse?.[state.turn]?.active) return true;
+  // Always try captures — SEE is advisory, not absolute
+  // ES: Siempre intentar capturas — SEE es orientativo, no absoluto
   const targetVal = seeValue(target);
+  if (targetVal >= 300) return true; // High-value targets are always worth trying
+  const pieceVal = piece ? seeValue(piece) : 0;
+  if (targetVal > pieceVal) return true; // Capturing up = always worth trying
   const boardCopy = copyBoard(acquireBoard(), state.board);
   const attackerSide = opponent(state.turn);
   const attackMap = buildAttackMap(boardCopy, attackerSide);

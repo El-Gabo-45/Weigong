@@ -62,8 +62,10 @@ function serializeState(state) {
       black: { active: state.palaceCurse.black.active, turnsInPalace: state.palaceCurse.black.turnsInPalace },
     } : { white: { active: false, turnsInPalace: 0 }, black: { active: false, turnsInPalace: 0 } },
     lastMove: state.lastMove ? { ...state.lastMove } : null,
-    history: state.history ? [...state.history] : [],
-    positionHistory: [...(state.positionHistory?.entries() ?? [])],
+    // BigInt can't be JSON.stringify'd — convert to string
+    // ES: BigInt no se puede serializar con JSON.stringify — convertir a string
+    history: state.history ? state.history.map(h => String(h)) : [],
+    positionHistory: [...(state.positionHistory?.entries() ?? [])].map(([k, v]) => [String(k), v]),
     lastRepeatedMoveKey: state.lastRepeatedMoveKey ?? null,
     repeatMoveCount: state.repeatMoveCount ?? 0,
     status: state.status,

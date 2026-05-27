@@ -208,6 +208,13 @@ export function pseudoMovesForPiece(board, piece, r, c, state) {
       const skip = (row) => isRiverSquare(row) ? row + f : row;
       let nr = skip(r + f);
       if (inBounds(nr, c) && !board[nr][c]) push(nr, c);
+      // ADVANCED PAWN: double-step from starting row (White row 10, Black row 2)
+      // ES: PEÓN AVANZADO: doble paso desde la fila inicial (Blanca fila 10, Negra fila 2)
+      const startRow = piece.side === SIDE.WHITE ? 10 : 2;
+      if (r === startRow) {
+        const nr2 = skip(r + 2 * f);
+        if (inBounds(nr2, c) && !board[nr2][c] && !board[r + f][c]) push(nr2, c);
+      }
       let nd = skip(r + f);
       if (inBounds(nd, c-1)) { const t = board[nd][c-1]; if (t && t.side !== piece.side) push(nd, c-1); }
       if (inBounds(nd, c+1)) { const t = board[nd][c+1]; if (t && t.side !== piece.side) push(nd, c+1); }

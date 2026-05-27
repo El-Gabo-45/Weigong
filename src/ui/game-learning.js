@@ -12,7 +12,9 @@ async function sendGameForLearning(movesArray, finalStatus, result) {
       moveKeyStr: m.moveKeyStr ?? null, featureKey: m.featureKey ?? null,
       evalBefore: m.evalBefore ?? null, evalAfter: m.evalAfter ?? null,
       metrics: m.metrics ?? null, notation: m.notation ?? '',
-      positionHash: m.positionHash ?? null,
+      // BigInt can't be JSON.stringify'd — convert to string if present
+      // ES: BigInt no se puede serializar con JSON.stringify — convertir a string
+      positionHash: m.positionHash != null ? String(m.positionHash) : null,
       _nnFloat32: m._nnFloat32 ? Array.from(m._nnFloat32) : undefined,
       boardSnapshot: m.boardSnapshot ? (m.boardSnapshot instanceof Int16Array ? boardSnapshotToJSON(m.boardSnapshot) : m.boardSnapshot) : undefined,
       stateAfter: m.stateAfter ?? undefined,

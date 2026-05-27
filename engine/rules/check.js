@@ -348,22 +348,20 @@ export function isSquareAttacked(board, r, c, bySide, state) {
   const enemyKing = kings[bySide];
   const myKing = kings[opponent(bySide)];
   if (enemyKing && myKing) {
-    // Kings have limited range; do not treat long-distance alignment as an attack.
-    // Only consider the special "face-to-face" case when the kings are within
-    // a short manhattan distance (<=2), which matches the king's movement.
+    // FLYING GENERAL RULE: two kings can NEVER face each other on the same row,
+    // column, or diagonal with no pieces between them, at ANY distance.
+    // ES: REGLA DEL GENERAL VOLADOR: dos reyes NUNCA pueden enfrentarse en la
+    // misma fila, columna o diagonal sin piezas entre ellos, a CUALQUIER distancia.
+    const dr = Math.sign(myKing.r - enemyKing.r);
+    const dc = Math.sign(myKing.c - enemyKing.c);
     const drAbs = Math.abs(myKing.r - enemyKing.r);
     const dcAbs = Math.abs(myKing.c - enemyKing.c);
-    const manhattan = drAbs + dcAbs;
-    if (manhattan <= 2) {
-      const dr = Math.sign(myKing.r - enemyKing.r);
-      const dc = Math.sign(myKing.c - enemyKing.c);
-      const sameRow = dr === 0 && dc !== 0;
-      const sameCol = dc === 0 && dr !== 0;
-      const sameDiag = dr !== 0 && dc !== 0 && drAbs === dcAbs;
-      if (sameRow || sameCol || sameDiag) {
-        const between = pathSquares(enemyKing.r, enemyKing.c, myKing.r, myKing.c);
-        if (!between.some(([rr, cc]) => board[rr][cc])) return true;
-      }
+    const sameRow = dr === 0 && dc !== 0;
+    const sameCol = dc === 0 && dr !== 0;
+    const sameDiag = dr !== 0 && dc !== 0 && drAbs === dcAbs;
+    if (sameRow || sameCol || sameDiag) {
+      const between = pathSquares(enemyKing.r, enemyKing.c, myKing.r, myKing.c);
+      if (!between.some(([rr, cc]) => board[rr][cc])) return true;
     }
   }
   return false;

@@ -782,13 +782,17 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   if (target) {
     const victimVal   = pieceValue(target);
     const attackerVal = pieceValue(moving);
-    const tradeBonus  = victimVal > attackerVal ? 2000 : (victimVal === attackerVal ? 1000 : -500);
-    score += victimVal * 12 - attackerVal * 2 + tradeBonus;
+    // Trade bonus: capturing is ALWAYS good if the trade is even or better.
+    // Even when attacking higher value with lower, the positional benefits
+    // of removing enemy pieces are significant.
+    // ES: Capturar siempre es bueno si el cambio es justo o mejor.
+    const tradeBonus  = victimVal > attackerVal ? 2500 : (victimVal >= attackerVal ? 1500 : -300);
+    score += victimVal * 15 - attackerVal * 2 + tradeBonus;
   }
 
   if (!move.fromReserve && move.from && move.to
       && isPromotionAvailableForMove(state, move.from, move.to) && !moving.promoted)
-    score += 280;
+    score += 600; // increased from 280 — promotion is extremely valuable
 
   score += (12 - Math.abs(move.to.r - 6) - Math.abs(move.to.c - 6)) * 2;
 
@@ -805,57 +809,89 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     if (dist < 6) score += (6 - dist) * 10;
   }
 
-  // Pawn development bonus: strongly incentivise pawn advancement from home rank
-  // ES: Bono de desarrollo del peón: incentivar fuertemente el avance del peón
+  // ── PAWN ADVANCEMENT ──────────────────────────────────────────────────────
+  // ES: AVANCE DE PEONES
+  // Pawns MUST advance from their home rank. These bonuses are huge so pawn
+  // moves get explored before any other quiet moves. Without this, the bot
+  // sits with unmoved pawns forever.
+  // ES: Los peones DEBEN avanzar de su fila inicial. Estos bonos son enormes
+  // para que los movimientos de peón se exploren antes que otras jugadas.
   if (!move.fromReserve && moving.type === 'pawn') {
     const homePawnRow = side === SIDE.WHITE ? 10 : 2;
-    const adv = side === SIDE.WHITE ? (homePawnRow - move.to.r) : (move.to.r - homePawnRow);
+    const forward     = side === SIDE.WHITE ? -1 : 1;
+    const adv         = (move.to.r - move.from.r) * forward; // positive = forward
+
     if (adv > 0) {
-      // Bonus for advancing pawn: higher for first few ranks, diminishes
-      score += Math.min(adv * 35, 120);
+      // BIG bonus for each step forward (saturates at ~250)
+      // ES: GRAN bono por cada paso adelante
+      score += Math.min(adv * 80, 250);
     }
+
+    // Bonus for ANY pawn leaving the home pawn row
+    // ES: Bono por CUALQUIER peón que sale de la fila inicial
+    if (move.from.r === homePawnRow && adv > 0) {
+      score += 150; // break the pawn wall
+    }
+
     // Bonus for crossing the river
+    // ES: Bono por cruzar el río
     if ((side === SIDE.WHITE && move.to.r <= 6) || (side === SIDE.BLACK && move.to.r >= 6)) {
-      score += 80;
+      score += 150;
     }
-    // Bonus for pawns that reach the back ranks
+
+    // Bonus for reaching back ranks (promotion zone)
+    // ES: Bono por llegar a las filas traseras (zona de promoción)
     if ((side === SIDE.WHITE && move.to.r <= 2) || (side === SIDE.BLACK && move.to.r >= 10)) {
+      score += 300;
+    }
+  }
+
+  // ── NON-PAWN PIECE DEVELOPMENT ────────────────────────────────────────────
+  // ES: DESARROLLO DE PIEZAS NO PEÓN
+  if (!move.fromReserve && moving.type !== 'pawn' && moving.type !== 'king') {
+    const homeBackRank = side === SIDE.WHITE ? 12 : 0;
+    if (move.from.r === homeBackRank && move.to.r !== homeBackRank) {
+      // Moving off the back rank — development bonus (MASSIVE)
+      // ES: Salir de la fila trasera — bono de desarrollo (ENORME)
+      score += 200;
+    }
+
+    const forward = side === SIDE.WHITE ? -1 : 1;
+    const advance = (move.to.r - move.from.r) * forward;
+    if (advance > 0) {
+      // Bonus for advancing toward enemy territory
+      // ES: Bono por avanzar hacia territorio enemigo
+      score += Math.min(advance * 50, 200);
+    } else if (advance < 0) {
+      // STRONG PENALTY for retreating
+      // ES: FUERTE PENALIZACIÓN por retroceder
+      score -= 500;
+    }
+
+    // Crossed the river bonus
+    // ES: Bono por cruzar el río
+    if ((side === SIDE.WHITE && move.to.r <= 6) || (side === SIDE.BLACK && move.to.r >= 6)) {
       score += 150;
     }
   }
 
-  // Non-pawn piece development: bonus for moving off the home back rank
-  // ES: Desarrollo de piezas no peón: bono por salir de la fila trasera
-  if (!move.fromReserve && moving.type !== 'pawn' && moving.type !== 'king') {
-    const homeBackRank = side === SIDE.WHITE ? 12 : 0;
-    if (move.from.r === homeBackRank && move.to.r !== homeBackRank) {
-      // Moving off the back rank for the first time — development bonus
-      score += 120;
-    }
-    // HEAVY advance/retreat incentives for non-pawn, non-king pieces
-    // ES: FUERTE incentivo de avance/retroceso para piezas que no son peón ni rey
-    const forward = side === SIDE.WHITE ? -1 : 1;
-    const advance = (move.to.r - move.from.r) * forward; // positive=forward, negative=backward
-    if (advance > 0) {
-      // BONUS for moving forward — pieces should advance toward the enemy
-      // ES: BONO por avanzar — las piezas deben ir hacia el enemigo
-      score += Math.min(advance * 45, 150);
-    } else if (advance < 0) {
-      // STRONG PENALTY for retreating — pointless backward moves waste time
-      // ES: FUERTE PENALIZACIÓN por retroceder — moverse hacia atrás pierde tiempo
-      score -= 350;
-    }
-    // Crossed the river bonus for ANY non-king piece
-    // ES: Bono por cruzar el río para CUALQUIER pieza que no sea rey
-    if ((side === SIDE.WHITE && move.to.r <= 6) || (side === SIDE.BLACK && move.to.r >= 6)) {
-      score += 120;
-    }
-  }
-
   if (move.fromReserve) {
-    score += 100;
-    if ((side === SIDE.WHITE && move.to.r >= 7) || (side === SIDE.BLACK && move.to.r <= 5)) score += 80;
-    if ((side === SIDE.WHITE && move.to.r >= 9) || (side === SIDE.BLACK && move.to.r <= 3)) score += 60;
+    const homeBackRank = side === SIDE.WHITE ? 12 : 0;
+    const homePawnRank = side === SIDE.WHITE ? 10 : 2;
+    // Penalise drops on the back rank — terrible placement
+    // ES: Penalizar drops en la fila trasera — pésima colocación
+    if (move.to.r === homeBackRank) {
+      score -= 200;
+    }
+    // Penalise drops on the pawn rank — also terrible (blocks own pawns)
+    // ES: Penalizar drops en la fila de peones — también pésimo (bloquea peones)
+    if (move.to.r === homePawnRank) {
+      score -= 100;
+    }
+    // Bonus for dropping in advanced positions (forward)
+    // ES: Bono por soltar en posiciones avanzadas
+    if ((side === SIDE.WHITE && move.to.r >= 7) || (side === SIDE.BLACK && move.to.r <= 5)) score += 100;
+    if ((side === SIDE.WHITE && move.to.r >= 9) || (side === SIDE.BLACK && move.to.r <= 3)) score += 80;
   }
 
   const enemy = opponent(side);

@@ -102,7 +102,7 @@ function kingShieldBonus(board, kingR, kingC, side) {
   return shield;
 }
 
-const HANGING_PENALTY_FACTOR  = 0.42;
+const HANGING_PENALTY_FACTOR  = 0.85; // increased from 0.42 — lose a piece = massive penalty
 const DOUBLED_PAWN_PENALTY    = 22;
 const PAWN_ADVANCE_WEIGHT     = 7;
 const PALACE_PRESSURE_BONUS   = 350;
@@ -744,6 +744,55 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
          - (state.reserves.white.length * 15 * whiteThreatMult);
 
   score += (blackMap.mobilityCount.total - whiteMap.mobilityCount.total) * MOBILITY_WEIGHT;
+
+  // ── Winning advantage conversion urgency ──
+  // ES: Urgencia de conversión de ventaja
+  // When ahead in material, the bot should push forward aggressively instead of
+  // shuffling pieces. This adds an extra bonus proportional to material advantage
+  // that incentivises the bot to cross the river, attack, and finish the game.
+  // ES: Cuando tiene ventaja material, el bot debe avanzar agresivamente en lugar
+  // de mover piezas sin rumbo. Esto añade un bono extra proporcional a la ventaja
+  // que incentiva al bot a cruzar el río, atacar, y terminar la partida.
+  const ADV_ADVANTAGE_THRESHOLD = 300;  // minimum material advantage to trigger urgency
+  const ADV_CROSSED_RIVER_BONUS = 18;   // bonus per own piece in enemy territory when winning
+  const ADV_PAWN_PUSH_BONUS     = 12;   // bonus per pawn advance when winning
+  const ADV_MAX_URGENCY         = 400;  // max conversion urgency bonus
+  let blackAdvUrgency = 0, whiteAdvUrgency = 0;
+  if (materialAdv > ADV_ADVANTAGE_THRESHOLD) {
+    // Black is winning — incentivise pushing forward
+    for (let r = 0; r < 13; r++) {
+      for (let c = 0; c < 13; c++) {
+        const p = board[r][c];
+        if (!p || p.side !== SIDE.BLACK) continue;
+        if (p.type === 'king') continue;
+        if (p.type !== 'pawn') {
+          if (r <= 5) blackAdvUrgency += ADV_CROSSED_RIVER_BONUS;
+        } else {
+          const advance = 12 - r;
+          blackAdvUrgency += advance * ADV_PAWN_PUSH_BONUS / 3;
+        }
+      }
+    }
+    blackAdvUrgency = Math.min(ADV_MAX_URGENCY, Math.round(blackAdvUrgency * (materialAdv / 2000)));
+  }
+  if (materialAdv < -ADV_ADVANTAGE_THRESHOLD) {
+    // White is winning — incentivise pushing forward
+    for (let r = 0; r < 13; r++) {
+      for (let c = 0; c < 13; c++) {
+        const p = board[r][c];
+        if (!p || p.side !== SIDE.WHITE) continue;
+        if (p.type === 'king') continue;
+        if (p.type !== 'pawn') {
+          if (r >= 7) whiteAdvUrgency += ADV_CROSSED_RIVER_BONUS;
+        } else {
+          const advance = r;
+          whiteAdvUrgency += advance * ADV_PAWN_PUSH_BONUS / 3;
+        }
+      }
+    }
+    whiteAdvUrgency = Math.min(ADV_MAX_URGENCY, Math.round(whiteAdvUrgency * (-materialAdv / 2000)));
+  }
+  score += blackAdvUrgency - whiteAdvUrgency;
 
   const blackKS = kingSafetyFast(state, SIDE.BLACK, blackMap.byPiece, whiteMap.attackMap, phaseFactor, blackMap.kingPos);
   const whiteKS = kingSafetyFast(state, SIDE.WHITE, whiteMap.byPiece, blackMap.attackMap, phaseFactor, whiteMap.kingPos);
