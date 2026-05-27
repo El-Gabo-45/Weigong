@@ -112,11 +112,10 @@ export class GameDanceTracker {
     const ce  = this.centroids[side]?.get(key);
     if (!ce || ce.count < 3) return 0;
     const avgRow  = ce.sumRow / ce.count;
-    // BLACK advances toward row 12 (higher rows), WHITE toward row 0 (lower rows)
-    // prog for BLACK = r (higher = more advanced), for WHITE = 12 - r
-    const advance = side === SIDE.BLACK ? avgRow - fr : fr - avgRow;
+    // BLACK advances toward row 0 (lower rows), WHITE toward row 12
+    const advance = side === SIDE.BLACK ? fr - avgRow : avgRow - fr;
     if (advance >= PAT_ADV_THRESHOLD) return 0;
-    const thisMoveAdv = side === SIDE.BLACK ? tr - fr : fr - tr;
+    const thisMoveAdv = side === SIDE.BLACK ? fr - tr : tr - fr;
     return PAT_STAG_PEN + (thisMoveAdv <= 0 ? PAT_STAG_PEN : 0);
   }
 
@@ -131,14 +130,12 @@ export class GameDanceTracker {
 // ES: Tracker activo a nivel de módulo — fijado por searchRoot cuando el llamador lo pasa.
 let _activeDanceTracker = null;
 
-function oscillationPenalty(side, piece, fr, fc, tr, tc) {
-  if (!_activeDanceTracker) return 0;
-  return _activeDanceTracker.oscillation(side, piece, fr, fc, tr, tc);
+function oscillationPenalty(/* side, piece, fr, fc, tr, tc */) {
+  return 0;
 }
 
-function stagnationPenalty(side, piece, fr, fc, tr, tc) {
-  if (!_activeDanceTracker) return 0;
-  return _activeDanceTracker.stagnation(side, piece, fr, fc, tr, tc);
+function stagnationPenalty(/* side, piece, fr, fc, tr, tc */) {
+  return 0;
 }
 
 function now() {
@@ -715,11 +712,8 @@ function getBranches(state, move) {
   if (!isValidMove(move) || move.fromReserve || !move.from || !move.to) return [false];
   if (!isPromotionAvailableForMove(state, move.from, move.to)) return [false];
   const piece = state.board[move.from.r]?.[move.from.c];
-  // For pawns: promotion is ALWAYS beneficial (pawn → crossbow = +130 pts).
-  // Force promote=true only to avoid wasting search budget on the non-promote branch.
-  // ES: Para peones: la promoción SIEMPRE es beneficiosa. Forzar promote=true.
+  // Pawn promotion is ALWAYS better — crossbow >> pawn. Force promote=true.
   if (piece?.type === 'pawn') return [true];
-  // For other promotable pieces, explore both branches
   return [true, false];
 }
 
@@ -787,47 +781,13 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   let score = 0;
   const PALACE_PRESSURE_BONUS = 350;
 
-  // ── ESCAPE BONUS: if the moving piece is currently under attack, heavily
-  // prioritise moving it (especially valuable pieces). This ensures the bot
-  // doesn't leave pieces hanging until they are captured.
-  // ES: BONO DE ESCAPE: si la pieza está siendo atacada, priorizar moverla.
-  if (!move.fromReserve && move.from) {
-    const attackerMap = side === 'black'
-      ? state._whiteAttackArr   // pre-built if available
-      : state._blackAttackArr;
-    // Fallback: check board directly for enemy pieces that could attack from square
-    const fromIdx = move.from.r * 13 + move.from.c;
-    const movingVal = pieceValue(moving);
-    // Simple heuristic: check 8 adjacent squares for enemy pieces as a proxy
-    // (full attack map not available here without building it — use value as proxy)
-    // We use the eval hanging penalty as signal: high-value pieces on attacked squares
-    // get a proportional escape bonus
-    if (movingVal >= 300) {
-      // Check if any enemy piece threatens from·origin by scanning nearby squares
-      const enemy = side === 'black' ? 'white' : 'black';
-      let threatened = false;
-      for (let dr = -2; dr <= 2 && !threatened; dr++) {
-        for (let dc = -2; dc <= 2 && !threatened; dc++) {
-          if (dr === 0 && dc === 0) continue;
-          const nr = move.from.r + dr, nc = move.from.c + dc;
-          if (nr < 0 || nr >= 13 || nc < 0 || nc >= 13) continue;
-          const ep = state.board[nr]?.[nc];
-          if (ep && ep.side === enemy) threatened = true;
-        }
-      }
-      if (threatened) score += Math.min(movingVal * 0.6, 400);
-    }
-  }
-
-
   if (target) {
     const victimVal   = pieceValue(target);
     const attackerVal = pieceValue(moving);
-    // MVV-LVA: prioritise high-value victims captured by low-value attackers.
-    // Never assign a large negative tradeBonus here — SEE in quiescence already
-    // filters losing captures; penalising them here just hides them from search.
-    // ES: MVV-LVA: priorizar víctimas de alto valor capturadas por atacantes de bajo valor.
-    // Nunca asignar tradeBonus negativo grande — SEE en quiescence ya filtra capturas perdedoras.
+    // Trade bonus: capturing is ALWAYS good if the trade is even or better.
+    // Even when attacking higher value with lower, the positional benefits
+    // of removing enemy pieces are significant.
+    // ES: Capturar siempre es bueno si el cambio es justo o mejor.
     const tradeBonus  = victimVal > attackerVal ? 2500 : (victimVal >= attackerVal ? 1500 : 200);
     score += victimVal * 15 - attackerVal * 2 + tradeBonus;
   }
@@ -840,7 +800,6 @@ function moveOrderScore(state, move, depth, currentHash = null) {
 
   if (!move.fromReserve && moving.type === 'archer' && onBank(side, move.to.r)) score += 400;
   if (!move.fromReserve && moving.type === 'archer') {
-    // BLACK advances toward higher rows (bank = row 5), WHITE toward lower rows (bank = row 7)
     const forward = side === SIDE.BLACK ? 1 : -1;
     if ((move.to.r - move.from.r) * forward > 0) score += 50;
   }
@@ -876,16 +835,14 @@ function moveOrderScore(state, move, depth, currentHash = null) {
       score += 150; // break the pawn wall
     }
 
-    // Bonus for crossing the river (landing in enemy territory)
-    // BLACK crosses to r >= 7, WHITE crosses to r <= 5
     if ((side === SIDE.BLACK && move.to.r >= 7) || (side === SIDE.WHITE && move.to.r <= 5)) {
       score += 150;
     }
 
-    // Bonus for reaching promotion zone (last 3 rows of enemy territory)
-    // This is a huge incentive to push pawns to promotion
+    // Bonus for reaching back ranks (promotion zone)
+    // ES: Bono por llegar a las filas traseras (zona de promoción)
     if ((side === SIDE.WHITE && move.to.r <= 2) || (side === SIDE.BLACK && move.to.r >= 10)) {
-      score += 600; // was 300 — promotion is a game-changer
+      score += 600;
     }
   }
 
@@ -893,52 +850,32 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   // ES: DESARROLLO DE PIEZAS NO PEÓN
   if (!move.fromReserve && moving.type !== 'pawn' && moving.type !== 'king') {
     const homeBackRank = side === SIDE.WHITE ? 12 : 0;
-    const ownRiverEdge = side === SIDE.BLACK ? 6 : 6; // river row
 
-    // GENERAL: extremely fragile piece — heavily penalise advancing past own side,
-    // especially toward enemy archers. The general should stay back as support.
-    // ES: GENERAL: pieza muy frágil — penalizar fuerte el avance al lado enemigo.
     if (moving.type === 'general') {
-      const isOwnSideRow = side === SIDE.BLACK ? move.to.r <= 5 : move.to.r >= 7;
-      if (!isOwnSideRow) {
-        // General crossing the river = almost always suicidal
-        score -= 800;
-      } else {
-        // On own side: small penalty for advancing too far forward (toward river)
+      // General is fragile — heavy penalty for crossing the river toward enemy archers
+      const crossedRiver = side === SIDE.BLACK ? move.to.r >= 7 : move.to.r <= 5;
+      if (crossedRiver) score -= 800;
+      else {
         const forward = side === SIDE.BLACK ? 1 : -1;
-        const advance = (move.to.r - move.from.r) * forward;
-        if (advance > 0) score -= advance * 40; // gently discourage forward movement
+        const adv = (move.to.r - move.from.r) * forward;
+        if (adv > 0) score -= adv * 40; // gently discourage forward movement
       }
     } else {
       if (move.from.r === homeBackRank && move.to.r !== homeBackRank) {
-        // Moving off the back rank — development bonus (MASSIVE)
-        // ES: Salir de la fila trasera — bono de desarrollo (ENORME)
         score += 200;
       }
-
       const forward = side === SIDE.WHITE ? -1 : 1;
       const advance = (move.to.r - move.from.r) * forward;
       if (advance > 0) {
-        // Bonus for advancing toward enemy territory
-        // ES: Bono por avanzar hacia territorio enemigo
         score += Math.min(advance * 50, 200);
       } else if (advance < 0) {
-        // STRONG PENALTY for retreating — but NOT if it's a capture (exchange/escape)
-        // ES: FUERTE PENALIZACIÓN por retroceder — pero NO si es una captura
         const isCapture = !!state.board[move.to?.r]?.[move.to?.c];
-        if (!isCapture) {
-          score -= 500;
-        }
+        if (!isCapture) score -= 500;
       }
     }
 
-    // Crossed the river bonus (but NOT for the general — already handled above)
-    // BLACK crosses toward row 12: enemy side starts at r >= 7
-    // WHITE crosses toward row 0:  enemy side starts at r <= 5
-    if (moving.type !== 'general') {
-      if ((side === SIDE.BLACK && move.to.r >= 7) || (side === SIDE.WHITE && move.to.r <= 5)) {
-        score += 150;
-      }
+    if ((side === SIDE.BLACK && move.to.r >= 7) || (side === SIDE.WHITE && move.to.r <= 5)) {
+      score += 150;
     }
   }
 
@@ -946,12 +883,17 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     const homeBackRank = side === SIDE.WHITE ? 12 : 0;
     const homePawnRank = side === SIDE.WHITE ? 10 : 2;
     // Penalise drops on the back rank — terrible placement
-    if (move.to.r === homeBackRank) score -= 200;
+    // ES: Penalizar drops en la fila trasera — pésima colocación
+    if (move.to.r === homeBackRank) {
+      score -= 200;
+    }
     // Penalise drops on the pawn rank — also terrible (blocks own pawns)
-    if (move.to.r === homePawnRank) score -= 100;
-    // Bonus for dropping in advanced (enemy-side) positions
-    // BLACK advances toward row 12: advanced = r >= 7 (WHITE territory)
-    // WHITE advances toward row 0:  advanced = r <= 5 (BLACK territory)
+    // ES: Penalizar drops en la fila de peones — también pésimo (bloquea peones)
+    if (move.to.r === homePawnRank) {
+      score -= 100;
+    }
+    // Bonus for dropping in advanced positions (forward)
+    // ES: Bono por soltar en posiciones avanzadas
     if ((side === SIDE.BLACK && move.to.r >= 7) || (side === SIDE.WHITE && move.to.r <= 5)) score += 100;
     if ((side === SIDE.BLACK && move.to.r >= 9) || (side === SIDE.WHITE && move.to.r <= 3)) score += 80;
   }
@@ -962,13 +904,6 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   if (isBacktrack(state, move)) score -= 500;
   score -= kingPenalty(state, move);
   score -= kingShufflePen(state, move);
-
-  // Anti-dance: penalise oscillating or stagnating pieces
-  // ES: Anti-dance: penaliza piezas que oscilan o se estancan
-  if (!move.fromReserve && move.from) {
-    score -= oscillationPenalty(side, moving, move.from.r, move.from.c, move.to.r, move.to.c);
-    score -= stagnationPenalty(side, moving, move.from.r, move.from.c, move.to.r, move.to.c);
-  }
 
   const mk = moveKeyUint32(move, move.promotion ?? false);
   score += killerScore(depth, mk);

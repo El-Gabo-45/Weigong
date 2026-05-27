@@ -310,7 +310,7 @@ function captureStateAfter(state) {
 export async function playSelfPlayGame(botParams) {
   const state  = createGame();
   const moves  = [];
-  const MAX_MOVES = 1000;
+  const MAX_MOVES = 500;
 
   // One dance tracker per game — persists across turns, reset at game start.
   // ES: Un tracker de baile por partida — persiste entre turnos.
@@ -427,7 +427,7 @@ export async function playSelfPlayGame(botParams) {
 
   if (state.status === 'playing' && moves.length >= MAX_MOVES) {
     state.status  = 'draw_move_limit';
-    state.message = 'Draw by movement limit (1000 moves).';
+    state.message = 'Draw by movement limit (500 moves).';
     markLastMoveNotation(moves, state);
     if (moves.length > 0) {
       moves[moves.length - 1].stateAfter = captureStateAfter(state);
@@ -440,9 +440,6 @@ export async function playSelfPlayGame(botParams) {
     adaptiveMemory.recordDrawGame(moves, state.status);
   }
 
-  // FIX-11: boardSnapshot (~500 bytes) y stateAfter (~40KB) solo se usan en UI,
-  // nunca en aprendizaje o entrenamiento. Evitar serializarlos al worker.
-  // ES: omitir datos de UI en serialización para ahorrar ~40MB por partida.
   const serializedMoves = moves.map(m => ({
     side:          m.side,
     moveKeyStr:    m.moveKeyStr,

@@ -15,9 +15,7 @@ async function sendGameForLearning(movesArray, finalStatus, result) {
       // BigInt can't be JSON.stringify'd — convert to string if present
       // ES: BigInt no se puede serializar con JSON.stringify — convertir a string
       positionHash: m.positionHash != null ? String(m.positionHash) : null,
-      _nnFloat32: m._nnFloat32 ? Array.from(m._nnFloat32) : undefined,
       boardSnapshot: m.boardSnapshot ? (m.boardSnapshot instanceof Int16Array ? boardSnapshotToJSON(m.boardSnapshot) : m.boardSnapshot) : undefined,
-      stateAfter: m.stateAfter ?? undefined,
     })),
   };
   try {

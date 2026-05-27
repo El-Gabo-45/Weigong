@@ -1,7 +1,4 @@
 import { BOARD_SIZE, SIDE } from "../../engine/constants.js";
-import {
-  encodeBoardForNN,
-} from "./analysis-panel.js";
 import { computeFullHash, extractFeatures, moveKey, moveKeyUint32 } from "../../engine/ai/index.js";
 
 // ── TypedArray-optimized board snapshot (internal) ──
@@ -74,24 +71,34 @@ function serializeState(state) {
 
 function buildMoveData(side, move, notation, evalBefore, evalResult, stateAfter) {
   const { score: evalAfter, metrics } = evalResult;
-  const featureKey = extractFeatures(stateAfter, side);
-  const positionHash = computeFullHash(stateAfter).toString();
-  const nnEncoding = encodeBoardForNN(stateAfter.board);
+  // Slim record: no full-state blob, no Float32 NN encoding per move.
+  // boardSnapshot (Int16Array 169 bytes) kept for timeline replay.
+  // stateAfter stores only the minimal fields needed to reconstruct position.
   const snap = boardSnapshot(stateAfter.board);
-  const stateAfterSerial = serializeState(stateAfter);
+  const slimState = {
+    board: stateAfter.board.map(row => row.map(p => p
+      ? { type: p.type, side: p.side, promoted: p.promoted, id: p.id }
+      : null)),
+    turn: stateAfter.turn,
+    reserves: {
+      white: stateAfter.reserves.white.map(p => ({ type: p.type, side: p.side, id: p.id })),
+      black: stateAfter.reserves.black.map(p => ({ type: p.type, side: p.side, id: p.id })),
+    },
+    palaceTaken: stateAfter.palaceTaken,
+    status: stateAfter.status,
+  };
   return {
     side,
     moveKeyStr: moveKey(move, move.promotion ?? false),
     moveKeyUint32: moveKeyUint32(move, move.promotion ?? false),
-    featureKey,
+    featureKey: extractFeatures(stateAfter, side),
     evalBefore,
     evalAfter,
     notation: notation ?? '',
     metrics,
-    positionHash,
-    _nnFloat32: nnEncoding,
+    positionHash: computeFullHash(stateAfter).toString(),
     boardSnapshot: snap,
-    stateAfter: stateAfterSerial,
+    stateAfter: slimState,
   };
 }
 

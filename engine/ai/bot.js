@@ -283,7 +283,7 @@ export function chooseBlackBotMove(state, options = {}) {
   // Record the chosen move in the per-game dance tracker so future turns
   // penalise pieces that oscillate back to the same squares.
   // ES: Registrar movimiento elegido en el tracker de baile por partida.
-  if (best && !best.fromReserve && best.from && best.to && danceTracker) {
+  if (best && !best.fromReserve && best.from && best.to) {
     try {
       const piece = state.board?.[best.from.r]?.[best.from.c];
       if (piece) danceTracker.record(state.turn, piece, best.from.r, best.from.c, best.to.r, best.to.c);
@@ -316,18 +316,14 @@ export function queueAdaptiveMemorySave() {
   }, 500);
 }
 
-// Memory version — bump this to discard old corrupted data when bugs are fixed
-// ES: Versión de memoria — incrementar para descartar datos corrompidos de bugs anteriores
-const MEMORY_VERSION = 4; // bumped: direction bugs fixed (pawn progress, crossed-river, dance tracker)
-
+const MEMORY_VERSION = 4;
 export async function loadAdaptiveMemory() {
   try {
     const res = await fetch(MEMORY_URL);
     if (!res.ok) return false;
     const data = await res.json();
-    // Discard memory from older (buggy) versions
     if (!data || data._version !== MEMORY_VERSION) {
-      console.log(`[Memory] Discarding old memory (version ${data?._version ?? 'none'} → ${MEMORY_VERSION})`);
+      console.log(`[Memory] Version mismatch (${data?._version} vs ${MEMORY_VERSION}) — starting fresh`);
       return false;
     }
     adaptiveMemory.fromJSON(data);

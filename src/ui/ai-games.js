@@ -15,7 +15,7 @@ import { buildMoveData } from "./board-snapshot.js";
 import { sendGameForLearning, finalizeHumanGame } from "./game-learning.js";
 import { recordTimelineSnapshot, markLastNotationForCurrentState } from "./timeline.js";
 import { render } from "./gameplay.js";
-import { isSameMove, resolveAmbushAuto, getBotParams, resetDanceTracker } from "./bot-player.js";
+import { isSameMove, resolveAmbushAuto, getBotParams } from "./bot-player.js";
 
 async function runAiVsAi() {
   if (!V.aiVsAiMode || !V.aiVsAiRunning) return;
@@ -39,7 +39,10 @@ async function runAiVsAi() {
       const evalBefore = evaluate(state, computeFullHash(state)).score;
       let notation;
       if (!chosen.fromReserve) {
-        const aiMove = { from: chosen.from, to: chosen.to, promotion: chosen.promotion ?? false };
+        // Use promotion flag from bot's move decision, not from legalMoves (which don't carry it)
+        const promotionFlag = (move && move.from?.r === chosen.from?.r && move.from?.c === chosen.from?.c
+          && move.to?.r === chosen.to?.r && move.to?.c === chosen.to?.c) ? (move.promotion ?? false) : false;
+        const aiMove = { from: chosen.from, to: chosen.to, promotion: promotionFlag };
         const capturedPiece = state.board[chosen.to.r][chosen.to.c];
         applyMove(state, aiMove);
         if (state.archerAmbush) { const ambush = state.archerAmbush; state.archerAmbush = null; resolveAmbushAuto(ambush, side); notation = generateMoveNotation(state, aiMove, ambush); }
@@ -100,7 +103,9 @@ async function runTrainingGame() {
         notation = generateMoveNotation(state, chosen);
         executeDrop(state, chosen.reserveIndex, chosen.to);
       } else {
-        const tMove = { from: chosen.from, to: chosen.to, promotion: chosen.promotion ?? false };
+        const promotionFlag = (move && move.from?.r === chosen.from?.r && move.from?.c === chosen.from?.c
+          && move.to?.r === chosen.to?.r && move.to?.c === chosen.to?.c) ? (move.promotion ?? false) : false;
+        const tMove = { from: chosen.from, to: chosen.to, promotion: promotionFlag };
         const capturedPiece = state.board[chosen.to.r][chosen.to.c];
         applyMove(state, tMove);
         if (state.archerAmbush) { const ambush = state.archerAmbush; state.archerAmbush = null; resolveAmbushAuto(ambush, side); notation = generateMoveNotation(state, tMove, ambush); }
@@ -156,7 +161,6 @@ if (aiVsAiBtn) {
     V.botEnabled = false; cancelBotTimer();
     if (state.status !== "playing" && !V.humanGameFinalized) { V.humanGameFinalized = true; finalizeHumanGame(); }
     resetGame(state); V.aiVsAiMoves = []; V.aiVsAiRunning = true; V.aiVsAiMode = true;
-    resetDanceTracker();
     V.totalMoves = 0; V.currentGameNotation = []; V.gameMovesData = []; V.humanGameFinalized = false;
     V.pendingMove = null;
     aiVsAiBtn.classList.add("active"); aiVsAiBtn.textContent = "⏹ Stop AI vs AI";

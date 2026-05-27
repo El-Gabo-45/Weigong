@@ -8,7 +8,6 @@ import {
   afterMoveEvaluation,
 } from "../../engine/rules/index.js";
 import { evaluate, computeFullHash } from "../../engine/ai/index.js";
-import { GameDanceTracker } from "../../engine/ai/search.js";
 import { getPieceValue, generateMoveNotation, appendCurseNotation } from "./move-notation.js";
 import { buildMoveData, serializeState } from "./board-snapshot.js";
 import { recordTimelineSnapshot, markLastNotationForCurrentState } from "./timeline.js";
@@ -27,9 +26,10 @@ function isSameMove(move, legalMove) {
   if (move.fromReserve) {
     return move.reserveIndex === legalMove.reserveIndex && move.to.r === legalMove.to.r && move.to.c === legalMove.to.c;
   }
+  // Don't compare promotion flag — promotion comes from the bot's decision,
+  // not from legalMoves which don't carry it. Match only from/to.
   return move.from?.r === legalMove.from?.r && move.from?.c === legalMove.from?.c &&
-         move.to?.r === legalMove.to?.r && move.to?.c === legalMove.to?.c &&
-         (move.promotion ?? false) === (legalMove.promotion ?? false);
+         move.to?.r === legalMove.to?.r && move.to?.c === legalMove.to?.c;
 }
 
 function isBotMoveValid(state, move) {
@@ -53,10 +53,6 @@ function resolveAmbushAuto(ambush, side) {
   }
 }
 
-// Persistent dance tracker — lives for the whole game session, reset on new game
-// ES: Tracker persistente — vive toda la partida, se resetea al iniciar nueva partida
-const _danceTracker = new GameDanceTracker(40);
-
 function getBotParams() {
   const level = parseInt(difficultySelect?.value) || 5;
   const params = [
@@ -65,7 +61,7 @@ function getBotParams() {
     { maxDepth: 11, timeLimitMs: 4500 }, { maxDepth: 12, timeLimitMs: 5000 }, { maxDepth: 13, timeLimitMs: 5500 },
     { maxDepth: 14, timeLimitMs: 6000 },
   ];
-  return { ...(params[level - 1] || params[4]), danceTracker: _danceTracker };
+  return params[level - 1] || params[4];
 }
 
 function updateBotButton() {
@@ -171,8 +167,6 @@ async function runBotTurn() {
     render();
   }
 }
-
-export function resetDanceTracker() { _danceTracker.reset(); }
 
 export {
   captureToReserveAuto, isSameMove, isBotMoveValid, resolveAmbushAuto,

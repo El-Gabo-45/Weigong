@@ -52,11 +52,9 @@ export function pieceSquareBonus(piece, r, c) {
     case 'king': bonus += isPalaceSquare(r, c, piece.side) ? 90 : -70; break;
     case 'queen': bonus += 35; break;
     case 'general':
-      // General should stay on own side — penalise heavily for crossing river
-      // BLACK general safe on r <= 5, WHITE general safe on r >= 7
       bonus += 18;
-      if (piece.side === SIDE.BLACK && r >= 7) bonus -= 200; // crossed into WHITE territory
-      if (piece.side === SIDE.WHITE && r <= 5) bonus -= 200; // crossed into BLACK territory
+      if (piece.side === SIDE.BLACK && r >= 7) bonus -= 200;
+      if (piece.side === SIDE.WHITE && r <= 5) bonus -= 200;
       break;
     case 'carriage': bonus += 10; break;
     case 'elephant': bonus += 8; break;

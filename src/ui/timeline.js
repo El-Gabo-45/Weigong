@@ -137,7 +137,9 @@ export function restoreFromTimelineSnapshot(entry) {
 }
 
 export function recordTimelineSnapshot() {
-  V.timelineSnapshots[V.totalMoves] = snapshotForTimeline();
+  // Use fast snapshot (no cloneStateForBot) to avoid O(n²) memory growth.
+  // history/positionHistory grow each move — cloning them per snapshot causes 50MB+ games.
+  V.timelineSnapshots[V.totalMoves] = snapshotForTimelineFast(V.totalMoves, V.currentGameNotation);
   V.viewPly = V.totalMoves;
 }
 
