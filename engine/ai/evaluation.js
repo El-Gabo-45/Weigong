@@ -761,7 +761,7 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
         if (!p || p.side !== SIDE.BLACK) continue;
         if (p.type === 'king') continue;
         if (p.type !== 'pawn') {
-          if (r >= 7) blackAdvUrgency += ADV_CROSSED_RIVER_BONUS;
+          if (r <= 5) blackAdvUrgency += ADV_CROSSED_RIVER_BONUS; // BLACK enemy territory: rows 0-5
         } else {
           const advance = r; // BLACK advances toward row 12
           blackAdvUrgency += advance * ADV_PAWN_PUSH_BONUS / 3;
@@ -778,7 +778,7 @@ export function evaluate(state, hash, precomputedMaps = null, skipMemory = false
         if (!p || p.side !== SIDE.WHITE) continue;
         if (p.type === 'king') continue;
         if (p.type !== 'pawn') {
-          if (r <= 5) whiteAdvUrgency += ADV_CROSSED_RIVER_BONUS;
+          if (r >= 7) whiteAdvUrgency += ADV_CROSSED_RIVER_BONUS; // WHITE enemy territory: rows 7-12
         } else {
           const advance = 12 - r; // WHITE advances toward row 0
           whiteAdvUrgency += advance * ADV_PAWN_PUSH_BONUS / 3;
