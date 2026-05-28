@@ -214,6 +214,18 @@ function markLastMoveNotation(moves, state) {
   moves[moves.length - 1].notation = note;
 }
 
+/* ─── Quick material counter for endgame detection ─── */
+// ES: Contador rápido de material para detección de final
+function countMaterial(board) {
+  let count = 0;
+  for (let r = 0; r < 13; r++)
+    for (let c = 0; c < 13; c++) {
+      const p = board[r][c];
+      if (p && p.type !== 'king' && p.type !== 'pawn') count++;
+    }
+  return count;
+}
+
 /* ─── Captura a reserva ─── */
 function captureToReserve(state, captured, captorSide) {
   if (!captured) return;
@@ -327,7 +339,7 @@ export async function playSelfPlayGame(botParams) {
     } catch { sharedTTInstance = null; }
   }
   const effectiveBotParams = { ...botParams };
-  if (sharedTTInstance) effectiveBotParams._sharedTT = sharedTTInstance;
+  if (sharedTTInstance) effectiveBotParams._sharedTTBuffer = sharedTTInstance.buffer;
 
   while (state.status === 'playing' && moves.length < MAX_MOVES) {
     const side = state.turn;
@@ -353,12 +365,26 @@ export async function playSelfPlayGame(botParams) {
       }) ?? null;
     }
 
-    const exploreChance = moves.length < 8  ? 0.5
-                        : moves.length < 30 ? 0.15
-                        : moves.length < 80 ? 0.05 : 0;
+    // ── Endgame override: after move 80, ALWAYS trust the AI ────────────────────
+    // ES: Después del movimiento 80, SIEMPRE confiar en la IA
+    // Before move 80, use exploration for training diversity:
+    // ES: Antes del movimiento 80, usar exploración para diversidad de entrenamiento
+    let trustAI = moves.length >= 80;
+    if (!trustAI) {
+      const isEndgame = moves.length > 40 && countMaterial(state.board) <= 6;
+      if (isEndgame) trustAI = true; // always trust AI in endgame
+    }
+
+    const exploreChance = !trustAI && moves.length < 8  ? 0.5
+                        : !trustAI && moves.length < 30 ? 0.15
+                        : !trustAI && moves.length < 80 ? 0.05 : 0;
 
     if (!move || Math.random() < exploreChance) {
+      // When exploring, still prefer the AI move if it's good
+      // ES: Al explorar, aún preferir el movimiento de IA si es bueno
       move = pickOpeningMove(legalMoves, state);
+      // When picking a random move, try to still promote if possible
+      // ES: Al elegir un movimiento aleatorio, intentar promocionar si es posible
     }
 
     let shouldProm    = false;

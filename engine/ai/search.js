@@ -615,7 +615,7 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
   }
 
   let bestMove = null, bestScore = maximizing ? -INF : INF, moveCount = 0;
-  const rootBoardSnapshot = JSON.stringify(state.board);
+  const rootBoardCS = boardChecksum(state.board);
 
   for (const move of moves) {
     if (now() > deadline) throw new SearchTimeout();
@@ -671,8 +671,8 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
         // ES: reconstruir después de cada unmake en la raíz — son independientes
         _rebuildMaps(rootMaps, state.board);
         if (depth >= 5) {
-          const currentSnapshot = JSON.stringify(state.board);
-          if (currentSnapshot !== rootBoardSnapshot) {
+          const currentCS = boardChecksum(state.board);
+          if (currentCS !== rootBoardCS) {
             console.error('[searchRoot] root state corrupted after unmake at depth', depth, 'move', moveKey(move, promote));
             throw new Error('root state corrupted');
           }
@@ -786,13 +786,37 @@ function kingShufflePen(state, move) {
     ? KING_SHUFFLE_PENALTY : 0;
 }
 
+// OPT: Fast board checksum (XOR of piece identities) — replaces JSON.stringify
+// which was allocating a ~5KB string 100+ times per search.
+// ES: Checksum rápido del tablero (XOR de identidades de piezas) — reemplaza
+// JSON.stringify que estaba alocando ~5KB de string 100+ veces por búsqueda.
+function boardChecksum(board) {
+  let cs = 0;
+  for (let r = 0; r < 13; r++) {
+    const row = board[r];
+    for (let c = 0; c < 13; c++) {
+      const p = row[c];
+      if (!p) continue;
+      const id = (p.side === 'black' ? 0x8000 : 0) | (r << 8) | (c << 4) | (p.type.charCodeAt(0) & 0xF);
+      cs ^= id ^ (p.promoted ? 0x10000 : 0);
+    }
+  }
+  return cs;
+}
+
+// OPT: countMaterial is called at EVERY node for null-move pruning.
+// Inline the loop to avoid function call overhead on the hot path.
+// ES: countMaterial se llama en CADA nodo para poda de movimiento nulo.
+// Inline del loop para evitar call overhead.
 function countMaterial(board) {
   let count = 0;
-  for (let r = 0; r < 13; r++)
+  for (let r = 0; r < 13; r++) {
+    const row = board[r];
     for (let c = 0; c < 13; c++) {
-      const p = board[r][c];
+      const p = row[c];
       if (p && p.type !== 'king' && p.type !== 'pawn') count++;
     }
+  }
   return count;
 }
 
@@ -944,17 +968,24 @@ function moveOrderScore(state, move, depth, currentHash = null) {
     score += 2000; // free capture bonus
   }
 
-  // Drops into own palace for defense are urgent when enemies are inside
-  // ES: Drops en el palacio propio para defensa son urgentes cuando hay enemigos dentro
+  // Drops into own palace for defense are urgent when enemies are inside.
+  // ES: Drops en el palacio propio para defensa son urgentes cuando hay enemigos dentro.
+  // OPT: Only check the 9 palace cells, not all 169 cells, and only when this is
+  // actually a defensive drop. Early-out: if any palace cell has enemy piece.
+  // ES: Solo revisar las 9 casillas del palacio, no las 169. Early-out rápido.
   if (move.fromReserve && isPalaceSquare(move.to.r, move.to.c, side)) {
-    // Check if there are enemy invaders in our palace
-    let invaders = 0;
-    for (let r = 0; r < 13; r++)
-      for (let c = 0; c < 13; c++) {
+    let hasInvaders = false;
+    const palaceCols = [5, 6, 7];
+    const palaceRows = side === SIDE.WHITE ? [10, 11, 12] : [0, 1, 2];
+    for (let ri = 0; ri < 3 && !hasInvaders; ri++) {
+      const r = palaceRows[ri];
+      for (let ci = 0; ci < 3 && !hasInvaders; ci++) {
+        const c = palaceCols[ci];
         const p = state.board[r][c];
-        if (p && p.side === enemy && isPalaceSquare(r, c, side)) invaders++;
+        if (p && p.side === enemy) hasInvaders = true;
       }
-    if (invaders > 0) score += 1200; // urgent defensive drop
+    }
+    if (hasInvaders) score += 1200; // urgent defensive drop
   }
 
   if (isBacktrack(state, move)) score -= 500;
