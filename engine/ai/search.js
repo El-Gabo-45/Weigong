@@ -901,15 +901,32 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   // ES: DESARROLLO DE PIEZAS NO PEÓN
   if (!move.fromReserve && moving.type !== 'pawn' && moving.type !== 'king') {
     const homeBackRank = side === SIDE.WHITE ? 12 : 0;
+    const crossedRiver = side === SIDE.BLACK ? move.to.r >= 7 : move.to.r <= 5;
 
-    if (moving.type === 'general') {
-      // General is fragile — heavy penalty for crossing the river toward enemy archers
-      const crossedRiver = side === SIDE.BLACK ? move.to.r >= 7 : move.to.r <= 5;
-      if (crossedRiver) score -= 800;
-      else {
+    // Promoted pieces (crossbow from pawn, etc.) should NEVER get development
+    // penalties — they're already fully developed and should attack.
+    // ES: Piezas promocionadas NUNCA deben tener penalizaciones de desarrollo.
+    // Ya están desarrolladas y deben atacar.
+    if (moving.promoted) {
+      // Promoted piece: only reward forward/aggressive movement
+      // ES: Pieza promocionada: solo recompensar movimiento agresivo
+      if (crossedRiver || isPalaceSquare(move.to.r, move.to.c, enemy)) {
+        score += 200; // promoted piece attacking enemy territory
+      }
+    } else if (moving.type === 'general') {
+      // General: reduce penalty from -800 to -200 — it was so severe that
+      // the bot would NEVER cross the river with a general even to win.
+      // ES: Reducir penalización de -800 a -200 — era tan severa que el bot
+      // NUNCA cruzaba el río con un general incluso para ganar.
+      if (crossedRiver) {
+        // Still penalize but much less — general is fragile but useful
+        score -= 200;
+        // Bonus if moving INTO enemy palace (offensive!)
+        if (isPalaceSquare(move.to.r, move.to.c, enemy)) score += 400;
+      } else {
         const forward = side === SIDE.BLACK ? 1 : -1;
         const adv = (move.to.r - move.from.r) * forward;
-        if (adv > 0) score -= adv * 40; // gently discourage forward movement
+        if (adv > 0) score -= adv * 20; // reduced from 40
       }
     } else {
       if (move.from.r === homeBackRank && move.to.r !== homeBackRank) {
@@ -919,14 +936,20 @@ function moveOrderScore(state, move, depth, currentHash = null) {
       const advance = (move.to.r - move.from.r) * forward;
       if (advance > 0) {
         score += Math.min(advance * 50, 200);
-      } else if (advance < 0) {
+      } else if (advance < 0 && !moving.promoted) {
+        // Only penalize backward moves for non-promoted pieces
+        // ES: Solo penalizar retrocesos para piezas NO promocionadas
+        // Promoted pieces (crossbow) may need to reposition to attack
         const isCapture = !!state.board[move.to?.r]?.[move.to?.c];
-        if (!isCapture) score -= 500;
+        if (!isCapture) score -= 200; // reduced from 500
       }
     }
 
     if ((side === SIDE.BLACK && move.to.r >= 7) || (side === SIDE.WHITE && move.to.r <= 5)) {
-      score += 150;
+      // Extra bonus for crossing river, but much lower for generals
+      // ES: Bono extra por cruzar río, pero mucho menor para generales
+      if (moving.type === 'general') score += 50;
+      else score += 150;
     }
   }
 
@@ -997,8 +1020,13 @@ function moveOrderScore(state, move, depth, currentHash = null) {
   score += Math.min(200, historyScore(side, mk) / 8);
   score -= Math.min(1200, adaptiveMemory.getMovepenalty(moveKey(move, move.promotion ?? false)));
 
-  // Repetition penalty: XOR directo del turno (igual que beta2.2) — sin makeMove,
-  // O(1) por movimiento y sin riesgo de corrupción de estado.
+  // Repetition penalty: penaliza solo cuando hay repetición real en la partida actual.
+  // ES: solo penaliza repeticiones reales, NO usa drawPen de memoria adaptativa.
+  // CRITICAL FIX: adaptiveMemory.getDrawPenalty() contamina TODOS los movimientos
+  // después de suficientes partidas de selfplay que terminaron en empate, haciendo
+  // que el bot evite cualquier movimiento sea cual sea su calidad. Esto causaba
+  // que "después de un punto" el bot jugara como idiota en ambos bandos.
+  // ES: Solo penalizar repeticiones reales. No aplicar drawPen de memoria.
   if (currentHash !== null && state.history?.length >= 2) {
     const futureHash = currentHash ^ ZobristTurn[0] ^ ZobristTurn[1];
     const seen = countRepetitions(state.history, futureHash);
@@ -1006,9 +1034,6 @@ function moveOrderScore(state, move, depth, currentHash = null) {
       score -= 20000;
     } else if (seen === 1) {
       score -= 4000;
-    } else {
-      const drawPen = adaptiveMemory.getDrawPenalty(futureHash.toString());
-      score -= Math.min(1200, drawPen * 3);
     }
   }
 
