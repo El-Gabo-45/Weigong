@@ -212,10 +212,30 @@ function terminalScore(state, depth, precomputedMoves = null) {
 }
 
 function isTactical(state, move) {
-  if (!move || move.fromReserve || !move.from || !move.to) return false;
+  if (!move || !move.to) return false;
+  // Drops from reserve are tactical in endgame — dropping a piece can be
+  // the critical move to checkmate or defend. Always include them.
+  // ES: Los drops desde la reserva son tácticos en el final — soltar una
+  // pieza puede ser el movimiento crítico para dar mate o defender.
+  if (move.fromReserve) {
+    // Drops into the enemy palace are always tactical (offensive pressure)
+    // ES: Drops en el palacio enemigo siempre son tácticos (presión ofensiva)
+    if (isPalaceSquare(move.to.r, move.to.c, opponent(state.turn))) return true;
+    // Drops into own palace to defend are also tactical
+    // ES: Drops en el palacio propio para defender también son tácticos
+    if (isPalaceSquare(move.to.r, move.to.c, state.turn)) return true;
+    return false;
+  }
+  if (!move.from || !move.to) return false;
   const moving = state.board?.[move.from.r]?.[move.from.c];
   if (!moving) return false;
-  if (state.board?.[move.to.r]?.[move.to.c]) return true;
+  const target = state.board?.[move.to.r]?.[move.to.c];
+  if (target) {
+    // Capturing any enemy piece inside own palace is urgent — must defend
+    // ES: Capturar cualquier pieza enemiga dentro del palacio propio es urgente
+    if (isPalaceSquare(move.to.r, move.to.c, state.turn)) return true;
+    return true; // any capture is tactical
+  }
   return !moving.promoted && isPromotionAvailableForMove(state, move.from, move.to);
 }
 
@@ -907,6 +927,35 @@ function moveOrderScore(state, move, depth, currentHash = null) {
 
   const enemy = opponent(side);
   if (isPalaceSquare(move.to.r, move.to.c, enemy)) score += PALACE_PRESSURE_BONUS;
+
+  // ── Palace defense & free captures ─────────────────────────────────────────
+  // ES: Defensa de palacio y capturas gratis
+  // When the enemy is inside our palace, capturing them is URGENT — big bonus
+  // to ensure these captures are explored first in the search.
+  // ES: Cuando el enemigo está dentro de nuestro palacio, capturarlo es URGENTE
+  if (target && target.side === enemy && isPalaceSquare(move.to.r, move.to.c, side)) {
+    score += 3000; // massive bonus for capturing palace invaders
+  }
+
+  // When the enemy curse is active, capturing anything inside their palace
+  // is a FREE capture — no SEE check needed, the curse allows it.
+  // ES: Cuando la maldición enemiga está activa, capturar en su palacio es GRATIS
+  if (state.palaceCurse?.[enemy]?.active && isPalaceSquare(move.to.r, move.to.c, enemy)) {
+    score += 2000; // free capture bonus
+  }
+
+  // Drops into own palace for defense are urgent when enemies are inside
+  // ES: Drops en el palacio propio para defensa son urgentes cuando hay enemigos dentro
+  if (move.fromReserve && isPalaceSquare(move.to.r, move.to.c, side)) {
+    // Check if there are enemy invaders in our palace
+    let invaders = 0;
+    for (let r = 0; r < 13; r++)
+      for (let c = 0; c < 13; c++) {
+        const p = state.board[r][c];
+        if (p && p.side === enemy && isPalaceSquare(r, c, side)) invaders++;
+      }
+    if (invaders > 0) score += 1200; // urgent defensive drop
+  }
 
   if (isBacktrack(state, move)) score -= 500;
   score -= kingPenalty(state, move);
