@@ -711,17 +711,17 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
 function getBranches(state, move) {
   if (!isValidMove(move) || move.fromReserve || !move.from || !move.to) return [false];
   if (!isPromotionAvailableForMove(state, move.from, move.to)) return [false];
-  // Always force promotion when available.
-  // The evalDiff sign for WHITE pieces (multiplied by -1 in makeMove) causes
-  // promote:true to appear negative to the search, so the engine was always
-  // choosing promote:false. Since promotion is always beneficial (or neutral),
-  // we force promote:true for all piece types, just as we already did for pawns.
-  // ES: Forzar siempre la promoción cuando está disponible.
-  // El signo de evalDiff para piezas blancas (multiplicado por -1 en makeMove)
-  // hacía que promote:true pareciera negativo al buscador, eligiendo siempre
-  // promote:false. Como promover es siempre beneficioso (o neutro), forzamos
-  // promote:true para todos los tipos, igual que ya se hacía para los peones.
-  return [true];
+  const piece = state.board[move.from.r]?.[move.from.c];
+  if (!piece) return [false];
+  // Pawns always promote — crossbow is strictly better in every position.
+  if (piece.type === 'pawn') return [true];
+  // For other pieces, promotion changes movement completely (tower↔diagonal, etc.).
+  // If the destination square is attacked by the opponent, explore both branches:
+  // the promoted piece might be captured immediately, so not promoting could be better
+  // (the piece survives with its original movement). If the square is safe, always promote.
+  const enemySide = opponent(state.turn);
+  const destAttacked = isSquareAttacked(state.board, move.to.r, move.to.c, enemySide, state);
+  return destAttacked ? [true, false] : [true];
 }
 
 function isValidMove(move) {

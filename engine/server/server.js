@@ -79,15 +79,16 @@ app.post('/api/memory', async (req, res) => {
 app.post('/api/saveGame', async (req, res) => {
   try {
     let game;
+    let rawBuffer = null;
     if (req.body && Object.keys(req.body).length > 0) {
       game = req.body;
     } else {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
-      const buffer = Buffer.concat(chunks);
+      rawBuffer = Buffer.concat(chunks);
       let jsonString;
       try {
-        jsonString = pako.ungzip(buffer, { to: 'string' });
+        jsonString = pako.ungzip(rawBuffer, { to: 'string' });
       } catch {
         return res.status(400).json({ error: 'Data corrupted (invalid gzip)' });
       }
@@ -99,8 +100,9 @@ app.post('/api/saveGame', async (req, res) => {
     }
 
     await fs.mkdir(GAMES_DIR, { recursive: true });
-    const name = `game_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.json`;
-    await fs.writeFile(path.join(GAMES_DIR, name), JSON.stringify(game, null, 2), 'utf8');
+    const name = `game_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.json.gz`;
+    const toWrite = rawBuffer ?? Buffer.from(pako.gzip(JSON.stringify(game)));
+    await fs.writeFile(path.join(GAMES_DIR, name), toWrite);
     console.log(`✔ Game saved: ${name}`);
     res.json({ ok: true, file: name });
   } catch (e) {
@@ -160,7 +162,7 @@ async function learnFromGamesDirect() {
   let fileNames = [];
   try {
     const all = await fs.readdir(GAMES_DIR);
-    fileNames = all.filter(f => f.endsWith('.json') && !f.includes('processed'));
+    fileNames = all.filter(f => (f.endsWith('.json') || f.endsWith('.json.gz')) && !f.includes('processed'));
   } catch {
     return { ok: true, learned: 0, message: 'There are no saved games available' };
   }
@@ -184,7 +186,12 @@ async function learnFromGamesDirect() {
 
     // Leer solo este lote en paralelo
     const batchContents = await Promise.all(
-      batchNames.map(f => fs.readFile(path.join(GAMES_DIR, f), 'utf8').catch(() => null))
+      batchNames.map(async f => {
+        try {
+          const buf = await fs.readFile(path.join(GAMES_DIR, f));
+          return f.endsWith('.gz') ? pako.ungzip(buf, { to: 'string' }) : buf.toString('utf8');
+        } catch { return null; }
+      })
     );
 
     for (let bi = 0; bi < batchNames.length; bi++) {
