@@ -84,62 +84,129 @@ export function computeFullHash(state) {
   return h;
 }
 
-// ── TranspositionTable with two-bucket aging ──────────────────────────────────
-// ── OPT-TT: Replaced the previous sort-based eviction (O(n log n), blocking) with
-// a two-bucket (generation) scheme inspired by Stockfish's TT design.
-// How it works:
-//   - The table is divided into two equal halves: buckets[0] and buckets[1].
-//   - currentBucket alternates each time the table fills (every maxSize/2 inserts).
-//   - New entries always go into currentBucket.
-//   - When currentBucket is full, it is cleared entirely and currentBucket flips.
-//     This amortizes eviction cost to O(1) per insert (occasional full-bucket clear
-//     is O(maxSize/2) but that's the same total work spread differently).
-//   - Lookups check both buckets so recently-flipped entries are still found.
-//   - Depth-preferred replacement: on collision within the same bucket, keep the
-//     entry with the higher depth (more valuable search result).
-// Compared to the old design:
-// OLD: [...map.entries()].sort() on every overflow → O(n log n), ~1ms stall
-// NEW: bucket.clear() on flip → O(n/2), amortized O(1) per insert, no sort
-// ES: Two-bucket aging para la tabla de transposición.
+// ── TranspositionTable with Uint32Array-based hash table ─────────────────────
+// OPT-TT-UINT32: Uses Uint32Array for compact storage with open addressing.
+// Each entry stores: hash (lower 32 bits), score (packed), depth/flag, bestMove
+// This reduces memory from ~200 bytes/entry (Map) to ~16 bytes/entry (Uint32Array).
+// ES: Tabla de transposición con Uint32Array para almacenamiento compacto.
+// Cada entrada: hash (32 bits inferiores), score (empaquetado), depth/flag, bestMove
+// Esto reduce memoria de ~200 bytes/entrada (Map) a ~16 bytes/entrada (Uint32Array).
+
+const TT_ENTRY_SIZE = 4; // 4 x Uint32 per entry
+const TT_HASH  = 0;
+const TT_SCORE = 1;
+const TT_DEPTH_FLAG = 2;
+const TT_MOVE  = 3;
+
+const TT_FLAG_EXACT = 0;
+const TT_FLAG_ALPHA = 1;
+const TT_FLAG_BETA  = 2;
+
 export class TranspositionTable {
   constructor(maxSize = 500_000) {
-    this.maxSize       = maxSize;
-    this.halfSize      = (maxSize / 2) | 0;
-    this.buckets       = [new Map(), new Map()];
-    this.currentBucket = 0;
+    this.maxSize = maxSize;
+    // Round to power of 2 for fast modulo via bitmask
+    this.size = 1;
+    while (this.size < maxSize) this.size <<= 1;
+    this.mask = this.size - 1;
+    // Main storage: Uint32Array with 4 values per entry
+    this.data = new Uint32Array(this.size * TT_ENTRY_SIZE);
+    // Generation marker for aging
+    this.generation = 0;
+    this.genArray = new Uint8Array(this.size);
+    this.count = 0;
     // Legacy .map accessor for size logging in bot.js
-    // ES: Acceso legacy .map para logging en bot.js
     this.map = {
-      get size() { return this._tt.buckets[0].size + this._tt.buckets[1].size; },
+      get size() { return this.count; },
       _tt: this,
     };
   }
 
+  _probe(hashLo) {
+    const mask = this.mask;
+    let idx = hashLo & mask;
+    let gen = this.genArray[idx];
+    if (gen === this.generation && this.data[idx * TT_ENTRY_SIZE + TT_HASH] === hashLo) {
+      return idx;
+    }
+    // Linear probing
+    let probe = 1;
+    while (true) {
+      idx = (hashLo + probe) & mask;
+      gen = this.genArray[idx];
+      if (gen !== this.generation || this.data[idx * TT_ENTRY_SIZE + TT_HASH] === hashLo) {
+        return idx;
+      }
+      probe++;
+      if (probe > this.size) return -1; // Table full
+    }
+  }
+
   get(key) {
-    // Check current bucket first (most recent), then the other
-    // ES: Buscar primero en el bucket actual (más reciente), luego en el otro
-    return this.buckets[this.currentBucket].get(key)
-        ?? this.buckets[this.currentBucket ^ 1].get(key)
-        ?? undefined;
+    // key is a BigInt hash - use lower 32 bits for probing
+    const hashLo = Number(key & 0xFFFFFFFFn);
+    const idx = this._probe(hashLo);
+    if (idx < 0) return undefined;
+    const base = idx * TT_ENTRY_SIZE;
+    const storedHash = this.data[base + TT_HASH];
+    if (storedHash !== hashLo) return undefined;
+    
+    // Unpack score (stored as signed 32-bit)
+    const scorePacked = this.data[base + TT_SCORE];
+    const score = scorePacked | 0; // Convert to signed
+    const depthFlag = this.data[base + TT_DEPTH_FLAG];
+    const depth = (depthFlag >> 2) & 0x3F;
+    const flag = depthFlag & 0x3;
+    const bestMoveKey = this.data[base + TT_MOVE];
+    
+    return { depth, score, flag, bestMoveKey };
   }
 
   set(key, value) {
-    const bucket = this.buckets[this.currentBucket];
-
-    // Depth-preferred replacement: if the key already exists in the current bucket,
-    // only overwrite if the new entry has equal or greater depth.
-    // ES: Reemplazo preferente por profundidad: solo sobreescribir si la nueva
-    // entrada tiene profundidad igual o mayor.
-    const existing = bucket.get(key);
-    if (existing && existing.depth > value.depth) return;
-
-    bucket.set(key, value);
-
-    // When current bucket is full, rotate to the other one
-    // ES: Cuando el bucket actual está lleno, rotar al otro
-    if (bucket.size >= this.halfSize) {
-      this.currentBucket ^= 1;
-      this.buckets[this.currentBucket].clear();
+    const hashLo = Number(key & 0xFFFFFFFFn);
+    const idx = this._probe(hashLo);
+    if (idx < 0) return; // Table full
+    
+    const base = idx * TT_ENTRY_SIZE;
+    
+    // Check if existing entry has higher depth
+    const existingGen = this.genArray[idx];
+    if (existingGen === this.generation && this.data[base + TT_HASH] === hashLo) {
+      const existingDepth = (this.data[base + TT_DEPTH_FLAG] >> 2) & 0x3F;
+      if (existingDepth > value.depth) return;
+    } else {
+      this.count++;
+    }
+    
+    // Pack and store
+    this.data[base + TT_HASH] = hashLo;
+    this.data[base + TT_SCORE] = value.score | 0; // Pack as signed
+    this.data[base + TT_DEPTH_FLAG] = ((value.depth & 0x3F) << 2) | (value.flag & 0x3);
+    this.data[base + TT_MOVE] = value.bestMoveKey || 0;
+    this.genArray[idx] = this.generation;
+    
+    // Rotate generation if table is getting full
+    if (this.count > this.size * 0.9) {
+      this.generation = (this.generation + 1) & 0xFF;
+      if (this.generation === 0) {
+        // Full cycle completed, clear old generation entries
+        this.genArray.fill(0);
+        this.count = 0;
+      }
     }
   }
+  
+  // Export constants for use by search.js
+  static get TT_EXACT() { return TT_FLAG_EXACT; }
+  static get TT_ALPHA() { return TT_FLAG_ALPHA; }
+  static get TT_BETA()  { return TT_FLAG_BETA; }
+  
+  approximateSize() {
+    return this.count;
+  }
 }
+
+// Re-export constants for backward compatibility
+export const TT_EXACT = TT_FLAG_EXACT;
+export const TT_ALPHA = TT_FLAG_ALPHA;
+export const TT_BETA  = TT_FLAG_BETA;
