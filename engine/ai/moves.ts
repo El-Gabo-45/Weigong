@@ -1,15 +1,15 @@
 // Move handling - TypeScript
-import { dbg } from '../debug/debug.js';
-import { SIDE, opponent, isPromotableType, isPalaceSquare, isReserveType } from '../constants.js';
-import { applyMove, isPromotionAvailableForMove } from '../rules/index.js';
+import { dbg } from '../debug/debug.ts';
+import { SIDE, opponent, isPromotableType, isPalaceSquare, isReserveType } from '../constants.ts';
+import { applyMove, isPromotionAvailableForMove } from '../rules/index.ts';
 import {
   xorPiece, xorReserves, ZobristTurn, ZobristPalaceWhite, ZobristPalaceBlack,
   SIDE_INDEX, PIECE_INDEX
-} from './hashing.js';
-import { applyMoveToMaps, rebuildMaps } from './incremental-attack.js';
-import { pieceValue, pieceSquareBonus, seeValue } from './piece-values.js';
-import { invalidateMaterialCache } from './material-cache.js';
-import type { Board, Piece, GameState, Move, NormalizedMove, MoveData, UndoState, AttackMaps, AttackMapsPair } from '../types.js';
+} from './hashing.ts';
+import { applyMoveToMaps, rebuildMaps } from './incremental-attack.ts';
+import { pieceValue, pieceSquareBonus, seeValue } from './piece-values.ts';
+import { invalidateMaterialCache } from './material-cache.ts';
+import type { Board, Piece, GameState, Move, NormalizedMove, MoveData, UndoState, AttackMaps, AttackMapsPair } from '../types.ts';
 
 export { pieceValue, pieceSquareBonus, seeValue };
 

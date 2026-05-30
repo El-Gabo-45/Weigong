@@ -1,14 +1,14 @@
 // Search - TypeScript
-import { dbg } from '../debug/debug.js';
-import { SIDE, opponent, isPalaceSquare, onBank, isPromotableType } from '../constants.js';
-import { getAllLegalMoves, isKingInCheck, isPromotionAvailableForMove, isSquareAttacked } from '../rules/index.js';
-import { computeFullHash, ZobristTurn } from './hashing.js';
-import { evaluate, gamePhaseFactor, buildAttackMap } from './evaluation.js';
-import { makeMove, unmakeMove, isSEEPositive, pieceValue } from './moves.js';
-import { adaptiveMemory } from './memory.js';
-import { createIncrementalMaps, applyMoveToMaps } from './incremental-attack.js';
-import { getMaterialCache, setMaterialCache, invalidateMaterialCache } from './material-cache.js';
-import type { GameState, NormalizedMove, AttackMapsPair, AttackMaps, MoveData, TTCacheEntry } from '../types.js';
+import { dbg } from '../debug/debug.ts';
+import { SIDE, opponent, isPalaceSquare, onBank, isPromotableType } from '../constants.ts';
+import { getAllLegalMoves, isKingInCheck, isPromotionAvailableForMove, isSquareAttacked } from '../rules/index.ts';
+import { computeFullHash, ZobristTurn } from './hashing.ts';
+import { evaluate, gamePhaseFactor, buildAttackMap } from './evaluation.ts';
+import { makeMove, unmakeMove, isSEEPositive, pieceValue } from './moves.ts';
+import { adaptiveMemory } from './memory.ts';
+import { createIncrementalMaps, applyMoveToMaps } from './incremental-attack.ts';
+import { getMaterialCache, setMaterialCache, invalidateMaterialCache } from './material-cache.ts';
+import type { GameState, NormalizedMove, AttackMapsPair, AttackMaps, MoveData, TTCacheEntry } from '../types.ts';
 
 const MATE_SCORE = 1_000_000;
 const INF = 1_000_000_000;

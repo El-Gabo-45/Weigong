@@ -1,6 +1,6 @@
 // Attack Map Builder - TypeScript
-import { SIDE, opponent, onBank, isOwnSide, inBounds, isPalaceSquare } from '../constants.js';
-import type { Board, Side, Piece, AttackMaps, AttackMapRaw } from '../types.js';
+import { SIDE, opponent, onBank, isOwnSide, inBounds, isPalaceSquare } from '../constants.ts';
+import type { Board, Side, Piece, AttackMaps, AttackMapRaw } from '../types.ts';
 
 const MAP_POOL_SIZE = 2048;
 let mapPoolIdx = 0;

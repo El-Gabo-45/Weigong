@@ -1,5 +1,5 @@
-import { SIDE } from '../constants.js';
-import type { Side, Piece, GameState, TTCacheEntry } from '../types.js';
+import { SIDE } from '../constants.ts';
+import type { Side, Piece, GameState, TTCacheEntry } from '../types.ts';
 
 const MASK64 = (1n << 64n) - 1n;
 

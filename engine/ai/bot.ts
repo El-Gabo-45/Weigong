@@ -1,15 +1,15 @@
 // Bot - TypeScript
-import { dbg } from '../debug/debug.js';
-import { SIDE } from '../constants.js';
-import { getAllLegalMoves } from '../rules/index.js';
-import { cloneState } from '../rules/board.js';
-import { fastCloneState } from './packed-state.js';
-import { search, searchRoot, allocateTime, moveKey, decayHistoryTable, GameDanceTracker } from './search.js';
-import { computeFullHash, TranspositionTable } from './hashing.js';
-import { SharedTT } from './shared-tt.js';
-import { evaluate } from './evaluation.js';
-import { adaptiveMemory } from './memory.js';
-import type { GameState, NormalizedMove, BotOptions, SearchResult } from '../types.js';
+import { dbg } from '../debug/debug.ts';
+import { SIDE } from '../constants.ts';
+import { getAllLegalMoves } from '../rules/index.ts';
+import { cloneState } from '../rules/board.ts';
+import { fastCloneState } from './packed-state.ts';
+import { search, searchRoot, allocateTime, moveKey, decayHistoryTable, GameDanceTracker } from './search.ts';
+import { computeFullHash, TranspositionTable } from './hashing.ts';
+import { SharedTT } from './shared-tt.ts';
+import { evaluate } from './evaluation.ts';
+import { adaptiveMemory } from './memory.ts';
+import type { GameState, NormalizedMove, BotOptions, SearchResult } from '../types.ts';
 
 const MATE_SCORE = 1_000_000;
 const TT_MAX_ENTRIES = 500_000;

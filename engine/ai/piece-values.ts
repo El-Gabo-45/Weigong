@@ -3,8 +3,8 @@
 // ES: Valores de piezas y bonificaciones por casilla
 // ═════════════════════════════════════════════════════
 
-import { SIDE, isPalaceSquare, onBank } from '../constants.js';
-import type { Piece, Side, PieceType } from '../types.js';
+import { SIDE, isPalaceSquare, onBank } from '../constants.ts';
+import type { Piece, Side, PieceType } from '../types.ts';
 
 export const PIECE_VALUES: Record<PieceType, number> = {
   king: 0, queen: 950, general: 560, elephant: 240, priest: 400,

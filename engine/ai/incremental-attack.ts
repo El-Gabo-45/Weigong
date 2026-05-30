@@ -1,7 +1,7 @@
 // Incremental Attack Map - TypeScript
-import { SIDE, opponent, isOwnSide, onBank, inBounds, isPalaceSquare } from '../constants.js';
-import { isPromotionAvailableForMove } from '../rules/index.js';
-import type { Board, Side, Piece, GameState, Move, AttackMaps, AttackMapRaw, AttackMapWrapper, ByPieceWrapper } from '../types.js';
+import { SIDE, opponent, isOwnSide, onBank, inBounds, isPalaceSquare } from '../constants.ts';
+import { isPromotionAvailableForMove } from '../rules/index.ts';
+import type { Board, Side, Piece, GameState, Move, AttackMaps, AttackMapRaw, AttackMapWrapper, ByPieceWrapper } from '../types.ts';
 
 const BOARD_SIZE = 13;
 const NUM_CELLS  = BOARD_SIZE * BOARD_SIZE;

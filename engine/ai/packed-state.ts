@@ -1,6 +1,6 @@
 // Packed State - TypeScript
-import { BOARD_SIZE } from '../constants.js';
-import type { Board, GameState, Side, Piece } from '../types.js';
+import { BOARD_SIZE } from '../constants.ts';
+import type { Board, GameState, Side, Piece } from '../types.ts';
 
 const NUM_BOARD_CELLS = BOARD_SIZE * BOARD_SIZE; // 169
 

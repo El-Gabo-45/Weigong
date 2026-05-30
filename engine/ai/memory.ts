@@ -1,6 +1,6 @@
-import { SIDE, isPalaceSquare, onBank } from '../constants.js';
-import { findKings } from '../rules/board.js';
-import type { Side, Piece, GameState, EvalMetrics } from '../types.js';
+import { SIDE, isPalaceSquare, onBank } from '../constants.ts';
+import { findKings } from '../rules/board.ts';
+import type { Side, Piece, GameState, EvalMetrics } from '../types.ts';
 
 const LEARNING_RATE      = 0.12;
 const MAX_MEMORY_SIZE    = 3000;

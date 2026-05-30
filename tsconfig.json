@@ -7,29 +7,25 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
     "noEmit": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
+    "strictBindCallApply": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "lib": ["ES2022", "DOM"],
-    "types": ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "@engine/*": ["engine/*"]
-    }
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "."
   },
   "include": [
-    "engine/**/*.ts",
-    "engine/**/*.js",
-    "src/**/*.js"
+    "engine/**/*.ts"
   ],
   "exclude": [
     "node_modules",

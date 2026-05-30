@@ -1,10 +1,10 @@
 // Evaluation - TypeScript
-import { dbg } from '../debug/debug.js';
-import { SIDE, isPalaceSquare, opponent, onBank, isOwnSide, inBounds } from '../constants.js';
-import type { Side, Board, Piece, GameState, AttackMaps, EvalResult, EvalMetrics, AttackMapWrapper } from '../types.js';
-import { adaptiveMemory, extractFeatures } from './memory.js';
-import { pieceValue, pieceSquareBonus } from './piece-values.js';
-import { buildAttackMap } from './attack-map.js';
+import { dbg } from '../debug/debug.ts';
+import { SIDE, isPalaceSquare, opponent, onBank, isOwnSide, inBounds } from '../constants.ts';
+import type { Side, Board, Piece, GameState, AttackMaps, EvalResult, EvalMetrics, AttackMapWrapper } from '../types.ts';
+import { adaptiveMemory, extractFeatures } from './memory.ts';
+import { pieceValue, pieceSquareBonus } from './piece-values.ts';
+import { buildAttackMap } from './attack-map.ts';
 
 export { buildAttackMap };
 

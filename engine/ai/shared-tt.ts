@@ -1,5 +1,5 @@
 // Shared Transposition Table - TypeScript
-import type { TTCacheEntry } from '../types.js';
+import type { TTCacheEntry } from '../types.ts';
 
 const TT_ENTRIES = 4;
 
