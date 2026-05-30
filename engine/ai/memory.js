@@ -123,7 +123,27 @@ export function extractFeatures(state, side) {
       }
     }
   }
-  return `ap:${archerOnBank}|pp:${Math.min(palacePressure,3)}|r:${reserveCount}|er:${enemyReserveCount}|pt:${palaceTaken}|ept:${enemyPalaceTaken}|cu:${curseActive}|ecu:${enemyCurseActive}|ko:${kingOutsidePalace}|eko:${enemyKingOutsidePalace}|ac:${ownArchers}|eac:${enemyArchers}|hv:${Math.min(ownHeavy,3)}|ehv:${Math.min(enemyHeavy,3)}|xc:${Math.min(ownCrossed,5)}|exc:${Math.min(enemyCrossed,5)}|cc:${Math.min(ownCenterCtrl,3)}|ecc:${Math.min(enemyCenterCtrl,3)}|pd:${Math.min(ownPalaceDef,3)}|epd:${Math.min(enemyPalaceDef,3)}|kf:${kingsFacing}|tw:${Math.min(ownTowers,2)}|etw:${Math.min(enemyTowers,2)}|cn:${Math.min(ownCannons,2)}|ecn:${Math.min(enemyCannons,2)}|pro:${Math.min(ownPromoted,3)}|epro:${Math.min(enemyPromoted,3)}|apw:${Math.min(ownAdvPawns,3)}|eapw:${Math.min(enemyAdvPawns,3)}|npz:${ownNearPromo}|enpz:${enemyNearPromo}|rtr:${ownTowersInReserve}|rgr:${ownGeneralsInReserve}|rpr:${ownPawnsInReserve}|ertr:${enemyTowersInReserve}|ergr:${enemyGeneralsInReserve}|erpr:${enemyPawnsInReserve}|krc:${ownKingCol}|ekc:${enemyKingCol}`;
+  // OPT: Use array join instead of 40+ string concatenations to reduce GC pressure
+  // ES: Usar array join en lugar de 40+ concatenaciones de strings para reducir presión de GC
+  const parts = [
+    'ap:', archerOnBank, '|pp:', Math.min(palacePressure,3), '|r:', reserveCount,
+    '|er:', enemyReserveCount, '|pt:', palaceTaken, '|ept:', enemyPalaceTaken,
+    '|cu:', curseActive, '|ecu:', enemyCurseActive, '|ko:', kingOutsidePalace,
+    '|eko:', enemyKingOutsidePalace, '|ac:', ownArchers, '|eac:', enemyArchers,
+    '|hv:', Math.min(ownHeavy,3), '|ehv:', Math.min(enemyHeavy,3),
+    '|xc:', Math.min(ownCrossed,5), '|exc:', Math.min(enemyCrossed,5),
+    '|cc:', Math.min(ownCenterCtrl,3), '|ecc:', Math.min(enemyCenterCtrl,3),
+    '|pd:', Math.min(ownPalaceDef,3), '|epd:', Math.min(enemyPalaceDef,3),
+    '|kf:', kingsFacing, '|tw:', Math.min(ownTowers,2), '|etw:', Math.min(enemyTowers,2),
+    '|cn:', Math.min(ownCannons,2), '|ecn:', Math.min(enemyCannons,2),
+    '|pro:', Math.min(ownPromoted,3), '|epro:', Math.min(enemyPromoted,3),
+    '|apw:', Math.min(ownAdvPawns,3), '|eapw:', Math.min(enemyAdvPawns,3),
+    '|npz:', ownNearPromo, '|enpz:', enemyNearPromo,
+    '|rtr:', ownTowersInReserve, '|rgr:', ownGeneralsInReserve, '|rpr:', ownPawnsInReserve,
+    '|ertr:', enemyTowersInReserve, '|ergr:', enemyGeneralsInReserve, '|erpr:', enemyPawnsInReserve,
+    '|krc:', ownKingCol, '|ekc:', enemyKingCol,
+  ];
+  return parts.join('');
 }
 
 export class AdaptiveMemory {

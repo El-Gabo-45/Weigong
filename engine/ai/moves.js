@@ -7,6 +7,7 @@ import {
 } from './hashing.js';
 import { applyMoveToMaps, rebuildMaps } from './incremental-attack.js';
 import { pieceValue, pieceSquareBonus, seeValue } from './piece-values.js';
+import { invalidateMaterialCache } from './material-cache.js';
 // Re-export so tests and other modules can import from moves.js
 export { pieceValue, pieceSquareBonus, seeValue } from './piece-values.js';
 
@@ -99,6 +100,7 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
   const rb = state.reserves.black;
   undo.reserveRemoved = null;
   undo.reserveCaptureAdded = false;
+  let hasCapture = false;
   if (move.fromReserve) {
     const entry = rw[move.reserveIndex];
     undo.reserveRemoved = entry ? { index: move.reserveIndex, entry: { ...entry } } : null;
@@ -106,7 +108,9 @@ export function makeMove(state, move, promote, currentHash, currentEval = null, 
     const target = state.board[to.r][to.c];
     const type = target.promoted ? (target.type === 'pawn' ? 'crossbow' : target.type) : target.type;
     undo.reserveCaptureAdded = isReserveType(type);
+    hasCapture = true;
   }
+  if (hasCapture) invalidateMaterialCache();
 
   undo.palaceTaken = state.palaceTaken ? { white: state.palaceTaken.white, black: state.palaceTaken.black } : null;
   undo.palaceTimers = state.palaceTimers ? { white: { ...state.palaceTimers.white }, black: { ...state.palaceTimers.black } } : null;

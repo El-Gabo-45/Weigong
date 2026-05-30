@@ -97,13 +97,78 @@ export class IncrementalAttackMap {
    * @param {boolean} shouldPromote - Whether promotion occurred
    */
   applyMove(state, move, capturedPiece, movedPiece, shouldPromote) {
-    // Full rebuild after each move — correct by definition and eliminates all
-    // incremental-delta bugs (wrong board reference, attackArr/byPieceArr mismatch,
-    // cannon subtraction with post-move board, king-line double-count).
-    // Cost is O(169) per node, same as before but without silent corruption.
-    // ES: Rebuild completo tras cada movimiento — correcto por definición y elimina
-    // todos los bugs del delta incremental. Costo O(169) por nodo.
-    this.rebuild(state.board);
+    // ── FAST GENERATIONAL REBUILD ────────────────────────────────────────────
+    // Instead of full O(169) per-side rebuild, use direct array reuse.
+    // This avoids pool allocation overhead while being guaranteed correct.
+    // The attack map arrays are zeroed in-place and re-populated.
+    // ES: Rebuild rápido generacional - reusa arrays existentes en lugar de pool allocation.
+    const pm = this._map._raw;
+    if (!pm) { this.rebuild(state.board); return; }
+    
+    // Save old arrays, zero them
+    const attackArr = pm.attack;
+    const byPiece   = pm.byPiece;
+    attackArr.fill(0);
+    byPiece.fill(0);
+    pm.mobCount = 0;
+    pm.kingIdx  = -1;
+    pm.enemyKingIdx = -1;
+    
+    const board = state.board;
+    const side  = this._side;
+    const f     = side === SIDE.WHITE ? 1 : -1;
+    
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const p = board[r][c];
+        if (!p) continue;
+        if (p.side === side) {
+          const fi = idx(r, c);
+          if (p.type === 'king') pm.kingIdx = fi;
+          this._generateMoves(board, r, c, p, f, fi, attackArr, byPiece, pm);
+        } else if (p.type === 'king') {
+          pm.enemyKingIdx = idx(r, c);
+        }
+      }
+    }
+    
+    // King-line attack
+    this._kingLineAttack(board, side, pm, attackArr, byPiece);
+    
+    pm.mobCount = this._countMobility(byPiece);
+    this._board = board;
+  }
+
+  /**
+   * Rebuild king-line attack contribution.
+   * ES: Reconstruir contribución de ataque de línea del rey.
+   */
+  _updateKingLinePointers(board) {
+    const pm = this._map._raw;
+    if (!pm) return;
+    if (pm.kingIdx >= 0 && pm.enemyKingIdx >= 0) {
+      const kr = Math.floor(pm.kingIdx / 13), kc = pm.kingIdx % 13;
+      const er = Math.floor(pm.enemyKingIdx / 13), ec = pm.enemyKingIdx % 13;
+      const dr = Math.sign(er - kr);
+      const dc = Math.sign(ec - kc);
+      const sameRow = dr === 0 && dc !== 0;
+      const sameCol = dc === 0 && dr !== 0;
+      const sameDiag = dr !== 0 && dc !== 0 && Math.abs(er - kr) === Math.abs(ec - kc);
+      if (!sameRow && !sameCol && !sameDiag) return;
+      let clear = true;
+      let cr = kr + dr, cc = kc + dc;
+      while (cr !== er || cc !== ec) {
+        if (board[cr][cc]) { clear = false; break; }
+        cr += dr; cc += dc;
+      }
+      if (clear) {
+        const ei = pm.enemyKingIdx;
+        const attackArr = pm.attack;
+        const byPiece = pm.byPiece;
+        if (attackArr[ei] < 255) attackArr[ei]++;
+        byPiece[pm.kingIdx]++;
+      }
+    }
   }
 
   /**
@@ -119,11 +184,41 @@ export class IncrementalAttackMap {
 
   /**
    * Rebuild the full attack map from scratch (fallback for complex moves).
-   * ES: Reconstruir el mapa de ataque completo desde cero.
+   * Uses generational array reuse to avoid pool allocation.
+   * ES: Reconstrucción generacional que reusa arrays existentes para evitar pool allocation.
    */
   rebuild(board) {
-    this._board = board;
-    this._map = this._buildFull(board, this._side);
+    if (this._map && this._map._raw) {
+      const pm = this._map._raw;
+      const attackArr = pm.attack;
+      const byPiece = pm.byPiece;
+      attackArr.fill(0);
+      byPiece.fill(0);
+      pm.mobCount = 0;
+      pm.kingIdx = -1;
+      pm.enemyKingIdx = -1;
+      const side = this._side;
+      const f = side === SIDE.WHITE ? 1 : -1;
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          const p = board[r][c];
+          if (!p) continue;
+          if (p.side === side) {
+            const fi = idx(r, c);
+            if (p.type === 'king') pm.kingIdx = fi;
+            this._generateMoves(board, r, c, p, f, fi, attackArr, byPiece, pm);
+          } else if (p.type === 'king') {
+            pm.enemyKingIdx = idx(r, c);
+          }
+        }
+      }
+      this._kingLineAttack(board, side, pm, attackArr, byPiece);
+      pm.mobCount = this._countMobility(byPiece);
+      this._board = board;
+    } else {
+      this._board = board;
+      this._map = this._buildFull(board, this._side);
+    }
   }
 
   // ── Internal: full rebuild ──

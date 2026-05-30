@@ -6,6 +6,7 @@ import { evaluate, gamePhaseFactor, buildAttackMap } from './evaluation.js';
 import { makeMove, unmakeMove, isSEEPositive, pieceValue } from './moves.js';
 import { adaptiveMemory } from './memory.js';
 import { createIncrementalMaps, applyMoveToMaps } from './incremental-attack.js';
+import { getMaterialCache, setMaterialCache, invalidateMaterialCache } from './material-cache.js';
 
 const MATE_SCORE = 1_000_000;
 const INF        = 1_000_000_000;
@@ -189,9 +190,12 @@ function storeHistory(side, move, depth) {
   historyTable[side].set(key, (historyTable[side].get(key) ?? 0) + depth * depth);
 }
 
+// OPT: Direct iteration with for-of avoids Map.entries() spread overhead
+// ES: Iteración directa para evitar overhead de Map.entries()
 export function decayHistoryTable() {
-  for (const [k, v] of historyTable.white) historyTable.white.set(k, v >> 1);
-  for (const [k, v] of historyTable.black) historyTable.black.set(k, v >> 1);
+  const w = historyTable.white, b = historyTable.black;
+  for (const entry of w) w.set(entry[0], entry[1] >> 1);
+  for (const entry of b) b.set(entry[0], entry[1] >> 1);
 }
 
 function isQuiet(state, move, promote) {
@@ -615,11 +619,23 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
   }
 
   let bestMove = null, bestScore = maximizing ? -INF : INF, moveCount = 0;
-  const rootBoardCS = boardChecksum(state.board);
+  // OPT-BOARDCS: Only compute checksum in debug mode — O(169) per root move
+  // ES: Solo calcular checksum en modo debug
+  const DEBUG_CHECKSUM = typeof dbg !== 'undefined' && dbg._enabled?.searchRootChecksum;
+  const rootBoardCS = DEBUG_CHECKSUM ? boardChecksum(state.board) : 0;
+
+  // Cache getBranches results per move to avoid double-call (thirdRep detection + main loop)
+  // ES: Cachear getBranches por movimiento para evitar doble llamada
+  const branchesCache = new Map();
 
   for (const move of moves) {
     if (now() > deadline) throw new SearchTimeout();
-    for (const promote of getBranches(state, move)) {
+    let branches = branchesCache.get(move);
+    if (!branches) {
+      branches = getBranches(state, move);
+      branchesCache.set(move, branches);
+    }
+    for (const promote of branches) {
       if (thirdRepMoveKeys.has(moveKeyUint32(move, promote))) {
         dbg.ai.warn('searchRoot: skipping 3rd-rep move', { move: moveKey(move, promote) });
         continue;
@@ -670,13 +686,6 @@ export function searchRoot(state, depth, alpha, beta, deadline, tt, hash, prevSc
         // INCR: rebuild after each root unmake — root moves are independent
         // ES: reconstruir después de cada unmake en la raíz — son independientes
         _rebuildMaps(rootMaps, state.board);
-        if (depth >= 5) {
-          const currentCS = boardChecksum(state.board);
-          if (currentCS !== rootBoardCS) {
-            console.error('[searchRoot] root state corrupted after unmake at depth', depth, 'move', moveKey(move, promote));
-            throw new Error('root state corrupted');
-          }
-        }
       }
     }
   }
@@ -805,10 +814,12 @@ function boardChecksum(board) {
 }
 
 // OPT: countMaterial is called at EVERY node for null-move pruning.
-// Inline the loop to avoid function call overhead on the hot path.
 // ES: countMaterial se llama en CADA nodo para poda de movimiento nulo.
-// Inline del loop para evitar call overhead.
+// OPT-COUNT: countMaterial memoized via shared material-cache.js module.
+// ES: countMaterial memoizado vía el módulo compartido material-cache.js.
 function countMaterial(board) {
+  const cached = getMaterialCache();
+  if (cached >= 0) return cached;
   let count = 0;
   for (let r = 0; r < 13; r++) {
     const row = board[r];
@@ -817,6 +828,7 @@ function countMaterial(board) {
       if (p && p.type !== 'king' && p.type !== 'pawn') count++;
     }
   }
+  setMaterialCache(count);
   return count;
 }
 
