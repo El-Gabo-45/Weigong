@@ -13,6 +13,7 @@ export interface Piece {
   side: Side;
   promoted: boolean;
   id?: string;
+  locked?: boolean;
 }
 
 export interface Position {
@@ -81,6 +82,7 @@ export interface GameState {
   positionHistory: Map<string, number>;
   history: bigint[] | null;
   archerAmbush: any;
+  moveCount?: number;
 }
 
 export type BoardRow = (Piece | null)[];

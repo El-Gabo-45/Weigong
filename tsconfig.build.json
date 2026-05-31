@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": false,
+    "declarationMap": false,
+    "allowImportingTsExtensions": false,
+    "moduleResolution": "node",
+    "outDir": "./dist-build",
+    "rootDir": "./engine",
+    "sourceMap": false
+  },
+  "include": [
+    "engine/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "neural_network_gpu",
+    "engine/ai/tsconfig.json"
+  ]
+}

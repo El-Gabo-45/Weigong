@@ -5,27 +5,30 @@
   "type": "module",
   "description": "13×13 variant chess game – full browser package (engine + UI + tools)",
   "main": "src/main.js",
-  "workspaces": ["engine"],
+  "workspaces": [
+    "engine"
+  ],
   "scripts": {
-    "start": "node --max-old-space-size=8192 --expose-gc engine/server/server.js",
-    "dev": "DEBUG=server,nn,selfplay node --max-old-space-size=8192 --expose-gc engine/server/server.js",
-    "dev:ai": "DEBUG=ai,search,memory,perf node --max-old-space-size=8192 --expose-gc engine/server/server.js",
-    "dev:all": "DEBUG=all node --max-old-space-size=8192 --expose-gc engine/server/server.js",
-    "debug": "node engine/debug/debug-cli.js",
-    "debug:eval": "node engine/debug/debug-cli.js eval",
-    "debug:search": "node engine/debug/debug-cli.js search 5 2000",
-    "debug:memory": "node engine/debug/debug-cli.js memory stats",
-    "debug:top": "node engine/debug/debug-cli.js memory top 15",
-    "debug:blunders": "node engine/debug/debug-cli.js memory blunders 10",
-    "debug:nn": "node engine/debug/debug-cli.js nn info",
-    "debug:nn:predict": "node engine/debug/debug-cli.js nn predict",
-    "debug:games": "node engine/debug/debug-cli.js games",
-    "debug:perft": "node engine/debug/debug-cli.js perft 3",
-    "debug:selfplay": "node engine/debug/debug-cli.js selfplay 1",
-    "debug:tt": "node engine/debug/debug-cli.js tt 6",
+    "start": "tsx --import tsx --max-old-space-size=8192 --expose-gc engine/server/server.js",
+    "dev": "DEBUG=server,nn,selfplay tsx --import tsx engine/server/server.js",
+    "dev:ai": "DEBUG=ai,search,memory,perf tsx --import tsx engine/server/server.js",
+    "dev:all": "DEBUG=all tsx --import tsx engine/server/server.js",
+    "debug": "tsx engine/debug/debug-cli.js",
+    "debug:eval": "tsx engine/debug/debug-cli.js eval",
+    "debug:search": "tsx engine/debug/debug-cli.js search 5 2000",
+    "debug:memory": "tsx engine/debug/debug-cli.js memory stats",
+    "debug:top": "tsx engine/debug/debug-cli.js memory top 15",
+    "debug:blunders": "tsx engine/debug/debug-cli.js memory blunders 10",
+    "debug:nn": "tsx engine/debug/debug-cli.js nn info",
+    "debug:nn:predict": "tsx engine/debug/debug-cli.js nn predict",
+    "debug:games": "tsx engine/debug/debug-cli.js games",
+    "debug:perft": "tsx engine/debug/debug-cli.js perft 3",
+    "debug:selfplay": "tsx engine/debug/debug-cli.js selfplay 1",
+    "debug:tt": "tsx engine/debug/debug-cli.js tt 6",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --verbose",
     "test:engine": "node --experimental-vm-modules node_modules/.bin/jest tests/board.test.js tests/check.test.js tests/core.test.js tests/moves.test.js tests/utils.test.js tests/hashing.test.js tests/evaluation.test.js --verbose",
     "lint": "eslint src/ tests/ engine/",
+    "build": "node scripts/build-ai-js.cjs && npx tsc -p tsconfig.build.json 2>/dev/null && cp -r dist-build/* . 2>/dev/null || true",
     "format": "prettier --write ."
   },
   "files": [
@@ -35,7 +38,15 @@
     "engine/",
     "docs/"
   ],
-  "keywords": ["chess", "variant", "13x13", "gpu", "neural-network", "ai", "opencl"],
+  "keywords": [
+    "chess",
+    "variant",
+    "13x13",
+    "gpu",
+    "neural-network",
+    "ai",
+    "opencl"
+  ],
   "license": "MIT",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -48,14 +59,17 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/node": "^25.9.1",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",
     "jest": "^30.4.2",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
   },
   "repository": {
-  "type": "git",
-  "url": "https://github.com/El-Gabo-45/Weigong.git"
+    "type": "git",
+    "url": "https://github.com/El-Gabo-45/Weigong.git"
   }
 }

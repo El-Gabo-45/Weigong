@@ -1,1 +1,265 @@
-export * from './core.js';
+// ═════════════════════════════════════════════════════
+//  Core Game Engine (EN/ES)
+// ES: Core Game Engine (EN/ES)
+//  applyMove, getAllLegalMoves, drop system, checkmate/stalemate detection
+// ES: applyMove, getAllLegalMoves, drop system, checkmate/stalemate detection
+// ═════════════════════════════════════════════════════
+
+import { BOARD_SIZE, SIDE, opponent, isPalaceSquare, onBank, forwardDir, homePromotionZone, canDropOnSide, isPromotableType, isReserveType, pieceLabel, isRiverSquare } from "../constants.js";
+import { makePiece, findKings, boardSignature, cloneState } from './board.js';
+import { createGame, resetGame } from './game.js';
+import { isSquareProtectedByArcher, getArcherAmbushResult, executeArcherAmbush, getArcherBlockedSquares } from './archer.js';
+import { isKingInCheck, isSquareAttacked, attackSquaresForPiece } from './check.js';
+import { getLegalMovesForSquare, pseudoMovesForPiece, rayMoves, jumpMoves, addIfValid } from './moves.js';
+import { updatePalaceState, isPalaceCursedFor, getPalaceInvaders } from './state.js';
+import { computeFullHash } from '../ai/hashing.js';
+import { captureToReserve } from './capture.js';
+import type { GameState, Side, Piece, Position, Move, MoveCandidate, NormalizedMove } from '../types.js';
+
+function maybePromote(state: GameState, piece: Piece, r: number, c: number): boolean {
+  if (!piece || !isPromotableType(piece.type) || piece.promoted) return false;
+  if (!homePromotionZone(piece.side, r)) return false;
+  return true;
+}
+
+function applyPromotion(piece: Piece): void { piece.promoted = true; }
+
+function moveSignature(action: NormalizedMove | null, side: Side): string | null {
+  if (!action) return null;
+  if (action.fromReserve) return `drop:${side}:${action.reserveIndex}->${action.to!.r},${action.to!.c}:${action.promotion ? 1 : 0}`;
+  return `move:${side}:${action.from!.r},${action.from!.c}->${action.to!.r},${action.to!.c}:${action.promotion ? 1 : 0}`;
+}
+
+function buildStatusMessage(state: GameState): string {
+  return isKingInCheck(state, state.turn)
+    ? `${state.turn === SIDE.WHITE ? "White" : "Black"} is on check.`
+    : `${state.turn === SIDE.WHITE ? "White" : "Black"} is on turn.`;
+}
+
+// Apply a move to the game state. Handles: drops, captures, promotion, ambush, palace curse.
+// ES: Aplica un movimiento al estado del juego.
+export function applyMove(state: GameState, action: NormalizedMove | Move): GameState {
+  if (!(state.positionHistory instanceof Map)) {
+    state.positionHistory = new Map(Object.entries(state.positionHistory || {}));
+  }
+  state.archerAmbush = null;
+  const { from, to, fromReserve = false, reserveIndex = null, silent = false, promotion = false } = action as any;
+  const board = state.board;
+  let movingPiece: Piece | null = null;
+  const currentMoveKey = moveSignature(action as NormalizedMove, state.turn);
+  if ((state as any).lastRepeatedMoveKey != null && currentMoveKey != null && (state as any).lastRepeatedMoveKey === currentMoveKey) {
+    state.repeatMoveCount = (state.repeatMoveCount || 1) + 1;
+  } else if (currentMoveKey != null) {
+    state.repeatMoveCount = 1;
+    (state as any).lastRepeatedMoveKey = currentMoveKey;
+  }
+  if (fromReserve) {
+    const dropped = state.reserves[state.turn].splice(reserveIndex, 1)[0];
+    movingPiece = makePiece(dropped.type, state.turn, false);
+    board[to.r][to.c] = movingPiece;
+    state.lastMove = { drop: true, piece: movingPiece.type, to } as any;
+  } else {
+    movingPiece = board[from.r][from.c];
+    if (!movingPiece) {
+      throw new Error(`applyMove: invalid source square (${from?.r},${from?.c})`);
+    }
+    const target = board[to.r][to.c];
+    if (target && target.side === movingPiece.side) {
+      throw new Error(`applyMove: attempted same-side capture from ${from.r},${from.c} to ${to.r},${to.c}`);
+    }
+    if (target && target.side !== movingPiece.side) captureToReserve(state, target, movingPiece.side);
+    board[to.r][to.c] = movingPiece;
+    board[from.r][from.c] = null;
+    state.lastMove = { from, to, piece: movingPiece.type } as any;
+  }
+  if (maybePromote(state, movingPiece, to.r, to.c) && promotion) applyPromotion(movingPiece);
+  updatePalaceState(state);
+  state.turn = opponent(state.turn);
+  state.selected = null;
+  state.legalMoves = [];
+  state.promotionRequest = null;
+  if (!silent) state.message = buildStatusMessage(state);
+  const key = boardSignature(state);
+  // Archer ambush trigger when landing on the bank row
+  if (!silent && movingPiece.type === "archer" && onBank(movingPiece.side, to.r) && !fromReserve) {
+    const ambushResult = getArcherAmbushResult(state, movingPiece, to);
+    if (ambushResult) state.archerAmbush = ambushResult;
+  }
+  if (!silent) {
+    state.positionHistory.set(key, (state.positionHistory.get(key) || 0) + 1);
+    state.history = state.history ?? [];
+    state.history.push(computeFullHash(state));
+    state.moveCount = (state.moveCount ?? 0) + 1;
+  }
+  return state;
+}
+
+// Palace mate: king trapped inside own palace with no escape
+// ES: Mate de palacio: rey atrapado dentro sin escape posible
+function isInPalaceMate(state: GameState, side: Side): boolean {
+  const kings = findKings(state.board);
+  const king = kings[side];
+  if (!king || !isPalaceSquare(king.r, king.c, side)) return false;
+  const enemy = opponent(side);
+  let enemyInside = false;
+  for (let r = 0; r < BOARD_SIZE && !enemyInside; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      if (state.board[r][c]?.side === enemy && isPalaceSquare(r, c, side)) { enemyInside = true; break; }
+    }
+  }
+  if (!enemyInside) return false;
+  const kingMoves = getLegalMovesForSquare(state, king.r, king.c);
+  if (kingMoves.some(m => !isPalaceSquare(m.r, m.c, side))) return false;
+  const allDefenseMoves = getAllLegalMoves(state, side);
+  if (allDefenseMoves.some(m => {
+    const t = state.board[m.to!.r][m.to!.c];
+    return t && t.side === enemy && isPalaceSquare(m.to!.r, m.to!.c, side);
+  })) return false;
+  return true;
+}
+
+// Generate all legal moves for a side (pieces + drops)
+// ES: Genera todos los movimientos legales para un bando (piezas + drops)
+export function getAllLegalMoves(state: GameState, side: Side): Move[] {
+  const board = state.board;
+  const all: Move[] = [];
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const p = board[r][c];
+      if (p && p.side === side) {
+        const moves = getLegalMovesForSquare(state, r, c);
+        for (const m of moves) all.push({ from: { r, c }, to: { r: m.r, c: m.c } });
+      }
+    }
+  }
+  for (const drop of getLegalReserveDrops(state, side)) all.push(drop);
+  return all;
+}
+
+// Generate all legal reserve drops for a side (archer-protected squares excluded)
+// ES: Genera drops legales de reserva (excluye casillas protegidas por arqueros enemigos)
+export function getLegalReserveDrops(state: GameState, side: Side): Move[] {
+  const out: Move[] = [];
+  const reserve = state.reserves[side];
+  if (reserve.length === 0) return out;
+
+  const enemy = opponent(side);
+  const ef = forwardDir(enemy);
+  const _archerSet = new Set<number>();
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const p = state.board[r][c];
+      if (!p || p.type !== 'archer' || p.side !== enemy || !onBank(enemy, r)) continue;
+      const blockRow = r + 2 * ef;
+      if (blockRow < 0 || blockRow >= BOARD_SIZE) continue;
+      for (let dc = -1; dc <= 1; dc++) {
+        const bc = c + dc;
+        if (bc >= 0 && bc < BOARD_SIZE) _archerSet.add(blockRow * BOARD_SIZE + bc);
+      }
+    }
+  }
+
+  for (let i = 0; i < reserve.length; i++) {
+    const type = reserve[i].type;
+    const tempPiece = { id: '_tmp', type, side, promoted: false, locked: false } as Piece;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (state.board[r][c]) continue;
+        if (type !== 'crossbow' && !canDropOnSide(type, side, r)) continue;
+        if (_archerSet.has(r * BOARD_SIZE + c)) continue;
+        tempPiece.type = type;
+        tempPiece.side = side;
+        state.board[r][c] = tempPiece;
+        const removed = state.reserves[side].splice(i, 1)[0];
+        const legal = !isKingInCheck(state, side);
+        state.board[r][c] = null;
+        state.reserves[side].splice(i, 0, removed);
+        if (legal) out.push({ fromReserve: true, reserveIndex: i, to: { r, c }, type, promotion: false } as any);
+      }
+    }
+  }
+  return out;
+}
+
+export function isPromotionAvailableForMove(state: GameState, from: Position, to: Position): boolean {
+  const piece = state.board[from.r][from.c];
+  if (!piece || !isPromotableType(piece.type) || piece.promoted) return false;
+  return homePromotionZone(piece.side, to.r);
+}
+
+export function moveWouldPromote(state: GameState, from: Position, to: Position): boolean { return isPromotionAvailableForMove(state, from, to); }
+
+// Check if a drop is legal: square empty, not river, own side, not archer-protected, king safe
+// ES: Verifica si un drop es legal
+export function isDropLegal(state: GameState, side: Side, reserveIndex: number, to: Position): boolean {
+  const entry = state.reserves[side][reserveIndex];
+  if (!entry || state.board[to.r][to.c] || isRiverSquare(to.r)) return false;
+  if (entry.type !== "crossbow" && !canDropOnSide(entry.type, side, to.r)) return false;
+  if (isSquareProtectedByArcher(state, to.r, to.c, opponent(side))) return false;
+  const trial = cloneState(state);
+  trial.board[to.r][to.c] = makePiece(entry.type, side, false);
+  trial.reserves[side].splice(reserveIndex, 1);
+  return !isKingInCheck(trial, side);
+}
+
+export function executeDrop(state: GameState, reserveIndex: number, to: Position): boolean {
+  const entry = state.reserves[state.turn][reserveIndex];
+  if (!entry || !isDropLegal(state, state.turn, reserveIndex, to)) return false;
+  state.board[to.r][to.c] = makePiece(entry.type, state.turn, false);
+  state.reserves[state.turn].splice(reserveIndex, 1);
+  updatePalaceState(state);
+  state.turn = opponent(state.turn);
+  state.selected = null;
+  state.legalMoves = [];
+  state.promotionRequest = null;
+  state.message = buildStatusMessage(state);
+  const key = boardSignature(state);
+  state.positionHistory.set(key, (state.positionHistory.get(key) || 0) + 1);
+  return true;
+}
+
+const MAX_MOVES = 400;
+
+// Post-move evaluation: detect checkmate, stalemate, palace mate, 3-fold repetition, 400-move limit
+// ES: Evaluación post-movimiento
+export function afterMoveEvaluation(state: GameState): GameState {
+  try {
+    const side = state.turn;
+    const key = boardSignature(state);
+    if (state.positionHistory.get(key) >= 3) { state.status = "draw"; state.message = "Draw by position repetition (3 times)."; return state; }
+    if ((state.moveCount ?? 0) >= MAX_MOVES) { state.status = "draw"; state.message = "Draw by 400-move limit."; return state; }
+    const legal = getAllLegalMoves(state, side);
+    const inCheck = isKingInCheck(state, side);
+    if (legal.length === 0) {
+      state.status = inCheck ? "checkmate" : "stalemate";
+      state.message = inCheck ? `${side === SIDE.WHITE ? "White" : "Black"} losses by checkmate.` : "Stalemate / Draw by insufficient movements.";
+    } else {
+      state.status = "playing";
+      if (isInPalaceMate(state, side)) {
+        state.status = "palacemate";
+        state.message = `${side === SIDE.WHITE ? "White" : "Black"} losses by palace siege (total siege).`;
+      }
+    }
+    if (state.status === "playing") {
+      for (const s of [SIDE.WHITE, SIDE.BLACK]) {
+        if ((state as any).palaceTaken?.[s]) {
+          try {
+            const kings = findKings(state.board);
+            const king = kings[s];
+            if (king && isPalaceSquare(king.r, king.c, s)) state.message = `${s === SIDE.WHITE ? "White" : "Black"} captures the palace.`;
+          } catch {}
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[afterMoveEvaluation] Error:", err);
+    state.status = "playing";
+    state.message = buildStatusMessage(state);
+  }
+  return state;
+}
+
+export function getPieceMoves(state: GameState, r: number, c: number): MoveCandidate[] { return getLegalMovesForSquare(state, r, c); }
+export function getReserveEntries(state: GameState, side: Side): Piece[] { return state.reserves[side]; }
+export function getBoardMeta(): { size: number; riverRows: number[]; palaceCols: number[] } { return { size: BOARD_SIZE, riverRows: [6], palaceCols: [5, 7] }; }
+export function getPieceText(piece: Piece): string { return pieceLabel(piece); }
