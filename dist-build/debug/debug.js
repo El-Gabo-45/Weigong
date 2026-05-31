@@ -1,7 +1,1 @@
-// ══════════════════════════════════════════════════════
-//  PROFESSIONAL DEBUG SYSTEM
-//  Re-export for TypeScript consumers
-// ══════════════════════════════════════════════════════
-export const dbg = {};
-export const Debug = {};
-export const createDebugPanel = (..._args) => { };
+export { dbg, Debug, createDebugPanel } from '../../../engine/debug/debug.js';
